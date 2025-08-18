@@ -12,6 +12,7 @@ import MerchantValidation from "./pages/MerchantValidation";
 import Profile from "./pages/Profile";
 import MerchantDashboard from "./pages/MerchantDashboard";
 import MerchantDemo from "./pages/MerchantDemo";
+import PaymentDemo from "./pages/PaymentDemo";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/merchant/dashboard" element={<MerchantDashboard />} />
           <Route path="/merchant/demo" element={<MerchantDemo />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/payment-demo" element={<PaymentDemo />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

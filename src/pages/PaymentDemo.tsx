@@ -3,13 +3,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, ShoppingCart } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, ShoppingCart, Settings, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import PaymentFlow from '@/components/PaymentFlow';
 
 export default function PaymentDemo() {
   const navigate = useNavigate();
   const [amount, setAmount] = useState('15.99');
+  const [autoApplyCredits, setAutoApplyCredits] = useState(true); // Default to ON for demo
   
   // Demo credit balances
   const localCredits = 850; // $8.50
@@ -34,12 +37,47 @@ export default function PaymentDemo() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-xl font-bold">Payment Demo</h1>
+            <h1 className="text-xl font-bold">Credit Payment Demo</h1>
             <p className="text-sm text-muted-foreground">
-              Test the credit payment system
+              See auto-apply credits in action
             </p>
           </div>
         </div>
+
+        {/* Demo Settings */}
+        <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-blue-900 dark:text-blue-100">
+              <Settings className="h-5 w-5" />
+              Demo Settings
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-blue-800 dark:text-blue-200">Auto-apply credits</Label>
+                <p className="text-xs text-blue-700 dark:text-blue-300">
+                  Simulate user's preference setting
+                </p>
+              </div>
+              <Switch
+                checked={autoApplyCredits}
+                onCheckedChange={setAutoApplyCredits}
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <div className="text-center p-2 bg-white/50 rounded">
+                <p className="text-xs text-blue-700 dark:text-blue-300">Local Credits</p>
+                <Badge variant="secondary">${(localCredits / 100).toFixed(2)}</Badge>
+              </div>
+              <div className="text-center p-2 bg-white/50 rounded">
+                <p className="text-xs text-blue-700 dark:text-blue-300">Network Credits</p>
+                <Badge variant="outline">${(networkCredits / 100).toFixed(2)}</Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Amount Input */}
         <Card>
@@ -61,8 +99,30 @@ export default function PaymentDemo() {
                 placeholder="Enter amount"
               />
             </div>
-            <div className="text-sm text-muted-foreground">
-              Available credits: ${((localCredits + networkCredits) / 100).toFixed(2)}
+            
+            {/* Quick amount buttons */}
+            <div className="grid grid-cols-3 gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setAmount('5.99')}
+              >
+                $5.99
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setAmount('12.99')}
+              >
+                $12.99
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setAmount('25.00')}
+              >
+                $25.00
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -73,20 +133,46 @@ export default function PaymentDemo() {
           localCredits={localCredits}
           networkCredits={networkCredits}
           onPaymentComplete={handlePaymentComplete}
-          autoApplyCredits={false}
+          autoApplyCredits={autoApplyCredits}
         />
 
-        {/* Info Card */}
-        <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+        {/* Demo Flow Explanation */}
+        <Card className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20 border-green-200 dark:border-green-800">
           <CardContent className="p-4">
-            <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
-              How Credit Priority Works
+            <h3 className="font-semibold text-green-900 dark:text-green-100 mb-3 flex items-center gap-2">
+              <Zap className="h-4 w-4" />
+              {autoApplyCredits ? "Auto-Apply Credits: ON" : "Auto-Apply Credits: OFF"}
             </h3>
-            <ol className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
-              <li>1. Local credits are applied first (merchant-specific)</li>
-              <li>2. Network credits fill the remaining balance</li>
-              <li>3. Any leftover amount is charged to your payment method</li>
-              <li>4. You earn new credits on the final paid amount!</li>
+            
+            {autoApplyCredits ? (
+              <div className="space-y-2 text-sm text-green-800 dark:text-green-200">
+                <p>✅ Credits are automatically applied at checkout</p>
+                <p>✅ Local credits used first for better rewards</p>
+                <p>✅ Network credits cover remaining balance</p>
+                <p>✅ User sees instant savings without extra steps</p>
+              </div>
+            ) : (
+              <div className="space-y-2 text-sm text-blue-800 dark:text-blue-200">
+                <p>⚪ User can manually toggle credit usage</p>
+                <p>⚪ Credits available but require user action</p>
+                <p>⚪ Good for users who want control</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* How It Motivates */}
+        <Card className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20">
+          <CardContent className="p-4">
+            <h3 className="font-semibold text-purple-900 dark:text-purple-100 mb-2">
+              🎯 How This Motivates Credit Accumulation:
+            </h3>
+            <ol className="text-sm text-purple-800 dark:text-purple-200 space-y-1">
+              <li>1. <strong>Instant gratification</strong> - See savings immediately</li>
+              <li>2. <strong>Smart defaults</strong> - Local credits used first for better rewards</li>
+              <li>3. <strong>Free purchases</strong> - Credits can cover entire transactions</li>
+              <li>4. <strong>New credits earned</strong> - 2% local + 1% network on remaining balance</li>
+              <li>5. <strong>Progress tracking</strong> - Visual goals encourage more earning</li>
             </ol>
           </CardContent>
         </Card>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +24,7 @@ interface CreditBalance {
 }
 
 export default function Profile() {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [credits, setCredits] = useState<CreditBalance[]>([]);
   const [loading, setLoading] = useState(true);
@@ -230,6 +232,14 @@ export default function Profile() {
           <Button variant="outline" className="flex items-center gap-2">
             <History className="h-4 w-4" />
             Transaction History
+          </Button>
+          <Button 
+            variant="default" 
+            className="flex items-center gap-2"
+            onClick={() => navigate('/payment-demo')}
+          >
+            <CreditCard className="h-4 w-4" />
+            Try Payment Demo
           </Button>
         </div>
       </div>
