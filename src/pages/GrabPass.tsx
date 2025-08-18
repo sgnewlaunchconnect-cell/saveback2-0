@@ -250,7 +250,7 @@ export default function GrabPass() {
         )}
 
         {/* QR Code - Only show when status is LOCKED */}
-        {grabStatus === 'LOCKED' && (
+        {(grabStatus === 'LOCKED') && (
           <Card className="mb-6">
             <CardContent className="p-6 text-center">
               <h3 className="font-semibold mb-4">Scan to Redeem</h3>
