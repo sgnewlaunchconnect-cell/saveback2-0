@@ -71,8 +71,8 @@ export default function DemoScenarios() {
     }
   ];
 
-  const startDemo = (scenarioId: string) => {
-    navigate(`/grab-pass/${scenarioId}`);
+  const startDemo = () => {
+    navigate('/pay');
   };
 
   return (
@@ -130,11 +130,11 @@ export default function DemoScenarios() {
 
                 {/* Demo Button */}
                 <Button 
-                  onClick={() => startDemo(scenario.id)}
+                  onClick={startDemo}
                   className="w-full"
                   variant="default"
                 >
-                  Try This Scenario →
+                  Try Payment Flow →
                 </Button>
               </CardContent>
             </Card>
@@ -146,37 +146,26 @@ export default function DemoScenarios() {
           <CardHeader>
             <CardTitle>How the New Flow Works</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <h4 className="font-semibold text-green-600 mb-2">👤 Customer Experience:</h4>
-                <ol className="text-sm space-y-1 list-decimal list-inside">
-                  <li>Grab deal & get QR code</li>
-                  <li>Toggle credits on/off as desired</li>
-                  <li>Show QR to merchant</li>
-                  <li>See real-time payment breakdown</li>
-                  <li>Pay remaining balance (if any)</li>
+            <CardContent className="space-y-4">
+              <div className="text-center">
+                <h4 className="font-semibold text-primary mb-4">💳 Simple Payment Flow</h4>
+                <ol className="text-sm space-y-2 list-decimal list-inside text-left max-w-md mx-auto">
+                  <li><strong>User enters bill amount</strong> (e.g., $12)</li>
+                  <li><strong>App shows breakdown:</strong> Bill, Credits available, Final payable</li>
+                  <li><strong>User taps "Confirm & Pay"</strong></li>
+                  <li><strong>Payment processed</strong> via PSP (Stripe/PayNow)</li>
+                  <li><strong>Success screen</strong> with verification code</li>
+                  <li><strong>Credits updated</strong> automatically</li>
                 </ol>
               </div>
-              <div>
-                <h4 className="font-semibold text-blue-600 mb-2">🏪 Merchant Experience:</h4>
-                <ol className="text-sm space-y-1 list-decimal list-inside">
-                  <li>Scan customer's QR code</li>
-                  <li>Enter actual purchase amount</li>
-                  <li>See automatic discount & credit calculation</li>
-                  <li>Collect remaining payment</li>
-                  <li>Confirm transaction complete</li>
-                </ol>
+              
+              <div className="mt-6 p-4 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground text-center">
+                  ✅ <strong>Merchant staff</strong> simply check the success screen on user's phone.<br/>
+                  🔒 <strong>Security:</strong> Unique 6-digit verification code for fraud prevention.
+                </p>
               </div>
-            </div>
-            
-            <div className="mt-4 p-3 bg-muted rounded-lg">
-              <p className="text-sm text-muted-foreground">
-                💡 <strong>Key Benefits:</strong> Works with any purchase amount, percentage or fixed discounts, 
-                merchant controls final amount, credits can be disabled, real-time transparency.
-              </p>
-            </div>
-          </CardContent>
+            </CardContent>
         </Card>
       </div>
     </div>

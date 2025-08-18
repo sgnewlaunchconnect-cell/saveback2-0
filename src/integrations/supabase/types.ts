@@ -187,45 +187,6 @@ export type Database = {
         }
         Relationships: []
       }
-      grabs: {
-        Row: {
-          created_at: string
-          deal_id: string
-          expires_at: string
-          id: string
-          merchant_id: string
-          pin: string
-          qr_token: string
-          status: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          deal_id: string
-          expires_at?: string
-          id?: string
-          merchant_id: string
-          pin: string
-          qr_token: string
-          status?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          deal_id?: string
-          expires_at?: string
-          id?: string
-          merchant_id?: string
-          pin?: string
-          qr_token?: string
-          status?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       group_buy_participants: {
         Row: {
           group_buy_id: string
