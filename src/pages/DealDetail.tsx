@@ -75,39 +75,26 @@ const DealDetail = () => {
     
     setGrabbing(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        toast({
-          title: "Authentication Required",
-          description: "Please sign in to grab deals.",
-          variant: "destructive",
-        });
-        setGrabbing(false);
-        return;
-      }
-
-      const response = await supabase.functions.invoke('createGrab', {
-        body: { dealId: deal.id },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
-
-      if (response.error) {
-        throw new Error(response.error.message || 'Failed to grab deal');
-      }
-
-      const { grab } = response.data;
+      // Generate a demo grab ID for demo mode
+      const demoGrabId = 'demo-' + Math.random().toString(36).substr(2, 9);
       
       toast({
         title: "Deal Grabbed!",
         description: "Your grab pass is ready.",
       });
 
-      // Navigate to grab pass with data
-      navigate(`/grab-pass/${grab.id}`, {
-        state: { grabData: grab }
+      // Navigate to grab pass with demo data
+      navigate(`/grab-pass/${demoGrabId}`, {
+        state: { 
+          grabData: {
+            id: demoGrabId,
+            deal_id: deal.id,
+            deal: deal,
+            qr_code: `demo-qr-${demoGrabId}`,
+            status: 'ACTIVE',
+            created_at: new Date().toISOString()
+          }
+        }
       });
       
     } catch (error) {
