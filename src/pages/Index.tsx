@@ -16,7 +16,7 @@ const Index = () => {
         <div className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Payment Flow Demo</CardTitle>
+              <CardTitle>Pay at Merchant</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">
