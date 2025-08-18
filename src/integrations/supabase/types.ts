@@ -38,6 +38,72 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_events: {
+        Row: {
+          created_at: string
+          description: string | null
+          event_type: string
+          grab_id: string | null
+          id: string
+          local_cents_change: number
+          merchant_id: string
+          network_cents_change: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          event_type?: string
+          grab_id?: string | null
+          id?: string
+          local_cents_change?: number
+          merchant_id: string
+          network_cents_change?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          event_type?: string
+          grab_id?: string | null
+          id?: string
+          local_cents_change?: number
+          merchant_id?: string
+          network_cents_change?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      credits: {
+        Row: {
+          created_at: string
+          id: string
+          local_cents: number
+          merchant_id: string
+          network_cents: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          local_cents?: number
+          merchant_id: string
+          network_cents?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          local_cents?: number
+          merchant_id?: string
+          network_cents?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       deals: {
         Row: {
           cashback_pct: number | null

@@ -59,6 +59,29 @@ export default function MerchantValidation() {
           title: "Valid Grab ✓",
           description: `Grab validated successfully for ${data.grab?.deal.title}`,
         });
+
+        // Issue credits after successful validation
+        try {
+          const { data: creditData, error: creditError } = await supabase.functions.invoke('issueCredits', {
+            body: { grabId: data.grab.id }
+          });
+
+          if (creditError) {
+            console.error('Credit issuance error:', creditError);
+            toast({
+              title: "Validation Success, Credit Error",
+              description: "Grab validated but credits could not be issued.",
+              variant: "destructive",
+            });
+          } else if (creditData.success) {
+            toast({
+              title: "Credits Added! 🎉",
+              description: `${creditData.message} Earned ${creditData.credits.totalCents}¢`,
+            });
+          }
+        } catch (creditError) {
+          console.error('Credit function error:', creditError);
+        }
       } else {
         toast({
           title: "Invalid Grab ✗",
