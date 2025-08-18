@@ -12,6 +12,7 @@ import MerchantValidation from "./pages/MerchantValidation";
 import Profile from "./pages/Profile";
 import MerchantDashboard from "./pages/MerchantDashboard";
 import MerchantDemo from "./pages/MerchantDemo";
+import DemoScenarios from "./pages/DemoScenarios";
 import WalletPage from "./pages/WalletPage";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/deals" element={<Deals />} />
           <Route path="/deals/:id" element={<DealDetail />} />
+          <Route path="/demo-scenarios" element={<DemoScenarios />} />
           <Route path="/grab-pass/:grabId" element={<GrabPass />} />
           <Route path="/merchant/validate" element={<MerchantValidation />} />
           <Route path="/merchant/dashboard" element={<MerchantDashboard />} />

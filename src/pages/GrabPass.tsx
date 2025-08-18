@@ -12,24 +12,39 @@ export default function GrabPass() {
     dealDiscountPct?: number;
     dealDiscountFixed?: number;
   }>({
-    dealId: "demo-deal-id",
-    merchantId: "demo-merchant-id", 
+    dealId: "550e8400-e29b-41d4-a716-446655440001",
+    merchantId: "550e8400-e29b-41d4-a716-446655440002", 
     dealTitle: "Coffee & Pastry Deal",
     dealType: "percentage",
     dealDiscountPct: 15
   });
 
-  // In a real app, you'd fetch deal details from grabId
+  // Different pricing scenarios based on grabId
   useEffect(() => {
     if (grabId) {
-      // Simulate different deal types based on grabId
-      if (grabId.includes('fixed')) {
+      if (grabId.includes('high-value')) {
         setDealInfo({
-          dealId: "demo-deal-fixed",
-          merchantId: "demo-merchant-id",
-          dealTitle: "Buy One Get $5 Off",
+          dealId: "550e8400-e29b-41d4-a716-446655440003",
+          merchantId: "550e8400-e29b-41d4-a716-446655440004",
+          dealTitle: "Premium Dinner Experience",
+          dealType: "percentage",
+          dealDiscountPct: 20
+        });
+      } else if (grabId.includes('fixed-discount')) {
+        setDealInfo({
+          dealId: "550e8400-e29b-41d4-a716-446655440005",
+          merchantId: "550e8400-e29b-41d4-a716-446655440006",
+          dealTitle: "Buy One Get $10 Off",
           dealType: "fixed",
-          dealDiscountFixed: 5
+          dealDiscountFixed: 10
+        });
+      } else if (grabId.includes('small-purchase')) {
+        setDealInfo({
+          dealId: "550e8400-e29b-41d4-a716-446655440007",
+          merchantId: "550e8400-e29b-41d4-a716-446655440008",
+          dealTitle: "Quick Snack Deal",
+          dealType: "percentage",
+          dealDiscountPct: 25
         });
       }
     }

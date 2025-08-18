@@ -16,17 +16,24 @@ const Index = () => {
         <div className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Deals Nearby</CardTitle>
+              <CardTitle>Payment Flow Demo</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">
-                Find the best deals around you and start saving
+                Try different pricing scenarios with real-time merchant interaction
               </p>
               <Button 
+                className="w-full mb-3" 
+                onClick={() => navigate('/demo-scenarios')}
+              >
+                Try Demo Scenarios
+              </Button>
+              <Button 
+                variant="outline"
                 className="w-full" 
                 onClick={() => navigate('/deals')}
               >
-                Browse Deals
+                Browse All Deals
               </Button>
             </CardContent>
           </Card>
@@ -37,14 +44,14 @@ const Index = () => {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">
-                Validate customer grabs and manage your business
+                Process customer payments and manage your business
               </p>
               <Button 
                 variant="outline"
                 className="w-full" 
                 onClick={() => navigate('/merchant/validate')}
               >
-                Validate Grab
+                Merchant Terminal
               </Button>
             </CardContent>
           </Card>
