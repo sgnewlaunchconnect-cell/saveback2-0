@@ -19,6 +19,7 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import CustomerValidation from "./components/CustomerValidation";
 import HawkerValidation from "./components/HawkerValidation";
+import MerchantPage from "./pages/MerchantPage";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/deals/:id" element={<DealDetail />} />
           <Route path="/demo-scenarios" element={<DemoScenarios />} />
           <Route path="/grab-pass/:grabId" element={<GrabPass />} />
+          <Route path="/merchant/:merchantId" element={<MerchantPage />} />
           <Route path="/merchant/validate" element={<MerchantValidation />} />
           <Route path="/merchant/dashboard" element={<MerchantDashboard />} />
           <Route path="/merchant/demo" element={<MerchantDemo />} />

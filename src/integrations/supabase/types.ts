@@ -187,6 +187,51 @@ export type Database = {
         }
         Relationships: []
       }
+      grabs: {
+        Row: {
+          created_at: string
+          deal_id: string
+          expires_at: string
+          grabbed_at: string
+          id: string
+          merchant_id: string
+          pin: string
+          qr_token: string | null
+          status: string
+          updated_at: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          expires_at?: string
+          grabbed_at?: string
+          id?: string
+          merchant_id: string
+          pin: string
+          qr_token?: string | null
+          status?: string
+          updated_at?: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          expires_at?: string
+          grabbed_at?: string
+          id?: string
+          merchant_id?: string
+          pin?: string
+          qr_token?: string | null
+          status?: string
+          updated_at?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       group_buy_participants: {
         Row: {
           group_buy_id: string
@@ -705,6 +750,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_grab_pin: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       generate_payment_code: {
         Args: Record<PropertyKey, never>
         Returns: string

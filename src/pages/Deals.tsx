@@ -16,6 +16,7 @@ interface Deal {
   end_at: string;
   merchant_id: string;
   merchants: {
+    id: string;
     name: string;
     address: string;
     latitude: number;
@@ -40,6 +41,7 @@ const Deals = () => {
         .select(`
           *,
           merchants (
+            id,
             name,
             address,
             latitude,
@@ -93,7 +95,15 @@ const Deals = () => {
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <MapPin className="h-4 w-4" />
-          <span>{deal.merchants.name}</span>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/merchant/${deal.merchants.id}`);
+            }}
+            className="hover:text-primary transition-colors cursor-pointer text-left"
+          >
+            {deal.merchants.name}
+          </button>
         </div>
       </CardHeader>
       <CardContent className="pt-0">
