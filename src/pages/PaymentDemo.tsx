@@ -167,13 +167,22 @@ export default function PaymentDemo() {
             <h3 className="font-semibold text-purple-900 dark:text-purple-100 mb-2">
               🎯 How This Motivates Credit Accumulation:
             </h3>
-            <ol className="text-sm text-purple-800 dark:text-purple-200 space-y-1">
+            <ol className="text-sm text-purple-800 dark:text-purple-200 space-y-1 mb-4">
               <li>1. <strong>Instant gratification</strong> - See savings immediately</li>
               <li>2. <strong>Smart defaults</strong> - Local credits used first for better rewards</li>
               <li>3. <strong>Free purchases</strong> - Credits can cover entire transactions</li>
               <li>4. <strong>New credits earned</strong> - 2% local + 1% network on remaining balance</li>
               <li>5. <strong>Progress tracking</strong> - Visual goals encourage more earning</li>
             </ol>
+            
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate('/credit-flow-demo')}
+              className="w-full"
+            >
+              🤔 What about merchant scanning? →
+            </Button>
           </CardContent>
         </Card>
       </div>
