@@ -141,48 +141,35 @@ export default function PayAtMerchant({ onPaymentComplete }: PayAtMerchantProps)
                 </p>
               </div>
               
-              {/* Achievement Cards */}
-              <div className="grid grid-cols-2 gap-3">
-                <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-                  <CardContent className="p-3 text-center">
-                    <div className="text-2xl font-bold text-green-600">
-                      ${totalSavings.toFixed(2)}
+              {/* Total Savings Display */}
+              <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
+                <CardContent className="p-4 text-center">
+                  <div className="text-3xl font-bold text-green-600 mb-2">
+                    ${(totalSavings + newCreditsEarned).toFixed(2)}
+                  </div>
+                  <div className="text-sm font-medium text-green-700 mb-3">
+                    Total Savings
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-white/50 p-2 rounded">
+                      <div className="text-lg font-semibold text-green-600">
+                        ${totalSavings.toFixed(2)}
+                      </div>
+                      <div className="text-xs text-green-700">
+                        Credits Used
+                      </div>
                     </div>
-                    <div className="text-xs text-green-700">
-                      Credits Used
+                    <div className="bg-white/50 p-2 rounded">
+                      <div className="text-lg font-semibold text-blue-600">
+                        +${newCreditsEarned.toFixed(2)}
+                      </div>
+                      <div className="text-xs text-blue-700">
+                        Credits Earned
+                      </div>
                     </div>
-                    <div className="text-xs text-green-600">
-                      {discountAchieved}% Discount!
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-                  <CardContent className="p-3 text-center">
-                    <div className="text-2xl font-bold text-blue-600">
-                      +${newCreditsEarned.toFixed(2)}
-                    </div>
-                    <div className="text-xs text-blue-700">
-                      Credits Earned
-                    </div>
-                    <div className="text-xs text-blue-600">
-                      🎉 Cashback!
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Motivational Message */}
-              {(totalSavings > 0 || newCreditsEarned > 0) && (
-                <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-200">
-                  <p className="text-sm font-medium text-purple-700">
-                    🌟 Amazing! You're building wealth with every purchase!
-                  </p>
-                  <p className="text-xs text-purple-600 mt-1">
-                    Keep using JustDeals to maximize your savings
-                  </p>
-                </div>
-              )}
+                  </div>
+                </CardContent>
+              </Card>
               
               <div className="space-y-2 text-sm text-muted-foreground">
                 <p>Total Bill: ${paymentData.billAmount.toFixed(2)}</p>
