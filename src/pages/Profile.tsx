@@ -34,17 +34,15 @@ export default function Profile() {
 
   const loadProfile = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('users')
-        .select('display_name, email, total_grabs, total_redemptions, total_savings')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error) throw error;
-      setProfile(data);
+      // Demo data since no auth required
+      const demoProfile = {
+        display_name: "Demo User",
+        email: "demo@example.com",
+        total_grabs: 15,
+        total_redemptions: 8,
+        total_savings: 2500 // $25.00
+      };
+      setProfile(demoProfile);
     } catch (error) {
       toast({
         title: "Error loading profile",
@@ -56,28 +54,13 @@ export default function Profile() {
 
   const loadCredits = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('credits')
-        .select(`
-          local_cents,
-          network_cents,
-          merchants!inner(name)
-        `)
-        .eq('user_id', user.id)
-        .gt('local_cents', 0);
-
-      if (error) throw error;
-      
-      const creditsWithMerchants = data?.map(credit => ({
-        local_cents: credit.local_cents,
-        network_cents: credit.network_cents,
-        merchant_name: (credit.merchants as any)?.name || 'Unknown'
-      })) || [];
-
-      setCredits(creditsWithMerchants);
+      // Demo credits data
+      const demoCredits = [
+        { local_cents: 500, network_cents: 150, merchant_name: "Coffee Shop" },
+        { local_cents: 300, network_cents: 100, merchant_name: "Pizza Place" },
+        { local_cents: 750, network_cents: 200, merchant_name: "Book Store" }
+      ];
+      setCredits(demoCredits);
     } catch (error) {
       console.error('Error loading credits:', error);
     } finally {

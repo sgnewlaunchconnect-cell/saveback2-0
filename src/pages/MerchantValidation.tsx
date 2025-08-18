@@ -8,7 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Scan, Check, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 
 interface ValidationResult {
   isValid: boolean;
@@ -42,62 +41,51 @@ export default function MerchantValidation() {
     setValidationResult(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke('validateGrab', {
-        body: {
-          [type === 'qr' ? 'qrToken' : 'pin']: identifier
-        }
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      setValidationResult(data);
-      
-      if (data.isValid) {
+      // Demo validation - simulate successful validation
+      setTimeout(() => {
+        const demoResult: ValidationResult = {
+          isValid: true,
+          grab: {
+            id: "demo-grab-123",
+            pin: identifier,
+            qr_token: identifier,
+            status: "LOCKED",
+            expires_at: new Date(Date.now() + 300000).toISOString(),
+            deal: {
+              title: "Demo Coffee Deal - 20% Off",
+              merchant: "Demo Coffee Shop"
+            },
+            user: {
+              display_name: "Demo User"
+            }
+          },
+          message: "Valid grab found!"
+        };
+        
+        setValidationResult(demoResult);
+        setLoading(false);
+        
         toast({
-          title: "Valid Grab ✓",
-          description: `Grab validated successfully for ${data.grab?.deal.title}`,
+          title: "Grab Validated ✓",
+          description: `Grab validated successfully for ${demoResult.grab?.deal.title}`,
         });
 
-        // Issue credits after successful validation
-        try {
-          const { data: creditData, error: creditError } = await supabase.functions.invoke('issueCredits', {
-            body: { grabId: data.grab.id }
+        // Simulate credits issued
+        setTimeout(() => {
+          toast({
+            title: "Credits Added! 🎉",
+            description: "Credits issued successfully! Your Tower grew.",
           });
-
-          if (creditError) {
-            console.error('Credit issuance error:', creditError);
-            toast({
-              title: "Validation Success, Credit Error",
-              description: "Grab validated but credits could not be issued.",
-              variant: "destructive",
-            });
-          } else if (creditData.success) {
-            toast({
-              title: "Credits Added! 🎉",
-              description: `${creditData.message} Earned ${creditData.credits.totalCents}¢`,
-            });
-          }
-        } catch (creditError) {
-          console.error('Credit function error:', creditError);
-        }
-      } else {
-        toast({
-          title: "Invalid Grab ✗",
-          description: data.message,
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Validation error:', error);
+        }, 1000);
+      }, 1000);
+      
+    } catch (error: any) {
+      setLoading(false);
       toast({
         title: "Validation Error",
         description: "Failed to validate grab. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -110,19 +98,19 @@ export default function MerchantValidation() {
       });
       return;
     }
-    validateGrab(qrInput.trim(), 'qr');
+    validateGrab(qrInput, 'qr');
   };
 
   const handlePINValidation = () => {
-    if (!pinInput.trim() || pinInput.length !== 6) {
+    if (!pinInput.trim()) {
       toast({
-        title: "Valid PIN Required",
-        description: "Please enter a 6-digit PIN to validate",
+        title: "PIN Required",
+        description: "Please enter a PIN to validate",
         variant: "destructive",
       });
       return;
     }
-    validateGrab(pinInput.trim(), 'pin');
+    validateGrab(pinInput, 'pin');
   };
 
   const resetValidation = () => {
@@ -133,148 +121,182 @@ export default function MerchantValidation() {
 
   return (
     <div className="min-h-screen bg-background p-4">
-      <div className="max-w-md mx-auto">
+      <div className="max-w-2xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => navigate('/deals')}
-            className="p-2"
+        <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/merchant/dashboard')}
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Dashboard
           </Button>
           <div>
-            <h1 className="text-xl font-bold">Validate Grab</h1>
-            <p className="text-sm text-muted-foreground">
-              Scan QR code or enter PIN to validate customer grab
+            <h1 className="text-2xl font-bold">Customer Validation</h1>
+            <p className="text-muted-foreground">
+              Validate customer grabs using QR codes or PINs
             </p>
           </div>
         </div>
 
+        {/* Validation Methods */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Scan className="h-5 w-5" />
+              Validate Customer Grab
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="qr" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="qr">QR Code</TabsTrigger>
+                <TabsTrigger value="pin">PIN</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="qr" className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="qr-input">QR Token</Label>
+                  <Input
+                    id="qr-input"
+                    placeholder="Scan or enter QR token"
+                    value={qrInput}
+                    onChange={(e) => setQrInput(e.target.value)}
+                    disabled={loading}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Scan the customer's QR code or manually enter the token
+                  </p>
+                </div>
+                <Button 
+                  onClick={handleQRValidation} 
+                  disabled={loading || !qrInput.trim()}
+                  className="w-full"
+                >
+                  {loading ? 'Validating...' : 'Validate QR Code'}
+                </Button>
+              </TabsContent>
+              
+              <TabsContent value="pin" className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="pin-input">6-Digit PIN</Label>
+                  <Input
+                    id="pin-input"
+                    placeholder="Enter 6-digit PIN"
+                    value={pinInput}
+                    onChange={(e) => setPinInput(e.target.value)}
+                    maxLength={6}
+                    disabled={loading}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Ask the customer for their 6-digit PIN
+                  </p>
+                </div>
+                <Button 
+                  onClick={handlePINValidation} 
+                  disabled={loading || pinInput.length !== 6}
+                  className="w-full"
+                >
+                  {loading ? 'Validating...' : 'Validate PIN'}
+                </Button>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+
         {/* Validation Result */}
         {validationResult && (
-          <Card className={`mb-6 ${validationResult.isValid ? 'border-green-200' : 'border-red-200'}`}>
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                {validationResult.isValid ? (
-                  <Check className="h-5 w-5 text-green-600" />
-                ) : (
-                  <X className="h-5 w-5 text-red-600" />
-                )}
-                <CardTitle className={validationResult.isValid ? 'text-green-800' : 'text-red-800'}>
-                  {validationResult.isValid ? 'Valid Grab ✓' : 'Invalid Grab ✗'}
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {validationResult.isValid && validationResult.grab ? (
-                <div className="space-y-3">
-                  <div>
-                    <p className="font-semibold">{validationResult.grab.deal.title}</p>
-                    <p className="text-sm text-muted-foreground">{validationResult.grab.deal.merchant}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm">Customer: {validationResult.grab.user.display_name}</p>
-                    <Badge variant="secondary">Status: {validationResult.grab.status}</Badge>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">{validationResult.message}</p>
-              )}
-              
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={resetValidation}
-                className="mt-4 w-full"
-              >
-                Validate Another
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Validation Input */}
-        {!validationResult && (
-          <Card>
+          <Card className={`border-2 ${validationResult.isValid ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Scan className="h-5 w-5" />
-                Validation Methods
+                {validationResult.isValid ? (
+                  <>
+                    <Check className="h-5 w-5 text-green-600" />
+                    <span className="text-green-600">Valid Grab</span>
+                  </>
+                ) : (
+                  <>
+                    <X className="h-5 w-5 text-red-600" />
+                    <span className="text-red-600">Invalid Grab</span>
+                  </>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="qr" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="qr">QR Scanner</TabsTrigger>
-                  <TabsTrigger value="pin">Manual PIN</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="qr" className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="qr-input">QR Token</Label>
-                    <Input
-                      id="qr-input"
-                      placeholder="Paste or enter QR token here"
-                      value={qrInput}
-                      onChange={(e) => setQrInput(e.target.value)}
-                      disabled={loading}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Scan the customer's QR code or paste the token manually
-                    </p>
+              {validationResult.isValid && validationResult.grab ? (
+                <div className="space-y-4">
+                  <div className="grid gap-3">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Deal</p>
+                      <p className="font-medium">{validationResult.grab.deal.title}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Customer</p>
+                      <p className="font-medium">{validationResult.grab.user.display_name}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Status</p>
+                      <Badge variant="secondary">{validationResult.grab.status}</Badge>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Expires</p>
+                      <p className="text-sm">
+                        {new Date(validationResult.grab.expires_at).toLocaleString()}
+                      </p>
+                    </div>
                   </div>
+                  
+                  <div className="flex gap-2 pt-4">
+                    <Button 
+                      onClick={resetValidation}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      Validate Another
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-red-600">{validationResult.message}</p>
                   <Button 
-                    onClick={handleQRValidation} 
-                    disabled={loading || !qrInput.trim()}
+                    onClick={resetValidation}
+                    variant="outline"
                     className="w-full"
                   >
-                    {loading ? 'Validating...' : 'Validate QR Token'}
+                    Try Again
                   </Button>
-                </TabsContent>
-                
-                <TabsContent value="pin" className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="pin-input">6-Digit PIN</Label>
-                    <Input
-                      id="pin-input"
-                      placeholder="Enter 6-digit PIN"
-                      value={pinInput}
-                      onChange={(e) => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      maxLength={6}
-                      disabled={loading}
-                      className="text-center text-2xl font-mono tracking-widest"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Ask customer for their 6-digit PIN code
-                    </p>
-                  </div>
-                  <Button 
-                    onClick={handlePINValidation} 
-                    disabled={loading || pinInput.length !== 6}
-                    className="w-full"
-                  >
-                    {loading ? 'Validating...' : 'Validate PIN'}
-                  </Button>
-                </TabsContent>
-              </Tabs>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
 
         {/* Instructions */}
-        {!validationResult && (
-          <div className="mt-6 p-4 bg-muted rounded-lg">
-            <h4 className="font-semibold text-sm mb-2">How to validate:</h4>
-            <ol className="text-xs text-muted-foreground space-y-1">
-              <li>1. Ask customer to show their grab QR or PIN</li>
-              <li>2. Scan QR code or enter PIN in the form above</li>
-              <li>3. System will verify and show validation result</li>
-              <li>4. Process transaction if grab is valid</li>
-            </ol>
-          </div>
-        )}
+        <Card>
+          <CardHeader>
+            <CardTitle>How to Validate</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-2">
+              <h4 className="font-medium">QR Code Method:</h4>
+              <ul className="text-sm text-muted-foreground space-y-1 ml-4">
+                <li>• Ask customer to show their Grab Pass QR code</li>
+                <li>• Scan the code or manually enter the token</li>
+                <li>• System will validate and process credits automatically</li>
+              </ul>
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-medium">PIN Method:</h4>
+              <ul className="text-sm text-muted-foreground space-y-1 ml-4">
+                <li>• Ask customer for their 6-digit PIN</li>
+                <li>• Enter the PIN in the validation form</li>
+                <li>• Verify customer identity before processing</li>
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

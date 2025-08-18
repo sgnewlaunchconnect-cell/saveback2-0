@@ -56,70 +56,41 @@ export default function MerchantDashboard() {
 
   const loadMerchantData = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      // Demo merchant data since no auth required
+      const demoMerchant = {
+        id: "demo-merchant-id",
+        name: "Demo Coffee Shop",
+        category: "food",
+        is_active: true
+      };
+      setMerchant(demoMerchant);
 
-      // Get merchant info
-      const { data: merchantData, error: merchantError } = await supabase
-        .from('merchants')
-        .select('id, name, category, is_active')
-        .eq('owner_id', user.id)
-        .single();
+      // Demo stats
+      setStats({
+        active_deals: 5,
+        total_grabs: 127,
+        pending_validations: 3,
+        total_revenue: 1250.50
+      });
 
-      if (merchantError) throw merchantError;
-      setMerchant(merchantData);
-
-      if (merchantData) {
-        // Get active deals count
-        const { count: dealsCount } = await supabase
-          .from('deals')
-          .select('*', { count: 'exact', head: true })
-          .eq('merchant_id', merchantData.id)
-          .eq('is_active', true);
-
-        // Get total grabs
-        const { count: grabsCount } = await supabase
-          .from('grabs')
-          .select('*', { count: 'exact', head: true })
-          .eq('merchant_id', merchantData.id);
-
-        // Get pending validations
-        const { count: pendingCount } = await supabase
-          .from('grabs')
-          .select('*', { count: 'exact', head: true })
-          .eq('merchant_id', merchantData.id)
-          .eq('status', 'LOCKED');
-
-        // Get recent grabs
-        const { data: grabsData } = await supabase
-          .from('grabs')
-          .select(`
-            id,
-            created_at,
-            status,
-            deals!inner(title),
-            users!inner(email)
-          `)
-          .eq('merchant_id', merchantData.id)
-          .order('created_at', { ascending: false })
-          .limit(5);
-
-        const recentGrabsData = grabsData?.map(grab => ({
-          id: grab.id,
-          created_at: grab.created_at,
-          status: grab.status,
-          deal_title: (grab.deals as any)?.title || 'Unknown Deal',
-          user_email: (grab.users as any)?.email || 'Unknown User'
-        })) || [];
-
-        setStats({
-          active_deals: dealsCount || 0,
-          total_grabs: grabsCount || 0,
-          pending_validations: pendingCount || 0,
-          total_revenue: 0 // This would need actual transaction data
-        });
-        setRecentGrabs(recentGrabsData);
-      }
+      // Demo recent grabs
+      const demoRecentGrabs = [
+        {
+          id: "grab1",
+          created_at: new Date().toISOString(),
+          status: "LOCKED",
+          deal_title: "Coffee Deal",
+          user_email: "user1@demo.com"
+        },
+        {
+          id: "grab2", 
+          created_at: new Date(Date.now() - 3600000).toISOString(),
+          status: "REDEEMED",
+          deal_title: "Pastry Special",
+          user_email: "user2@demo.com"
+        }
+      ];
+      setRecentGrabs(demoRecentGrabs);
     } catch (error) {
       toast({
         title: "Error loading dashboard",
@@ -161,20 +132,7 @@ export default function MerchantDashboard() {
     );
   }
 
-  if (!merchant) {
-    return (
-      <div className="min-h-screen bg-background p-4">
-        <div className="max-w-6xl mx-auto text-center py-12">
-          <Store className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h2 className="text-xl font-semibold mb-2">No Merchant Account Found</h2>
-          <p className="text-muted-foreground">
-            You need to register as a merchant to access this dashboard.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
+  // Always show demo merchant interface
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-6xl mx-auto space-y-6">

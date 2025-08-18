@@ -31,7 +31,6 @@ const App = () => (
           <Route path="/merchant/validate" element={<MerchantValidation />} />
           <Route path="/merchant/dashboard" element={<MerchantDashboard />} />
           <Route path="/profile" element={<Profile />} />
-          <Route path="/auth" element={<Auth />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

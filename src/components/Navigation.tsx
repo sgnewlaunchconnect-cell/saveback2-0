@@ -1,88 +1,18 @@
-import { useState, useEffect } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { 
   Menu, 
   Home, 
   Tag, 
   User, 
-  Store, 
-  LogOut,
-  CreditCard
+  Store
 } from "lucide-react";
 
-interface UserRole {
-  role: string;
-}
-
 export default function Navigation() {
-  const [user, setUser] = useState<any>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
-  const { toast } = useToast();
-
-  useEffect(() => {
-    // Get initial user
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-      if (user) loadUserRole(user.id);
-    });
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        loadUserRole(session.user.id);
-      } else {
-        setUserRole(null);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const loadUserRole = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (error) throw error;
-      setUserRole(data?.role || 'user');
-    } catch (error) {
-      console.error('Error loading user role:', error);
-    }
-  };
-
-  const handleSignOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
-      toast({
-        title: "Signed out",
-        description: "You have been successfully signed out.",
-      });
-      
-      navigate('/auth');
-    } catch (error: any) {
-      toast({
-        title: "Sign out failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
 
   const isActivePath = (path: string) => {
     return location.pathname === path;
@@ -91,10 +21,8 @@ export default function Navigation() {
   const navItems = [
     { path: '/', label: 'Home', icon: Home },
     { path: '/deals', label: 'Deals', icon: Tag },
-    ...(user ? [{ path: '/profile', label: 'Profile', icon: User }] : []),
-    ...(userRole === 'merchant' || userRole === 'admin' ? [
-      { path: '/merchant/dashboard', label: 'Merchant', icon: Store }
-    ] : []),
+    { path: '/profile', label: 'Profile', icon: User },
+    { path: '/merchant/dashboard', label: 'Merchant', icon: Store },
   ];
 
   const NavContent = () => (
@@ -128,36 +56,9 @@ export default function Navigation() {
       </nav>
 
       <div className="p-4 border-t space-y-3">
-        {user ? (
-          <>
-            <div className="space-y-2">
-              <p className="text-sm font-medium">{user.email}</p>
-              {userRole && (
-                <Badge variant="secondary" className="text-xs">
-                  {userRole}
-                </Badge>
-              )}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSignOut}
-              className="w-full justify-start"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
-          </>
-        ) : (
-          <div className="space-y-2">
-            <Link to="/auth" onClick={() => setIsOpen(false)}>
-              <Button variant="default" size="sm" className="w-full">
-                <User className="h-4 w-4 mr-2" />
-                Sign In
-              </Button>
-            </Link>
-          </div>
-        )}
+        <p className="text-sm text-muted-foreground">
+          Demo Mode - Full Access
+        </p>
       </div>
     </div>
   );
@@ -219,29 +120,9 @@ export default function Navigation() {
             </nav>
 
             <div className="flex items-center gap-3">
-              {user ? (
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <p className="text-sm font-medium">{user.email}</p>
-                    {userRole && (
-                      <Badge variant="secondary" className="text-xs">
-                        {userRole}
-                      </Badge>
-                    )}
-                  </div>
-                  <Button variant="outline" size="sm" onClick={handleSignOut}>
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Sign Out
-                  </Button>
-                </div>
-              ) : (
-                <Link to="/auth">
-                  <Button size="sm">
-                    <User className="h-4 w-4 mr-2" />
-                    Sign In
-                  </Button>
-                </Link>
-              )}
+              <p className="text-sm text-muted-foreground">
+                Demo Mode - Full Access
+              </p>
             </div>
           </div>
         </div>
