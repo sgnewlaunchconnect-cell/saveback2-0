@@ -20,7 +20,7 @@ interface PayAtMerchantProps {
 
 export default function PayAtMerchant({ onPaymentComplete }: PayAtMerchantProps) {
   const [billAmount, setBillAmount] = useState<string>("");
-  const [useCredits, setUseCredits] = useState(true);
+  const [creditsToUse, setCreditsToUse] = useState<number>(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [paymentData, setPaymentData] = useState<{
@@ -31,12 +31,11 @@ export default function PayAtMerchant({ onPaymentComplete }: PayAtMerchantProps)
   } | null>(null);
   const { toast } = useToast();
 
-  // Demo credit amounts
-  const availableCredits = 2.0;
+  // Demo credit amounts - in real app, fetch from API
+  const availableCredits = 15.75;
 
   const calculatePayment = () => {
     const bill = parseFloat(billAmount) || 0;
-    const creditsToUse = useCredits ? Math.min(availableCredits, bill) : 0;
     const finalAmount = Math.max(0, bill - creditsToUse);
     
     return {
@@ -44,6 +43,12 @@ export default function PayAtMerchant({ onPaymentComplete }: PayAtMerchantProps)
       creditsUsed: creditsToUse,
       finalAmount
     };
+  };
+
+  const handleCreditChange = (amount: number) => {
+    const bill = parseFloat(billAmount) || 0;
+    const maxUsable = Math.min(availableCredits, bill);
+    setCreditsToUse(Math.min(amount, maxUsable));
   };
 
   const handlePayment = async () => {
@@ -108,6 +113,7 @@ export default function PayAtMerchant({ onPaymentComplete }: PayAtMerchantProps)
     setPaymentComplete(false);
     setPaymentData(null);
     setBillAmount("");
+    setCreditsToUse(0);
   };
 
   if (paymentComplete && paymentData) {
@@ -231,17 +237,83 @@ export default function PayAtMerchant({ onPaymentComplete }: PayAtMerchantProps)
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Wallet className="w-4 h-4" />
-              <Label htmlFor="useCredits">Use Credits</Label>
-            </div>
-            <Switch
-              id="useCredits"
-              checked={useCredits}
-              onCheckedChange={setUseCredits}
-            />
-          </div>
+          {/* Credit Balance Display */}
+          <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
+            <CardContent className="pt-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Wallet className="w-5 h-5 text-purple-600" />
+                  <span className="font-medium text-purple-800">Your Credits</span>
+                </div>
+                <div className="text-2xl font-bold text-purple-600">
+                  ${availableCredits.toFixed(2)}
+                </div>
+              </div>
+              <p className="text-xs text-purple-700 mb-3">
+                💰 Save credits for bigger purchases! Every dollar saved grows your wealth.
+              </p>
+              
+              {billAmount && parseFloat(billAmount) > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="creditAmount" className="text-sm font-medium">
+                      Use Credits (Optional)
+                    </Label>
+                    <span className="text-xs text-muted-foreground">
+                      Max: ${Math.min(availableCredits, parseFloat(billAmount)).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
+                    <Input
+                      id="creditAmount"
+                      type="number"
+                      placeholder="0.00"
+                      value={creditsToUse || ""}
+                      onChange={(e) => handleCreditChange(parseFloat(e.target.value) || 0)}
+                      className="pl-8"
+                      step="0.01"
+                      min="0"
+                      max={Math.min(availableCredits, parseFloat(billAmount))}
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCreditsToUse(0)}
+                      className="text-xs"
+                    >
+                      Save All
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const bill = parseFloat(billAmount) || 0;
+                        const halfBill = bill / 2;
+                        handleCreditChange(Math.min(halfBill, availableCredits));
+                      }}
+                      className="text-xs"
+                    >
+                      Use Half
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const bill = parseFloat(billAmount) || 0;
+                        handleCreditChange(Math.min(availableCredits, bill));
+                      }}
+                      className="text-xs"
+                    >
+                      Use Max
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {billAmount && parseFloat(billAmount) > 0 && (
             <Card className="bg-muted/50">
@@ -250,10 +322,16 @@ export default function PayAtMerchant({ onPaymentComplete }: PayAtMerchantProps)
                   <span>Bill:</span>
                   <span>${calculation.billAmount.toFixed(2)}</span>
                 </div>
-                {useCredits && (
+                {creditsToUse > 0 && (
                   <div className="flex justify-between text-green-600">
-                    <span>Credits Available:</span>
-                    <span>-${calculation.creditsUsed.toFixed(2)}</span>
+                    <span>Credits Applied:</span>
+                    <span>-${creditsToUse.toFixed(2)}</span>
+                  </div>
+                )}
+                {creditsToUse > 0 && (
+                  <div className="flex justify-between text-purple-600 text-sm">
+                    <span>Credits Remaining:</span>
+                    <span>${(availableCredits - creditsToUse).toFixed(2)}</span>
                   </div>
                 )}
                 <Separator />
