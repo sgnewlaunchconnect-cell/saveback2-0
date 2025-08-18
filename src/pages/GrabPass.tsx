@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Eye, EyeOff, ArrowLeft, Copy } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Copy, CheckCircle, Clock, CreditCard } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface GrabData {
   id: string;
@@ -24,6 +25,8 @@ export default function GrabPass() {
   const { toast } = useToast();
   const [showPin, setShowPin] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [grabStatus, setGrabStatus] = useState<'LOCKED' | 'VALIDATED' | 'PROCESSING' | 'REDEEMED'>('LOCKED');
+  const [creditsEarned, setCreditsEarned] = useState<{ local: number; network: number } | null>(null);
 
   // Get grab data from navigation state
   const grabData = location.state?.grabData as GrabData;
@@ -42,7 +45,7 @@ export default function GrabPass() {
       const remaining = Math.max(0, Math.floor((expiryTime - now) / 1000));
       setTimeLeft(remaining);
       
-      if (remaining === 0) {
+      if (remaining === 0 && grabStatus === 'LOCKED') {
         toast({
           title: "Grab Expired",
           description: "Your grab has expired. Please try again.",
@@ -56,7 +59,51 @@ export default function GrabPass() {
     const interval = setInterval(updateTimer, 1000);
 
     return () => clearInterval(interval);
-  }, [grabData, navigate, toast]);
+  }, [grabData, navigate, toast, grabStatus]);
+
+  // Real-time listening for grab status changes
+  useEffect(() => {
+    if (!grabData) return;
+
+    const channel = supabase
+      .channel('grab-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'grabs',
+          filter: `id=eq.${grabData.id}`
+        },
+        (payload) => {
+          const newStatus = payload.new.status;
+          setGrabStatus(newStatus);
+          
+          if (newStatus === 'VALIDATED') {
+            toast({
+              title: "Grab Validated! ✅",
+              description: "Merchant has validated your grab. Processing payment...",
+            });
+          } else if (newStatus === 'REDEEMED') {
+            toast({
+              title: "Transaction Complete! 🎉",
+              description: "Credits have been added to your account.",
+            });
+            
+            // Simulate credits earned (in a real app, this would come from the payload)
+            setCreditsEarned({
+              local: Math.floor(Math.random() * 50) + 10,
+              network: Math.floor(Math.random() * 20) + 5
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [grabData, toast]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -107,6 +154,75 @@ export default function GrabPass() {
             <p className="text-sm text-muted-foreground">{grabData.deal.merchant}</p>
           </CardContent>
         </Card>
+
+        {/* Status Indicator */}
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              {grabStatus === 'LOCKED' && (
+                <>
+                  <Clock className="h-5 w-5 text-orange-500" />
+                  <div>
+                    <p className="font-medium">Waiting for Merchant</p>
+                    <p className="text-sm text-muted-foreground">Show your QR code or PIN to the merchant</p>
+                  </div>
+                </>
+              )}
+              {grabStatus === 'VALIDATED' && (
+                <>
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                  <div>
+                    <p className="font-medium">Validated ✅</p>
+                    <p className="text-sm text-muted-foreground">Processing your payment...</p>
+                  </div>
+                </>
+              )}
+              {grabStatus === 'PROCESSING' && (
+                <>
+                  <CreditCard className="h-5 w-5 text-blue-500" />
+                  <div>
+                    <p className="font-medium">Processing Payment</p>
+                    <p className="text-sm text-muted-foreground">Almost done...</p>
+                  </div>
+                </>
+              )}
+              {grabStatus === 'REDEEMED' && (
+                <>
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                  <div>
+                    <p className="font-medium">Transaction Complete! 🎉</p>
+                    <p className="text-sm text-muted-foreground">Credits have been added to your account</p>
+                  </div>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Credits Earned - Show when transaction is complete */}
+        {grabStatus === 'REDEEMED' && creditsEarned && (
+          <Card className="mb-6 border-green-200 bg-green-50">
+            <CardContent className="p-4">
+              <h3 className="font-semibold text-green-800 mb-3">Credits Earned!</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-green-700">Local Credits:</span>
+                  <span className="font-bold text-green-800">+{creditsEarned.local}¢</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-green-700">Network Credits:</span>
+                  <span className="font-bold text-green-800">+{creditsEarned.network}¢</span>
+                </div>
+                <div className="border-t border-green-200 pt-2 mt-2">
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-green-800">Total Earned:</span>
+                    <span className="font-bold text-lg text-green-800">+{creditsEarned.local + creditsEarned.network}¢</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* QR Code */}
         <Card className="mb-6">
