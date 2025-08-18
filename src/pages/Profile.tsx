@@ -6,8 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { User, CreditCard, Trophy, History, Settings } from "lucide-react";
-import CreditPaymentSettings from "@/components/CreditPaymentSettings";
+import { User, CreditCard, Trophy, History, Settings, Wallet } from "lucide-react";
+
 
 interface UserProfile {
   display_name: string;
@@ -211,20 +211,16 @@ export default function Profile() {
           </CardContent>
         </Card>
 
-        {/* Credit Payment Settings */}
-        <CreditPaymentSettings 
-          localCredits={totalLocalCredits}
-          networkCredits={totalNetworkCredits}
-          onSettingsChange={(settings) => {
-            toast({
-              title: "Settings Updated",
-              description: "Your credit preferences have been saved.",
-            });
-          }}
-        />
-
         {/* Action Buttons */}
         <div className="flex gap-4">
+          <Button 
+            variant="default" 
+            className="flex items-center gap-2"
+            onClick={() => navigate('/wallet')}
+          >
+            <Wallet className="h-4 w-4" />
+            Manage Wallet
+          </Button>
           <Button variant="outline" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             Account Settings
@@ -232,14 +228,6 @@ export default function Profile() {
           <Button variant="outline" className="flex items-center gap-2">
             <History className="h-4 w-4" />
             Transaction History
-          </Button>
-          <Button 
-            variant="default" 
-            className="flex items-center gap-2"
-            onClick={() => navigate('/payment-demo')}
-          >
-            <CreditCard className="h-4 w-4" />
-            Try Payment Demo
           </Button>
         </div>
       </div>
