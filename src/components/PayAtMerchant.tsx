@@ -20,7 +20,7 @@ interface PayAtMerchantProps {
 
 export default function PayAtMerchant({ onPaymentComplete }: PayAtMerchantProps) {
   const [billAmount, setBillAmount] = useState<string>("");
-  const [creditsToUse, setCreditsToUse] = useState<number>(0);
+  const [applyCredits, setApplyCredits] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [paymentData, setPaymentData] = useState<{
@@ -32,23 +32,26 @@ export default function PayAtMerchant({ onPaymentComplete }: PayAtMerchantProps)
   const { toast } = useToast();
 
   // Demo credit amounts - in real app, fetch from API
-  const availableCredits = 15.75;
+  const localCredits = 8.50;
+  const networkCredits = 7.25;
+  const totalCredits = localCredits + networkCredits;
 
   const calculatePayment = () => {
     const bill = parseFloat(billAmount) || 0;
-    const finalAmount = Math.max(0, bill - creditsToUse);
+    let creditsUsed = 0;
+    
+    if (applyCredits && bill > 0) {
+      // Use local credits first, then network credits
+      creditsUsed = Math.min(totalCredits, bill);
+    }
+    
+    const finalAmount = Math.max(0, bill - creditsUsed);
     
     return {
       billAmount: bill,
-      creditsUsed: creditsToUse,
+      creditsUsed,
       finalAmount
     };
-  };
-
-  const handleCreditChange = (amount: number) => {
-    const bill = parseFloat(billAmount) || 0;
-    const maxUsable = Math.min(availableCredits, bill);
-    setCreditsToUse(Math.min(amount, maxUsable));
   };
 
   const handlePayment = async () => {
@@ -113,7 +116,7 @@ export default function PayAtMerchant({ onPaymentComplete }: PayAtMerchantProps)
     setPaymentComplete(false);
     setPaymentData(null);
     setBillAmount("");
-    setCreditsToUse(0);
+    setApplyCredits(true);
   };
 
   if (paymentComplete && paymentData) {
@@ -240,78 +243,44 @@ export default function PayAtMerchant({ onPaymentComplete }: PayAtMerchantProps)
           {/* Credit Balance Display */}
           <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
             <CardContent className="pt-4">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Wallet className="w-5 h-5 text-purple-600" />
                   <span className="font-medium text-purple-800">Your Credits</span>
                 </div>
                 <div className="text-2xl font-bold text-purple-600">
-                  ${availableCredits.toFixed(2)}
+                  ${totalCredits.toFixed(2)}
                 </div>
               </div>
-              <p className="text-xs text-purple-700 mb-3">
-                💰 Save credits for bigger purchases! Every dollar saved grows your wealth.
-              </p>
               
-              {billAmount && parseFloat(billAmount) > 0 && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="creditAmount" className="text-sm font-medium">
-                      Use Credits (Optional)
-                    </Label>
-                    <span className="text-xs text-muted-foreground">
-                      Max: ${Math.min(availableCredits, parseFloat(billAmount)).toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
-                    <Input
-                      id="creditAmount"
-                      type="number"
-                      placeholder="0.00"
-                      value={creditsToUse || ""}
-                      onChange={(e) => handleCreditChange(parseFloat(e.target.value) || 0)}
-                      className="pl-8"
-                      step="0.01"
-                      min="0"
-                      max={Math.min(availableCredits, parseFloat(billAmount))}
-                    />
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCreditsToUse(0)}
-                      className="text-xs"
-                    >
-                      Save All
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const bill = parseFloat(billAmount) || 0;
-                        const halfBill = bill / 2;
-                        handleCreditChange(Math.min(halfBill, availableCredits));
-                      }}
-                      className="text-xs"
-                    >
-                      Use Half
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const bill = parseFloat(billAmount) || 0;
-                        handleCreditChange(Math.min(availableCredits, bill));
-                      }}
-                      className="text-xs"
-                    >
-                      Use Max
-                    </Button>
-                  </div>
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="bg-white/50 p-2 rounded">
+                  <div className="text-xs text-purple-600">Local</div>
+                  <div className="font-semibold text-purple-800">${localCredits.toFixed(2)}</div>
                 </div>
-              )}
+                <div className="bg-white/50 p-2 rounded">
+                  <div className="text-xs text-purple-600">Network</div>
+                  <div className="font-semibold text-purple-800">${networkCredits.toFixed(2)}</div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between mb-3">
+                <Label htmlFor="applyCredits" className="text-sm font-medium text-purple-800">
+                  Apply Credits?
+                </Label>
+                <Switch
+                  id="applyCredits"
+                  checked={applyCredits}
+                  onCheckedChange={setApplyCredits}
+                />
+              </div>
+              
+              <p className="text-xs text-purple-700">
+                {applyCredits 
+                  ? "✨ Auto-uses local credits first, then network credits"
+                  : "💎 Save credits for bigger purchases to maximize value!"
+                }
+              </p>
             </CardContent>
           </Card>
 
@@ -322,16 +291,16 @@ export default function PayAtMerchant({ onPaymentComplete }: PayAtMerchantProps)
                   <span>Bill:</span>
                   <span>${calculation.billAmount.toFixed(2)}</span>
                 </div>
-                {creditsToUse > 0 && (
+                {calculation.creditsUsed > 0 && (
                   <div className="flex justify-between text-green-600">
                     <span>Credits Applied:</span>
-                    <span>-${creditsToUse.toFixed(2)}</span>
+                    <span>-${calculation.creditsUsed.toFixed(2)}</span>
                   </div>
                 )}
-                {creditsToUse > 0 && (
+                {calculation.creditsUsed > 0 && (
                   <div className="flex justify-between text-purple-600 text-sm">
                     <span>Credits Remaining:</span>
-                    <span>${(availableCredits - creditsToUse).toFixed(2)}</span>
+                    <span>${(totalCredits - calculation.creditsUsed).toFixed(2)}</span>
                   </div>
                 )}
                 <Separator />
