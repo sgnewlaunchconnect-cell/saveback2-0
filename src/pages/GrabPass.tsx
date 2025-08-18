@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { Eye, EyeOff, ArrowLeft, Copy, CheckCircle, Clock, CreditCard } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,6 +26,7 @@ export default function GrabPass() {
   const { toast } = useToast();
   const [showPin, setShowPin] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [showPaymentCalculation, setShowPaymentCalculation] = useState(true); // Show payment screen first
   const [grabStatus, setGrabStatus] = useState<'LOCKED' | 'VALIDATED' | 'PROCESSING' | 'REDEEMED'>('LOCKED');
   const [creditsEarned, setCreditsEarned] = useState<{ local: number; network: number } | null>(null);
 
@@ -148,8 +150,120 @@ export default function GrabPass() {
     return null; // Component will redirect in useEffect
   }
 
+  // Demo credit balances for calculation
+  const userLocalCredits = 850; // $8.50
+  const userNetworkCredits = 450; // $4.50
+  const dealAmount = 1299; // $12.99 (demo amount)
+  
+  // Calculate payment
+  const localCreditsToUse = Math.min(userLocalCredits, dealAmount);
+  const remainingAfterLocal = Math.max(0, dealAmount - localCreditsToUse);
+  const networkCreditsToUse = Math.min(userNetworkCredits, remainingAfterLocal);
+  const finalAmountToPay = Math.max(0, dealAmount - localCreditsToUse - networkCreditsToUse);
+  const totalCreditsUsed = localCreditsToUse + networkCreditsToUse;
+
   // Generate QR Code URL (using a simple QR service for demo)
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(grabData.qrToken)}`;
+
+  // Show payment calculation screen first
+  if (showPaymentCalculation) {
+    return (
+      <div className="min-h-screen bg-background p-4">
+        <div className="max-w-md mx-auto space-y-6">
+          {/* Header */}
+          <div className="flex items-center gap-4 mb-6">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => navigate('/deals')}
+              className="p-2"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold">Payment Calculation</h1>
+              <p className="text-sm text-muted-foreground">
+                Review your payment before checkout
+              </p>
+            </div>
+          </div>
+
+          {/* Deal Info */}
+          <Card>
+            <CardContent className="p-4">
+              <h2 className="font-semibold text-lg mb-1">{grabData.deal.title}</h2>
+              <p className="text-sm text-muted-foreground">{grabData.deal.merchant}</p>
+              <div className="mt-3 text-right">
+                <p className="text-2xl font-bold">${(dealAmount / 100).toFixed(2)}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Payment Breakdown */}
+          <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+            <CardHeader>
+              <CardTitle className="text-lg text-blue-900 dark:text-blue-100">
+                💳 Payment Breakdown
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span>Deal Price:</span>
+                <span className="font-semibold">${(dealAmount / 100).toFixed(2)}</span>
+              </div>
+              
+              {localCreditsToUse > 0 && (
+                <div className="flex justify-between items-center text-blue-700 dark:text-blue-300">
+                  <span>Local Credits Applied:</span>
+                  <span className="font-semibold">-${(localCreditsToUse / 100).toFixed(2)}</span>
+                </div>
+              )}
+              
+              {networkCreditsToUse > 0 && (
+                <div className="flex justify-between items-center text-blue-700 dark:text-blue-300">
+                  <span>Network Credits Applied:</span>
+                  <span className="font-semibold">-${(networkCreditsToUse / 100).toFixed(2)}</span>
+                </div>
+              )}
+              
+              <Separator />
+              
+              <div className="flex justify-between items-center text-lg font-bold">
+                <span>You'll Pay:</span>
+                <span className={finalAmountToPay === 0 ? "text-green-600 text-2xl" : "text-lg"}>
+                  {finalAmountToPay === 0 ? "FREE! 🎉" : `$${(finalAmountToPay / 100).toFixed(2)}`}
+                </span>
+              </div>
+
+              {totalCreditsUsed > 0 && (
+                <div className="mt-3 p-3 bg-green-100 dark:bg-green-900/20 rounded-lg">
+                  <p className="text-sm text-green-800 dark:text-green-200 text-center">
+                    💰 You're saving ${(totalCreditsUsed / 100).toFixed(2)} with your credits!
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Continue Button */}
+          <Button 
+            onClick={() => setShowPaymentCalculation(false)}
+            className="w-full h-12 text-base bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
+            size="lg"
+          >
+            {finalAmountToPay === 0 ? "Continue to Free Redemption →" : `Continue to Pay $${(finalAmountToPay / 100).toFixed(2)} →`}
+          </Button>
+
+          {/* Info */}
+          <div className="text-center p-3 bg-muted rounded-lg">
+            <p className="text-sm text-muted-foreground">
+              Next: You'll get a QR code to show the merchant
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background p-4">
