@@ -22,7 +22,7 @@ export default function Navigation() {
     { path: '/', label: 'Home', icon: Home },
     { path: '/deals', label: 'Deals', icon: Tag },
     { path: '/profile', label: 'Profile', icon: User },
-    { path: '/merchant/dashboard', label: 'Merchant', icon: Store },
+    { path: '/merchant/demo', label: 'Merchant Demo', icon: Store },
   ];
 
   const NavContent = () => (

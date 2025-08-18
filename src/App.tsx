@@ -11,6 +11,7 @@ import GrabPass from "./pages/GrabPass";
 import MerchantValidation from "./pages/MerchantValidation";
 import Profile from "./pages/Profile";
 import MerchantDashboard from "./pages/MerchantDashboard";
+import MerchantDemo from "./pages/MerchantDemo";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/grab-pass/:grabId" element={<GrabPass />} />
           <Route path="/merchant/validate" element={<MerchantValidation />} />
           <Route path="/merchant/dashboard" element={<MerchantDashboard />} />
+          <Route path="/merchant/demo" element={<MerchantDemo />} />
           <Route path="/profile" element={<Profile />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
