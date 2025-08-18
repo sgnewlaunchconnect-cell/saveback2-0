@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { CheckCircle, CreditCard, Wallet } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PayAtMerchantProps {
   onPaymentComplete?: (paymentData: {
@@ -59,30 +60,43 @@ export default function PayAtMerchant({ onPaymentComplete }: PayAtMerchantProps)
     setIsProcessing(true);
     
     try {
-      // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
       const calculation = calculatePayment();
-      const paymentCode = Math.floor(100000 + Math.random() * 900000).toString();
       
-      const finalPaymentData = {
-        ...calculation,
-        paymentCode
-      };
-      
-      setPaymentData(finalPaymentData);
-      setPaymentComplete(true);
-      
-      toast({
-        title: "Payment Successful! 🎉",
-        description: `Paid $${finalPaymentData.finalAmount.toFixed(2)}`
+      // Call mock payment service
+      const { data, error } = await supabase.functions.invoke('mock-payment', {
+        body: {
+          billAmount: calculation.billAmount,
+          creditsUsed: calculation.creditsUsed,
+          finalAmount: calculation.finalAmount
+        }
       });
-      
-      onPaymentComplete?.(finalPaymentData);
+
+      if (error) throw error;
+
+      if (data.success) {
+        const finalPaymentData = {
+          billAmount: data.billAmount,
+          creditsUsed: data.creditsUsed,
+          finalAmount: data.finalAmount,
+          paymentCode: data.paymentCode
+        };
+
+        setPaymentData(finalPaymentData);
+        setPaymentComplete(true);
+        
+        toast({
+          title: "Payment Successful! 🎉",
+          description: `Paid $${data.finalAmount.toFixed(2)} using $${data.creditsUsed.toFixed(2)} credits`
+        });
+        
+        onPaymentComplete?.(finalPaymentData);
+      } else {
+        throw new Error(data.error || 'Payment failed');
+      }
     } catch (error) {
       toast({
         title: "Payment Failed",
-        description: "Please try again",
+        description: error instanceof Error ? error.message : "Please try again",
         variant: "destructive"
       });
     } finally {
