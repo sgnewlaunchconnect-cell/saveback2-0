@@ -249,69 +249,73 @@ export default function GrabPass() {
           </Card>
         )}
 
-        {/* QR Code */}
-        <Card className="mb-6">
-          <CardContent className="p-6 text-center">
-            <h3 className="font-semibold mb-4">Scan to Redeem</h3>
-            <div className="flex justify-center mb-4">
-              <img 
-                src={qrCodeUrl} 
-                alt="QR Code for grab redemption"
-                className="border rounded-lg bg-white p-2"
-                width={200}
-                height={200}
-              />
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => copyToClipboard(grabData.qrToken, 'QR Token')}
-              className="gap-2"
-            >
-              <Copy className="h-4 w-4" />
-              Copy Token
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* PIN */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold">PIN Code</h3>
+        {/* QR Code - Only show when status is LOCKED */}
+        {grabStatus === 'LOCKED' && (
+          <Card className="mb-6">
+            <CardContent className="p-6 text-center">
+              <h3 className="font-semibold mb-4">Scan to Redeem</h3>
+              <div className="flex justify-center mb-4">
+                <img 
+                  src={qrCodeUrl} 
+                  alt="QR Code for grab redemption"
+                  className="border rounded-lg bg-white p-2"
+                  width={200}
+                  height={200}
+                />
+              </div>
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                onClick={() => setShowPin(!showPin)}
-                className="p-2"
+                onClick={() => copyToClipboard(grabData.qrToken, 'QR Token')}
+                className="gap-2"
               >
-                {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                <Copy className="h-4 w-4" />
+                Copy Token
               </Button>
-            </div>
-            
-            <div className="text-center">
-              <div className="text-2xl font-mono font-bold tracking-widest mb-3 p-3 bg-muted rounded-lg">
-                {showPin ? grabData.pin : '••••••'}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* PIN - Only show when status is LOCKED */}
+        {grabStatus === 'LOCKED' && (
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold">PIN Code</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowPin(!showPin)}
+                  className="p-2"
+                >
+                  {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
               </div>
               
-              {showPin && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => copyToClipboard(grabData.pin, 'PIN')}
-                  className="gap-2"
-                >
-                  <Copy className="h-4 w-4" />
-                  Copy PIN
-                </Button>
-              )}
-            </div>
-            
-            <p className="text-xs text-muted-foreground text-center mt-3">
-              {showPin ? 'Tap eye to hide PIN' : 'Tap eye to reveal PIN'}
-            </p>
-          </CardContent>
-        </Card>
+              <div className="text-center">
+                <div className="text-2xl font-mono font-bold tracking-widest mb-3 p-3 bg-muted rounded-lg">
+                  {showPin ? grabData.pin : '••••••'}
+                </div>
+                
+                {showPin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyToClipboard(grabData.pin, 'PIN')}
+                    className="gap-2"
+                  >
+                    <Copy className="h-4 w-4" />
+                    Copy PIN
+                  </Button>
+                )}
+              </div>
+              
+              <p className="text-xs text-muted-foreground text-center mt-3">
+                {showPin ? 'Tap eye to hide PIN' : 'Tap eye to reveal PIN'}
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Demo Button - Only show when status is LOCKED */}
         {grabStatus === 'LOCKED' && (
