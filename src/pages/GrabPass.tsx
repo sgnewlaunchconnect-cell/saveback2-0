@@ -119,6 +119,31 @@ export default function GrabPass() {
     });
   };
 
+  // Demo function to simulate merchant scan
+  const simulateMerchantScan = () => {
+    if (grabStatus !== 'LOCKED') return;
+    
+    // Step 1: Merchant validates
+    setGrabStatus('VALIDATED');
+    toast({
+      title: "Grab Validated! ✅",
+      description: "Merchant has validated your grab. Processing payment...",
+    });
+    
+    // Step 2: After 2 seconds, complete transaction
+    setTimeout(() => {
+      setGrabStatus('REDEEMED');
+      setCreditsEarned({
+        local: Math.floor(Math.random() * 50) + 15, // 15-65 cents
+        network: Math.floor(Math.random() * 30) + 8  // 8-38 cents
+      });
+      toast({
+        title: "Transaction Complete! 🎉",
+        description: "Credits have been added to your account.",
+      });
+    }, 2000);
+  };
+
   if (!grabData) {
     return null; // Component will redirect in useEffect
   }
@@ -287,6 +312,18 @@ export default function GrabPass() {
             </p>
           </CardContent>
         </Card>
+
+        {/* Demo Button - Only show when status is LOCKED */}
+        {grabStatus === 'LOCKED' && (
+          <div className="mt-6">
+            <Button 
+              onClick={simulateMerchantScan}
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-3"
+            >
+              🎬 Demo: Simulate Merchant Scan
+            </Button>
+          </div>
+        )}
 
         {/* Instructions */}
         <div className="mt-6 p-4 bg-muted rounded-lg">
