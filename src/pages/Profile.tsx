@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { User, CreditCard, Trophy, History, Settings } from "lucide-react";
+import CreditPaymentSettings from "@/components/CreditPaymentSettings";
 
 interface UserProfile {
   display_name: string;
@@ -207,6 +208,18 @@ export default function Profile() {
             )}
           </CardContent>
         </Card>
+
+        {/* Credit Payment Settings */}
+        <CreditPaymentSettings 
+          localCredits={totalLocalCredits}
+          networkCredits={totalNetworkCredits}
+          onSettingsChange={(settings) => {
+            toast({
+              title: "Settings Updated",
+              description: "Your credit preferences have been saved.",
+            });
+          }}
+        />
 
         {/* Action Buttons */}
         <div className="flex gap-4">
