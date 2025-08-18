@@ -64,6 +64,9 @@ verify_jwt = true
 [functions.validateGrab]
 verify_jwt = false
 
+[functions.generateValidationCode]
+verify_jwt = false
+
 [functions.issueCredits]
 verify_jwt = false
 

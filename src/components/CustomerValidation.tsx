@@ -32,11 +32,10 @@ export default function CustomerValidation() {
     setIsGenerating(true);
     
     try {
-      // Create a grab for validation
-      const { data, error } = await supabase.functions.invoke('createGrab', {
+      // Generate validation code
+      const { data, error } = await supabase.functions.invoke('generateValidationCode', {
         body: {
-          dealId: '550e8400-e29b-41d4-a716-446655440001', // Demo deal ID
-          userId: '550e8400-e29b-41d4-a716-446655440000', // Demo user ID
+          billAmount: bill,
           merchantId: '550e8400-e29b-41d4-a716-446655440002' // Demo merchant ID
         }
       });
@@ -44,13 +43,10 @@ export default function CustomerValidation() {
       if (error) throw error;
 
       if (data.success) {
-        const expiresAt = new Date();
-        expiresAt.setMinutes(expiresAt.getMinutes() + 5); // 5 minute expiry
-        
         setValidationCode({
           code: data.pin,
-          expiresAt,
-          txnRef: `JD-${Math.random().toString(36).substr(2, 4).toUpperCase()}`
+          expiresAt: new Date(data.expiresAt),
+          txnRef: data.txnRef
         });
         
         toast({
