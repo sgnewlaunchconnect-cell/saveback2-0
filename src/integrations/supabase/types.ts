@@ -763,6 +763,17 @@ export type Database = {
         Args: { group_buy_id: string; quantity_to_add: number }
         Returns: undefined
       }
+      process_credit_payment: {
+        Args: {
+          p_final_amount: number
+          p_local_credits_used: number
+          p_merchant_id: string
+          p_network_credits_used: number
+          p_original_amount: number
+          p_user_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "merchant" | "user"
