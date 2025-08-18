@@ -17,6 +17,8 @@ import WalletPage from "./pages/WalletPage";
 import PayAtMerchant from "./pages/PayAtMerchant";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import CustomerValidation from "./components/CustomerValidation";
+import HawkerValidation from "./components/HawkerValidation";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +41,8 @@ const App = () => (
           <Route path="/profile" element={<Profile />} />
           <Route path="/wallet" element={<WalletPage />} />
           <Route path="/pay" element={<PayAtMerchant />} />
+          <Route path="/hawker/validate" element={<HawkerValidation />} />
+          <Route path="/customer/validate" element={<CustomerValidation />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

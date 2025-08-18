@@ -141,32 +141,61 @@ export default function DemoScenarios() {
           ))}
         </div>
 
-        {/* Flow Instructions */}
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle>How the New Flow Works</CardTitle>
-          </CardHeader>
+        {/* Payment Flow Options */}
+        <div className="grid gap-4 md:grid-cols-2 mt-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>💳 Direct Payment Flow</CardTitle>
+            </CardHeader>
             <CardContent className="space-y-4">
-              <div className="text-center">
-                <h4 className="font-semibold text-primary mb-4">💳 Simple Payment Flow</h4>
-                <ol className="text-sm space-y-2 list-decimal list-inside text-left max-w-md mx-auto">
-                  <li><strong>User enters bill amount</strong> (e.g., $12)</li>
-                  <li><strong>App shows breakdown:</strong> Bill, Credits available, Final payable</li>
-                  <li><strong>User taps "Confirm & Pay"</strong></li>
-                  <li><strong>Payment processed</strong> via PSP (Stripe/PayNow)</li>
-                  <li><strong>Success screen</strong> with verification code</li>
-                  <li><strong>Credits updated</strong> automatically</li>
-                </ol>
-              </div>
-              
-              <div className="mt-6 p-4 bg-muted rounded-lg">
-                <p className="text-sm text-muted-foreground text-center">
-                  ✅ <strong>Merchant staff</strong> simply check the success screen on user's phone.<br/>
-                  🔒 <strong>Security:</strong> Unique 6-digit verification code for fraud prevention.
-                </p>
+              <p className="text-sm text-muted-foreground">
+                Customer pays directly through app with credit integration
+              </p>
+              <ol className="text-sm space-y-2 list-decimal list-inside">
+                <li>Enter bill amount</li>
+                <li>Apply credits automatically</li>
+                <li>Pay final amount</li>
+                <li>Show success code to merchant</li>
+              </ol>
+              <Button onClick={startDemo} className="w-full">
+                Try Direct Payment →
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>🥢 Hawker QR Validation</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Customer pays hawker's PayNow, then validates for credits
+              </p>
+              <ol className="text-sm space-y-2 list-decimal list-inside">
+                <li>Pay hawker via PayNow QR</li>
+                <li>Generate validation code</li>
+                <li>Hawker scans code</li>
+                <li>Credits released automatically</li>
+              </ol>
+              <div className="grid grid-cols-2 gap-2">
+                <Button 
+                  onClick={() => navigate('/customer/validate')} 
+                  variant="outline" 
+                  className="text-xs"
+                >
+                  Customer View
+                </Button>
+                <Button 
+                  onClick={() => navigate('/hawker/validate')} 
+                  variant="outline"
+                  className="text-xs"
+                >
+                  Hawker View
+                </Button>
               </div>
             </CardContent>
-        </Card>
+          </Card>
+        </div>
       </div>
     </div>
   );
