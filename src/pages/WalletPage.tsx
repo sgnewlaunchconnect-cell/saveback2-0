@@ -260,19 +260,34 @@ export default function WalletPage() {
           </CardContent>
         </Card>
 
+        {/* How Credits Work */}
+        <Card className="bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-950/20 dark:to-green-950/20 border-blue-200 dark:border-blue-800">
+          <CardContent className="p-4">
+            <h3 className="font-semibold mb-3 text-blue-900 dark:text-blue-100">
+              💡 How Credit Payments Work
+            </h3>
+            <div className="space-y-2 text-sm text-blue-800 dark:text-blue-200">
+              <p><strong>1. Grab a Deal:</strong> Choose any deal from the deals page</p>
+              <p><strong>2. Auto-Calculate:</strong> App instantly shows your final payment amount</p>
+              <p><strong>3. Know Before You Go:</strong> You see exactly what you'll pay before visiting merchant</p>
+              <p><strong>4. Show Merchant:</strong> Present QR/PIN - they see the pre-calculated amount</p>
+              <p><strong>5. Pay & Earn:</strong> Pay remaining amount (if any) and earn new credits!</p>
+            </div>
+            <div className="mt-3 p-2 bg-blue-100 dark:bg-blue-900/20 rounded text-xs text-blue-700 dark:text-blue-300">
+              ✨ No surprises! You never have to guess payment amounts - the app handles all calculations.
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Action Buttons */}
         <div className="flex gap-4">
-          <Button 
-            variant="default" 
-            className="flex items-center gap-2"
-            onClick={() => navigate('/payment-demo')}
-          >
-            <CreditCard className="h-4 w-4" />
-            Try Payment Demo
-          </Button>
           <Button variant="outline" className="flex items-center gap-2">
             <History className="h-4 w-4" />
             View All Transactions
+          </Button>
+          <Button variant="outline" className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4" />
+            Add Payment Method
           </Button>
         </div>
       </div>
