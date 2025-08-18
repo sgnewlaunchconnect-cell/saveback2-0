@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 import { 
   Store, 
   DollarSign, 
@@ -13,7 +14,8 @@ import {
   QrCode, 
   Tag,
   Bell,
-  Settings
+  Settings,
+  Eye
 } from "lucide-react";
 
 interface MerchantInfo {
@@ -49,6 +51,7 @@ export default function MerchantDashboard() {
   const [recentGrabs, setRecentGrabs] = useState<RecentGrab[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadMerchantData();
@@ -148,6 +151,14 @@ export default function MerchantDashboard() {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button 
+              variant="default" 
+              size="sm"
+              onClick={() => navigate('/merchant/demo')}
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              View Demo
+            </Button>
             <Button variant="outline" size="sm">
               <Settings className="h-4 w-4 mr-2" />
               Settings
