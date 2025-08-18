@@ -30,6 +30,24 @@ const Index = () => {
               </Button>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Merchant Tools</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                Validate customer grabs and manage your business
+              </p>
+              <Button 
+                variant="outline"
+                className="w-full" 
+                onClick={() => navigate('/merchant/validate')}
+              >
+                Validate Grab
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
