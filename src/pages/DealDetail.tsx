@@ -75,20 +75,46 @@ const DealDetail = () => {
     
     setGrabbing(true);
     try {
-      // For now, just show a success message
-      // In a real app, this would create a grab record
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast({
+          title: "Authentication Required",
+          description: "Please sign in to grab deals.",
+          variant: "destructive",
+        });
+        setGrabbing(false);
+        return;
+      }
+
+      const response = await supabase.functions.invoke('createGrab', {
+        body: { dealId: deal.id },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to grab deal');
+      }
+
+      const { grab } = response.data;
+      
       toast({
         title: "Deal Grabbed!",
-        description: "Your deal has been saved. Show this at the merchant to redeem.",
+        description: "Your grab pass is ready.",
+      });
+
+      // Navigate to grab pass with data
+      navigate(`/grab-pass/${grab.id}`, {
+        state: { grabData: grab }
       });
       
-      // Navigate back to deals list
-      navigate('/deals');
     } catch (error) {
       console.error('Error grabbing deal:', error);
       toast({
-        title: "Error",
-        description: "Failed to grab deal. Please try again.",
+        title: "Failed to Grab Deal",
+        description: error instanceof Error ? error.message : "Something went wrong. Please try again.",
         variant: "destructive",
       });
     } finally {
