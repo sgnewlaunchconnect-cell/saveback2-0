@@ -136,8 +136,8 @@ export default function GrabPass() {
     setTimeout(() => {
       setGrabStatus('REDEEMED');
       setCreditsEarned({
-        local: Math.floor(Math.random() * 50) + 15, // 15-65 cents
-        network: Math.floor(Math.random() * 30) + 8  // 8-38 cents
+        local: 39, // 39 cents local credits earned
+        network: 30  // 30 cents network credits earned
       });
       toast({
         title: "Transaction Complete! 🎉",
@@ -340,23 +340,22 @@ export default function GrabPass() {
 
         {/* Credits Earned - Show when transaction is complete */}
         {grabStatus === 'REDEEMED' && creditsEarned && (
-          <Card className="mb-6 border-green-200 bg-green-50">
+          <Card className="border-green-200 bg-green-50 dark:bg-green-950/20">
             <CardContent className="p-4">
-              <h3 className="font-semibold text-green-800 mb-3">Credits Earned!</h3>
-              <div className="space-y-2">
+              <h3 className="font-semibold text-green-800 dark:text-green-100 mb-3">Credits Earned!</h3>
+              <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-green-700">Local Credits:</span>
-                  <span className="font-bold text-green-800">+{creditsEarned.local}¢</span>
+                  <span className="text-sm text-green-700 dark:text-green-300">Local Credits:</span>
+                  <span className="font-bold text-green-800 dark:text-green-200">+{creditsEarned.local}¢</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-green-700">Network Credits:</span>
-                  <span className="font-bold text-green-800">+{creditsEarned.network}¢</span>
+                  <span className="text-sm text-green-700 dark:text-green-300">Network Credits:</span>
+                  <span className="font-bold text-green-800 dark:text-green-200">+{creditsEarned.network}¢</span>
                 </div>
-                <div className="border-t border-green-200 pt-2 mt-2">
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium text-green-800">Total Earned:</span>
-                    <span className="font-bold text-lg text-green-800">+{creditsEarned.local + creditsEarned.network}¢</span>
-                  </div>
+                <Separator className="bg-green-200" />
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-green-800 dark:text-green-100">Total Earned:</span>
+                  <span className="font-bold text-xl text-green-800 dark:text-green-200">+{creditsEarned.local + creditsEarned.network}¢</span>
                 </div>
               </div>
             </CardContent>
@@ -443,15 +442,17 @@ export default function GrabPass() {
           </div>
         )}
 
-        {/* Instructions */}
-        <div className="mt-6 p-4 bg-muted rounded-lg">
-          <h4 className="font-semibold text-sm mb-2">How to use:</h4>
-          <ol className="text-xs text-muted-foreground space-y-1">
-            <li>1. Show QR code or PIN to merchant</li>
-            <li>2. Merchant scans/enters code to process</li>
-            <li>3. Enjoy your deal and earn rewards!</li>
-          </ol>
-        </div>
+        {/* Instructions - Hide when transaction is complete */}
+        {grabStatus !== 'REDEEMED' && (
+          <div className="mt-6 p-4 bg-muted rounded-lg">
+            <h4 className="font-semibold text-sm mb-2">How to use:</h4>
+            <ol className="text-xs text-muted-foreground space-y-1">
+              <li>1. Show QR code or PIN to merchant</li>
+              <li>2. Merchant scans/enters code to process</li>
+              <li>3. Enjoy your deal and earn rewards!</li>
+            </ol>
+          </div>
+        )}
       </div>
     </div>
   );
