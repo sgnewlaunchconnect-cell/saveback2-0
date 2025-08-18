@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import LiveTransaction from "@/components/LiveTransaction";
+import PayAtMerchantComponent from "@/components/PayAtMerchant";
 
 export default function GrabPass() {
   const { grabId } = useParams();
@@ -55,17 +55,22 @@ export default function GrabPass() {
     window.location.href = '/deals';
   };
 
+  const handlePaymentComplete = (paymentData: {
+    billAmount: number;
+    creditsUsed: number;
+    finalAmount: number;
+    paymentCode: string;
+  }) => {
+    console.log("Payment completed for deal:", dealInfo.dealTitle, paymentData);
+    // Here you would typically update user credits, log the transaction, etc.
+    setTimeout(() => {
+      window.location.href = '/deals';
+    }, 3000);
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      <LiveTransaction
-        dealId={dealInfo.dealId}
-        merchantId={dealInfo.merchantId}
-        dealTitle={dealInfo.dealTitle}
-        dealType={dealInfo.dealType}
-        dealDiscountPct={dealInfo.dealDiscountPct}
-        dealDiscountFixed={dealInfo.dealDiscountFixed}
-        onComplete={handleTransactionComplete}
-      />
+      <PayAtMerchantComponent onPaymentComplete={handlePaymentComplete} />
     </div>
   );
 }

@@ -14,6 +14,7 @@ import MerchantDashboard from "./pages/MerchantDashboard";
 import MerchantDemo from "./pages/MerchantDemo";
 import DemoScenarios from "./pages/DemoScenarios";
 import WalletPage from "./pages/WalletPage";
+import PayAtMerchant from "./pages/PayAtMerchant";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -37,6 +38,7 @@ const App = () => (
           <Route path="/merchant/demo" element={<MerchantDemo />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/wallet" element={<WalletPage />} />
+          <Route path="/pay" element={<PayAtMerchant />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -295,75 +295,6 @@ export type Database = {
         }
         Relationships: []
       }
-      live_transactions: {
-        Row: {
-          created_at: string
-          credits_available_local: number | null
-          credits_available_network: number | null
-          credits_enabled: boolean | null
-          credits_to_apply: number | null
-          deal_discount: number | null
-          deal_discount_fixed: number | null
-          deal_discount_pct: number | null
-          deal_id: string | null
-          deal_title: string | null
-          deal_type: string | null
-          expires_at: string
-          id: string
-          merchant_id: string
-          net_amount: number | null
-          purchase_amount: number | null
-          qr_token: string
-          status: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          credits_available_local?: number | null
-          credits_available_network?: number | null
-          credits_enabled?: boolean | null
-          credits_to_apply?: number | null
-          deal_discount?: number | null
-          deal_discount_fixed?: number | null
-          deal_discount_pct?: number | null
-          deal_id?: string | null
-          deal_title?: string | null
-          deal_type?: string | null
-          expires_at?: string
-          id?: string
-          merchant_id: string
-          net_amount?: number | null
-          purchase_amount?: number | null
-          qr_token: string
-          status?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          credits_available_local?: number | null
-          credits_available_network?: number | null
-          credits_enabled?: boolean | null
-          credits_to_apply?: number | null
-          deal_discount?: number | null
-          deal_discount_fixed?: number | null
-          deal_discount_pct?: number | null
-          deal_id?: string | null
-          deal_title?: string | null
-          deal_type?: string | null
-          expires_at?: string
-          id?: string
-          merchant_id?: string
-          net_amount?: number | null
-          purchase_amount?: number | null
-          qr_token?: string
-          status?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       merchant_alert_settings: {
         Row: {
           alerts_enabled: boolean
@@ -813,10 +744,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      calculate_transaction_totals: {
-        Args: { p_purchase_amount: number; p_transaction_id: string }
-        Returns: undefined
-      }
       generate_payment_code: {
         Args: Record<PropertyKey, never>
         Returns: string

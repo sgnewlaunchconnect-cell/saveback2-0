@@ -20,9 +20,16 @@ const Index = () => {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">
-                Try different pricing scenarios with real-time merchant interaction
+                Pay at any merchant with automatic credit application
               </p>
               <Button 
+                className="w-full mb-3" 
+                onClick={() => navigate('/pay')}
+              >
+                Pay at Merchant
+              </Button>
+              <Button 
+                variant="outline"
                 className="w-full mb-3" 
                 onClick={() => navigate('/demo-scenarios')}
               >
