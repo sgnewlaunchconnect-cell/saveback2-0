@@ -673,6 +673,47 @@ export type Database = {
         }
         Relationships: []
       }
+      tier_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          grab_id: string | null
+          id: string
+          merchant_id: string | null
+          new_tier_level: string | null
+          points_earned: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type?: string
+          grab_id?: string | null
+          id?: string
+          merchant_id?: string | null
+          new_tier_level?: string | null
+          points_earned?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          grab_id?: string | null
+          id?: string
+          merchant_id?: string | null
+          new_tier_level?: string | null
+          points_earned?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tier_events_grab_id_fkey"
+            columns: ["grab_id"]
+            isOneToOne: false
+            referencedRelation: "grabs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -707,6 +748,10 @@ export type Database = {
           phone: string | null
           photo_url: string | null
           settings: Json | null
+          tier_level: string | null
+          tier_points: number | null
+          tier_points_lifetime: number | null
+          tier_updated_at: string | null
           total_grabs: number | null
           total_redemptions: number | null
           total_savings: number | null
@@ -724,6 +769,10 @@ export type Database = {
           phone?: string | null
           photo_url?: string | null
           settings?: Json | null
+          tier_level?: string | null
+          tier_points?: number | null
+          tier_points_lifetime?: number | null
+          tier_updated_at?: string | null
           total_grabs?: number | null
           total_redemptions?: number | null
           total_savings?: number | null
@@ -741,6 +790,10 @@ export type Database = {
           phone?: string | null
           photo_url?: string | null
           settings?: Json | null
+          tier_level?: string | null
+          tier_points?: number | null
+          tier_points_lifetime?: number | null
+          tier_updated_at?: string | null
           total_grabs?: number | null
           total_redemptions?: number | null
           total_savings?: number | null
@@ -753,6 +806,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      award_tier_points: {
+        Args: { p_grab_id: string; p_merchant_id: string; p_user_id: string }
+        Returns: undefined
+      }
+      calculate_tier_level: {
+        Args: { points: number }
+        Returns: string
+      }
       generate_grab_pin: {
         Args: Record<PropertyKey, never>
         Returns: string
