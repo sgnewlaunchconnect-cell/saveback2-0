@@ -41,6 +41,7 @@ const App = () => (
           <Route path="/grab-pass/:grabId" element={<GrabPass />} />
           <Route path="/merchant/validate" element={<Navigate to="/hawker/validate" replace />} />
           <Route path="/merchant/dashboard" element={<MerchantDashboard />} />
+          <Route path="/merchants/:merchantId" element={<MerchantPage />} />
           <Route path="/merchant/:merchantId" element={<MerchantPortal />} />
           <Route path="/merchant/demo" element={<MerchantDemo />} />
           <Route path="/profile" element={<Profile />} />

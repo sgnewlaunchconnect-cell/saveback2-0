@@ -200,7 +200,7 @@ const DealDetail = () => {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate(`/merchant/${deal.merchant_id}`);
+                      navigate(`/merchants/${deal.merchant_id}`);
                     }}
                     className="font-medium text-foreground hover:text-primary transition-colors cursor-pointer text-left underline"
                   >

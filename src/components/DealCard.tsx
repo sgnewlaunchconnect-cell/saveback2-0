@@ -126,7 +126,7 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigate(`/merchant/${deal.merchant_id}`);
+                  navigate(`/merchants/${deal.merchant_id}`);
                 }}
                 className="text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer text-left truncate"
               >
