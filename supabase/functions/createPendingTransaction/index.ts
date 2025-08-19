@@ -14,7 +14,7 @@ serve(async (req) => {
   }
 
   try {
-    const { merchantId, originalAmount, grabId, dealId, anonymousUserId } = await req.json();
+    const { merchantId, originalAmount, grabId, dealId, anonymousUserId, localCreditsUsed = 0, networkCreditsUsed = 0 } = await req.json();
 
     console.log('createPendingTransaction called with:', {
       merchantId,
@@ -91,8 +91,9 @@ serve(async (req) => {
       }
     }
 
-    // Calculate final amount (for manual hawkers, it's the same as original since they pay externally)
-    const finalAmount = originalAmount;
+    // Calculate final amount after credit deductions
+    const totalCreditsUsed = localCreditsUsed + networkCreditsUsed;
+    const finalAmount = Math.max(0, originalAmount - totalCreditsUsed);
 
     // Create pending transaction - the set_payment_code trigger will generate the 6-digit code
     const { data: transaction, error: transactionError } = await supabase
@@ -102,6 +103,8 @@ serve(async (req) => {
         merchant_id: merchantId,
         original_amount: originalAmount,
         final_amount: finalAmount,
+        local_credits_used: localCreditsUsed,
+        network_credits_used: networkCreditsUsed,
         deal_id: dealId || (dealInfo?.id),
         status: 'pending',
         expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString() // 5 minutes from now

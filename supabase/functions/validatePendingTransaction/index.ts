@@ -106,6 +106,24 @@ serve(async (req) => {
 
     // Start transaction to update everything atomically
     try {
+      // Process credit deductions if credits were used
+      if ((transaction.local_credits_used > 0 || transaction.network_credits_used > 0) && transaction.user_id) {
+        // Use the existing credit processing function to deduct credits
+        const { error: creditError } = await supabase.rpc('process_credit_payment', {
+          p_user_id: transaction.user_id,
+          p_merchant_id: transaction.merchant_id,
+          p_original_amount: Math.round(transaction.original_amount * 100), // Convert to cents
+          p_local_credits_used: Math.round(transaction.local_credits_used * 100), // Convert to cents
+          p_network_credits_used: Math.round(transaction.network_credits_used * 100), // Convert to cents
+          p_final_amount: Math.round(transaction.final_amount * 100) // Convert to cents
+        });
+
+        if (creditError) {
+          console.error('Error processing credit deduction:', creditError);
+          throw new Error(`Failed to deduct credits: ${creditError.message}`);
+        }
+      }
+
       // Mark transaction as completed
       const { error: updateError } = await supabase
         .from('pending_transactions')

@@ -7,13 +7,19 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { CreditCard, Gift, Zap } from 'lucide-react';
+import { PaymentInstructions } from '@/components/PaymentInstructions';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PaymentFlowProps {
   billAmount: number;
   localCredits: number;
   networkCredits: number;
+  merchantName?: string;
+  merchantId?: string;
+  dealId?: string;
   allowBillInput?: boolean;
   directDiscount?: number; // Direct discount percentage (0-100)
+  isInAppPayment?: boolean;
   onPaymentComplete: (result: PaymentResult) => void;
 }
 
@@ -22,7 +28,8 @@ interface PaymentResult {
   totalSavings: number;
   originalAmount: number;
   finalAmount: number;
-  creditsUsed: number;
+  localCreditsUsed: number;
+  networkCreditsUsed: number;
   directDiscountAmount?: number;
 }
 
@@ -30,14 +37,20 @@ export default function PaymentFlow({
   billAmount: originalBillAmount,
   localCredits,
   networkCredits,
+  merchantName = "Merchant",
+  merchantId,
+  dealId,
   allowBillInput = false,
   directDiscount = 0,
+  isInAppPayment = false,
   onPaymentComplete
 }: PaymentFlowProps) {
   const { toast } = useToast();
   const [useCredits, setUseCredits] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [inputAmount, setInputAmount] = useState('');
+  const [showInstructions, setShowInstructions] = useState(false);
+  const [paymentResult, setPaymentResult] = useState<PaymentResult | null>(null);
 
   const currentAmount = allowBillInput 
     ? (parseFloat(inputAmount) || 0)
@@ -92,21 +105,41 @@ export default function PaymentFlow({
     setIsProcessing(true);
     
     try {
-      // Generate payment code
-      const paymentCode = Math.floor(100000 + Math.random() * 900000).toString();
-      
-      // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      onPaymentComplete({
-        paymentCode,
+      // Create pending transaction with credit information
+      const { data, error } = await supabase.functions.invoke('createPendingTransaction', {
+        body: {
+          merchantId,
+          originalAmount: calculation.originalAmount,
+          dealId,
+          localCreditsUsed: calculation.localCreditsUsed,
+          networkCreditsUsed: calculation.networkCreditsUsed
+        }
+      });
+
+      if (error) throw error;
+
+      const result: PaymentResult = {
+        paymentCode: data.data.paymentCode,
         totalSavings: calculation.totalSavings,
         originalAmount: calculation.originalAmount,
         finalAmount: calculation.finalAmount,
-        creditsUsed: calculation.localCreditsUsed + calculation.networkCreditsUsed,
+        localCreditsUsed: calculation.localCreditsUsed,
+        networkCreditsUsed: calculation.networkCreditsUsed,
         directDiscountAmount: calculation.directDiscountAmount
-      });
+      };
+      
+      setPaymentResult(result);
+      
+      if (isInAppPayment) {
+        // For in-app payments, call onPaymentComplete immediately
+        onPaymentComplete(result);
+      } else {
+        // For manual QR payments, show instructions
+        setShowInstructions(true);
+      }
+      
     } catch (error) {
+      console.error('Payment creation failed:', error);
       toast({
         title: "Payment Failed",
         description: "Please try again.",
@@ -118,6 +151,20 @@ export default function PaymentFlow({
   };
 
   const totalAvailableCredits = localCredits + networkCredits;
+
+  // Show payment instructions for manual QR payments
+  if (showInstructions && paymentResult) {
+    return (
+      <PaymentInstructions
+        finalAmount={paymentResult.finalAmount}
+        localCreditsUsed={paymentResult.localCreditsUsed}
+        networkCreditsUsed={paymentResult.networkCreditsUsed}
+        merchantName={merchantName}
+        paymentCode={paymentResult.paymentCode}
+        isInAppPayment={isInAppPayment}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
