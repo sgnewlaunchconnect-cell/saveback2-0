@@ -100,7 +100,7 @@ const Deals = () => {
               e.stopPropagation();
               navigate(`/merchant/${deal.merchants.id}`);
             }}
-            className="hover:text-primary transition-colors cursor-pointer text-left"
+            className="hover:text-primary transition-colors cursor-pointer text-left underline text-primary font-medium"
           >
             {deal.merchants.name}
           </button>
