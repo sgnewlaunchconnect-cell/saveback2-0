@@ -149,11 +149,6 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-md mx-auto space-y-6">
-        {/* Hero Header */}
-        <div className="text-center animate-fade-in">
-          <h1 className="text-3xl font-bold mb-2">Save&Shop</h1>
-          <p className="text-muted-foreground">Discover amazing deals and save money</p>
-        </div>
 
         {/* Search and Filter */}
         <div className="space-y-3 animate-fade-in">
