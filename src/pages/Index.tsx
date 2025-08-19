@@ -115,7 +115,7 @@ const Index = () => {
     <div className="space-y-3 animate-fade-in">
       <div className="flex items-center gap-2">
         {icon}
-        <h2 className="text-lg font-semibold">{title}</h2>
+        <h2 className="text-lg font-semibold">this for ? more messy</h2>
       </div>
       {deals.length === 0 ? (
         <p className="text-sm text-muted-foreground">No deals available</p>
