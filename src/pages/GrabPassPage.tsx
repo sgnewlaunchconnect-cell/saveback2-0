@@ -241,12 +241,12 @@ export default function GrabPassPage() {
           {/* PIN Display */}
           <Card>
             <CardContent className="p-6 text-center">
-              <p className="text-sm text-muted-foreground mb-2">Your PIN</p>
-              <div className="text-4xl font-mono font-bold tracking-wider mb-2">
+              <p className="text-sm text-muted-foreground mb-2">Backup Code</p>
+              <div className="text-4xl font-mono font-bold tracking-wider mb-2 text-primary">
                 {grabData.pin}
               </div>
               <p className="text-xs text-muted-foreground">
-                Show this to merchant or use in payment
+                Use this only if the merchant can't scan your code
               </p>
             </CardContent>
           </Card>
