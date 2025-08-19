@@ -17,6 +17,8 @@ interface GrabData {
   status: string;
   expires_at: string;
   created_at: string;
+  merchant_id: string;
+  deal_id: string;
   deals: {
     title: string;
     description: string;
@@ -98,11 +100,17 @@ export default function GrabPassPage() {
     }
   };
 
-  const handleUseNow = () => {
-    // For discount-only deals, just show instructions - no navigation needed
-    if (isDiscountOnlyDeal()) {
-      return; // Instructions are already visible on the page
-    }
+  const handleRedeemWithPIN = () => {
+    // Fast path: just show instructions, no payment flow needed
+    // This path doesn't log purchase amounts or apply credits
+    toast({
+      title: "Redeem with PIN",
+      description: `Show PIN ${grabData?.pin} to the merchant for instant discount`,
+    });
+  };
+
+  const handleUseCreditsAndPay = () => {
+    // Full path: enter bill amount, apply credits, generate payment code
     setShowPayment(true);
   };
 
@@ -248,6 +256,9 @@ export default function GrabPassPage() {
             billAmount={100}
             localCredits={850}    // Demo credits
             networkCredits={725}
+            merchantName={grabData?.deals?.merchants?.name}
+            merchantId={grabData?.merchant_id}
+            dealId={grabData?.deal_id}
             allowBillInput={true}  // Allow user to enter purchase amount
             directDiscount={grabData?.deals?.discount_pct || 0}
             onPaymentComplete={handlePaymentComplete}
@@ -348,9 +359,29 @@ export default function GrabPassPage() {
           {/* Action Buttons */}
           <div className="space-y-2">
             {!isUsed && !isExpired && (
-              <Button onClick={handleUseNow} variant="cta" className="w-full" size="sm">
-                {isDiscountOnlyDeal() ? "View Instructions" : "Use Now & Pay"}
-              </Button>
+              <>
+                {/* Redeem with PIN - Fast path for discount-only deals */}
+                <Button 
+                  onClick={handleRedeemWithPIN} 
+                  variant="cta" 
+                  className="w-full" 
+                  size="sm"
+                >
+                  Redeem with PIN
+                </Button>
+                
+                {/* Use Credits / Log Purchase - Only show for cashback/mixed deals */}
+                {!isDiscountOnlyDeal() && (
+                  <Button 
+                    onClick={handleUseCreditsAndPay} 
+                    variant="outline" 
+                    className="w-full" 
+                    size="sm"
+                  >
+                    Use Credits / Log Purchase
+                  </Button>
+                )}
+              </>
             )}
             
             <Button 
@@ -378,20 +409,12 @@ export default function GrabPassPage() {
             <div className="bg-muted p-4 rounded-lg">
               <h4 className="font-medium text-sm mb-2">How to Use:</h4>
               <ol className="text-xs text-muted-foreground space-y-1">
-                {isDiscountOnlyDeal() ? (
-                  <>
-                    <li>1. Visit the merchant location</li>
-                    <li>2. Show your PIN: <strong>{grabData.pin}</strong></li>
-                    <li>3. Merchant will enter PIN to validate your discount</li>
-                    <li>4. Get {grabData?.deals?.discount_pct}% off your purchase!</li>
-                  </>
-                ) : (
-                  <>
-                    <li>1. Visit the merchant location</li>
-                    <li>2. Show your PIN: <strong>{grabData.pin}</strong></li>
-                    <li>3. Use "Pay Now" to calculate final amount with credits</li>
-                    <li>4. Pay the final amount and earn cashback!</li>
-                  </>
+                <li>1. Visit the merchant location</li>
+                <li>2. Show your PIN: <strong>{grabData.pin}</strong></li>
+                <li>3. Choose redemption method:</li>
+                <li className="ml-4">• <strong>Redeem with PIN:</strong> Quick discount, no bill logging</li>
+                {!isDiscountOnlyDeal() && (
+                  <li className="ml-4">• <strong>Use Credits/Log Purchase:</strong> Enter bill amount, apply credits, earn cashback</li>
                 )}
               </ol>
             </div>
