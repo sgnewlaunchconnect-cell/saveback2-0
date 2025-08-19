@@ -20,6 +20,7 @@ interface Deal {
     id: string;
     name: string;
     address?: string;
+    logo_url?: string;
   };
 }
 
@@ -107,8 +108,16 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
         <div className="space-y-3">
           {/* Header with merchant info */}
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <Store className="h-5 w-5 text-primary" />
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+              {deal.merchants.logo_url ? (
+                <img 
+                  src={deal.merchants.logo_url} 
+                  alt={deal.merchants.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <Store className="h-5 w-5 text-primary" />
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-lg leading-tight group-hover:text-primary transition-colors">

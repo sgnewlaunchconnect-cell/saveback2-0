@@ -64,7 +64,8 @@ const Deals = () => {
             address,
             latitude,
             longitude,
-            category
+            category,
+            logo_url
           )
         `)
         .eq('is_active', true)

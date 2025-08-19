@@ -128,7 +128,7 @@ export default function PaymentSuccess({
         </CardContent>
       </Card>
 
-      <Button onClick={onContinue} className="w-full" size="lg">
+      <Button onClick={onContinue} variant="cta" className="w-full" size="lg">
         Continue
       </Button>
     </div>
