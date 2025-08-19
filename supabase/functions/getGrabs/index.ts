@@ -38,24 +38,10 @@ serve(async (req) => {
       }
     }
 
-    // Build query for grabs
+    // First, fetch grabs with basic info
     let grabsQuery = supabaseClient
       .from('grabs')
-      .select(`
-        id,
-        pin,
-        status,
-        expires_at,
-        created_at,
-        deals (
-          id,
-          title,
-          description,
-          discount_pct,
-          cashback_pct,
-          merchants (name, address)
-        )
-      `)
+      .select('id, pin, status, expires_at, created_at, deal_id, merchant_id')
       .gt('expires_at', new Date().toISOString())
       .eq('status', 'ACTIVE');
 
@@ -75,16 +61,76 @@ serve(async (req) => {
       });
     }
 
-    const { data: grabs, error } = await grabsQuery.order('created_at', { ascending: false });
+    const { data: grabs, error: grabsError } = await grabsQuery.order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching grabs:', error);
+    if (grabsError) {
+      console.error('Error fetching grabs:', grabsError);
       throw new Error('Failed to fetch grabs');
     }
 
+    if (!grabs || grabs.length === 0) {
+      return new Response(JSON.stringify({
+        success: true,
+        data: []
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Get unique deal IDs and merchant IDs
+    const dealIds = [...new Set(grabs.map(grab => grab.deal_id))];
+    const merchantIds = [...new Set(grabs.map(grab => grab.merchant_id))];
+
+    // Fetch deals separately
+    const { data: deals, error: dealsError } = await supabaseClient
+      .from('deals')
+      .select('id, title, description, discount_pct, cashback_pct')
+      .in('id', dealIds);
+
+    if (dealsError) {
+      console.error('Error fetching deals:', dealsError);
+      throw new Error('Failed to fetch deal details');
+    }
+
+    // Fetch merchants separately
+    const { data: merchants, error: merchantsError } = await supabaseClient
+      .from('merchants')
+      .select('id, name, address')
+      .in('id', merchantIds);
+
+    if (merchantsError) {
+      console.error('Error fetching merchants:', merchantsError);
+      throw new Error('Failed to fetch merchant details');
+    }
+
+    // Combine the data
+    const enrichedGrabs = grabs.map(grab => {
+      const deal = deals?.find(d => d.id === grab.deal_id);
+      const merchant = merchants?.find(m => m.id === grab.merchant_id);
+      
+      return {
+        id: grab.id,
+        pin: grab.pin,
+        status: grab.status,
+        expires_at: grab.expires_at,
+        created_at: grab.created_at,
+        deals: {
+          id: deal?.id || '',
+          title: deal?.title || 'Unknown Deal',
+          description: deal?.description || '',
+          discount_pct: deal?.discount_pct || 0,
+          cashback_pct: deal?.cashback_pct || 0,
+          merchants: {
+            name: merchant?.name || 'Unknown Merchant',
+            address: merchant?.address || ''
+          }
+        }
+      };
+    });
+
     return new Response(JSON.stringify({
       success: true,
-      data: grabs || []
+      data: enrichedGrabs
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

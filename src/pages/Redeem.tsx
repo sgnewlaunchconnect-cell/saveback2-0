@@ -40,21 +40,36 @@ export default function Redeem() {
   const fetchGrabs = async () => {
     setLoading(true);
     try {
-      // Get anonymous user ID
-      const anonymousUserId = localStorage.getItem('anonymousUserId') || '';
+      // Get or generate anonymous user ID
+      let anonymousUserId = localStorage.getItem('anonymousUserId');
+      if (!anonymousUserId) {
+        anonymousUserId = crypto.randomUUID();
+        localStorage.setItem('anonymousUserId', anonymousUserId);
+      }
+
+      console.log('Fetching grabs for anonymous user:', anonymousUserId);
 
       const { data, error } = await supabase.functions.invoke('getGrabs', {
         body: { anonymousUserId }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw error;
+      }
 
-      setGrabs(data.data || []);
+      if (data?.success) {
+        setGrabs(data.data || []);
+        console.log('Successfully fetched grabs:', data.data?.length || 0);
+      } else {
+        console.error('Function returned error:', data?.error);
+        throw new Error(data?.error || 'Unknown error');
+      }
     } catch (error) {
       console.error('Error fetching grabs:', error);
       toast({
         title: "Error",
-        description: "Failed to load your grab passes",
+        description: "Failed to load your grab passes. Please try again.",
         variant: "destructive"
       });
     } finally {
