@@ -182,11 +182,6 @@ const Deals = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto p-4 space-y-6">
-        {/* Hero Header */}
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl md:text-4xl font-bold">Great Deals Nearby</h1>
-          <p className="text-muted-foreground">Discover amazing discounts and earn credits at local merchants</p>
-        </div>
 
         {/* Search and Controls */}
         <div className="space-y-4">

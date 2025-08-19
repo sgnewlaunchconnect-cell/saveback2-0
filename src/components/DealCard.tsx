@@ -106,9 +106,9 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
     >
       <CardContent className="p-4">
         <div className="space-y-2">
-          {/* Header with merchant info */}
-          <div className="flex items-start gap-3">
-            <div className="w-12 h-12 md:w-14 md:h-14 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+          {/* Header with merchant info and larger image */}
+          <div className="flex items-start gap-3 mb-2">
+            <div className="w-16 h-16 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
               {deal.merchants.logo_url ? (
                 <img 
                   src={deal.merchants.logo_url} 
@@ -132,15 +132,13 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
               >
                 {deal.merchants.name}
               </button>
+              <div className="mt-1">
+                <DealBadge 
+                  discountPct={deal.discount_pct} 
+                  cashbackPct={deal.cashback_pct} 
+                />
+              </div>
             </div>
-          </div>
-          
-          {/* Deal badges positioned below header */}
-          <div className="flex flex-wrap items-center gap-2">
-            <DealBadge 
-              discountPct={deal.discount_pct} 
-              cashbackPct={deal.cashback_pct} 
-            />
           </div>
           
           {/* Location */}
@@ -152,7 +150,7 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
           )}
           
           {/* Time and savings benefit */}
-          <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center justify-between text-sm mb-2">
             <div className="flex items-center gap-2">
               <Clock className="h-3 w-3" />
               <span className={isExpiringSoon(deal.end_at) ? 'text-orange-600 font-medium' : 'text-muted-foreground'}>
@@ -166,25 +164,24 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
             )}
           </div>
 
-          {/* Benefit message */}
-          {(deal.discount_pct > 0 || deal.cashback_pct > 0) && (
-            <div className="text-xs text-muted-foreground bg-muted/50 rounded-md p-2">
-              {deal.discount_pct > 0 && deal.cashback_pct > 0 
-                ? `Get ${deal.discount_pct}% instant discount + earn ${deal.cashback_pct}% credits`
-                : deal.discount_pct > 0 
-                ? `Get ${deal.discount_pct}% instant discount`
-                : `Earn ${deal.cashback_pct}% credits back`
-              }
-            </div>
-          )}
-
-          {/* CTA Button - Right aligned and smaller */}
-          <div className="flex justify-end">
+          {/* Benefit message and CTA in same row */}
+          <div className="flex items-center justify-between">
+            {(deal.discount_pct > 0 || deal.cashback_pct > 0) && (
+              <div className="text-xs text-muted-foreground bg-muted/50 rounded-md px-2 py-1 flex-1 mr-3">
+                {deal.discount_pct > 0 && deal.cashback_pct > 0 
+                  ? `Get ${deal.discount_pct}% instant discount + earn ${deal.cashback_pct}% credits`
+                  : deal.discount_pct > 0 
+                  ? `Get ${deal.discount_pct}% instant discount`
+                  : `Earn ${deal.cashback_pct}% credits back`
+                }
+              </div>
+            )}
+            
             <Button 
               onClick={handleGrabDeal}
               variant="cta"
               size="sm"
-              
+              className="flex-shrink-0"
             >
               Grab Deal
             </Button>
