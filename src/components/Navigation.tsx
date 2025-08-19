@@ -69,26 +69,39 @@ export default function Navigation() {
 
   return (
     <>
-      {/* Mobile Navigation */}
+      {/* Mobile Navigation - Top Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-background border-b">
-        <div className="flex items-center justify-between p-4">
+        <div className="flex items-center justify-center p-4">
           <Link to="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <Tag className="h-4 w-4 text-primary-foreground" />
             </div>
             <span className="font-bold text-lg">Grab</span>
           </Link>
-          
-          <Sheet open={isOpen} onOpenChange={setIsOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="sm">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-80 p-0">
-              <NavContent />
-            </SheetContent>
-          </Sheet>
+        </div>
+      </div>
+
+      {/* Mobile Navigation - Bottom Tab Bar */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t">
+        <div className="flex items-center justify-around py-2">
+          {navItems.slice(0, 5).map((item) => {
+            const Icon = item.icon;
+            const isActive = isActivePath(item.path);
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors ${
+                  isActive
+                    ? 'text-primary'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+                <span className="text-xs font-medium">{item.label}</span>
+              </Link>
+            );
+          })}
         </div>
       </div>
 
@@ -132,8 +145,9 @@ export default function Navigation() {
         </div>
       </div>
 
-      {/* Spacer for fixed navigation */}
-      <div className="h-16" />
+      {/* Spacers for fixed navigation */}
+      <div className="h-16 lg:h-16" />
+      <div className="lg:hidden h-16" />
     </>
   );
 }

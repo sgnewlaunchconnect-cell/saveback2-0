@@ -120,7 +120,7 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-lg leading-tight group-hover:text-primary transition-colors">
+              <h3 className="font-semibold text-lg leading-tight group-hover:text-primary transition-colors truncate">
                 {deal.title}
               </h3>
               <button
@@ -128,17 +128,19 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
                   e.stopPropagation();
                   navigate(`/merchant/${deal.merchant_id}`);
                 }}
-                className="text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer text-left"
+                className="text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer text-left truncate"
               >
                 {deal.merchants.name}
               </button>
             </div>
-            <div className="flex flex-col gap-1">
-              <DealBadge 
-                discountPct={deal.discount_pct} 
-                cashbackPct={deal.cashback_pct} 
-              />
-            </div>
+          </div>
+          
+          {/* Deal badges positioned below header */}
+          <div className="flex flex-wrap items-center gap-2">
+            <DealBadge 
+              discountPct={deal.discount_pct} 
+              cashbackPct={deal.cashback_pct} 
+            />
           </div>
           
           {/* Location */}
@@ -176,15 +178,17 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
             </div>
           )}
 
-          {/* CTA Button */}
-          <Button 
-            onClick={handleGrabDeal}
-            variant="cta"
-            className="w-full mt-3"
-            size="sm"
-          >
-            Grab This Deal
-          </Button>
+          {/* CTA Button - Right aligned and smaller */}
+          <div className="flex justify-end">
+            <Button 
+              onClick={handleGrabDeal}
+              variant="cta"
+              size="sm"
+              className="px-4"
+            >
+              Grab Deal
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
