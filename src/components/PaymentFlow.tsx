@@ -224,6 +224,7 @@ export default function PaymentFlow({
           <Button 
             onClick={handlePayment}
             disabled={isProcessing || (allowBillInput && currentAmount <= 0)}
+            variant="cta"
             className="w-full"
             size="lg"
           >

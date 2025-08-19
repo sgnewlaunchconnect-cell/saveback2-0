@@ -231,11 +231,12 @@ const DealDetail = () => {
         </Card>
 
         <Button 
+          variant="cta"
           className="w-full h-12 text-lg font-semibold"
           onClick={handleGrab}
           disabled={grabbing || isExpired(deal.end_at)}
         >
-          {grabbing ? 'Grabbing...' : isExpired(deal.end_at) ? 'Deal Expired' : 'Grab Deal'}
+          {grabbing ? 'Grabbing...' : isExpired(deal.end_at) ? 'Deal Expired' : 'Grab This Deal'}
         </Button>
 
         <div className="mt-4 text-center">

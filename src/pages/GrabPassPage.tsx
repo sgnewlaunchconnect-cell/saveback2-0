@@ -318,7 +318,7 @@ export default function GrabPassPage() {
           {/* Action Buttons */}
           <div className="space-y-3">
             {!isUsed && !isExpired && (
-              <Button onClick={handleUseNow} className="w-full" size="lg">
+              <Button onClick={handleUseNow} variant="cta" className="w-full" size="lg">
                 Use Now & Pay
               </Button>
             )}

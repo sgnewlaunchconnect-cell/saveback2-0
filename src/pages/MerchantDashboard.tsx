@@ -152,7 +152,7 @@ export default function MerchantDashboard() {
           </div>
           <div className="flex gap-2">
             <Button 
-              variant="default" 
+              variant="cta" 
               size="sm"
               onClick={() => navigate('/merchant/demo')}
             >
@@ -270,7 +270,7 @@ export default function MerchantDashboard() {
                     <Tag className="h-4 w-4 mr-2" />
                     Create New Deal
                   </Button>
-                  <Button className="w-full justify-start" variant="outline">
+                  <Button className="w-full justify-start" variant="cta">
                     <QrCode className="h-4 w-4 mr-2" />
                     Validate Customer
                   </Button>

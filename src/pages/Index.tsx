@@ -231,6 +231,7 @@ const Index = () => {
         {/* Browse All Deals Button */}
         <div className="animate-fade-in">
           <Button 
+            variant="cta"
             className="w-full" 
             size="lg"
             onClick={() => navigate('/deals')}

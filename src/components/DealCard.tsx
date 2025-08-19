@@ -1,7 +1,7 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MapPin, Clock, Grab } from 'lucide-react';
+import { MapPin, Clock, Store } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +15,7 @@ interface Deal {
   discount_pct?: number;
   cashback_pct?: number;
   end_at: string;
+  merchant_id: string;
   merchants: {
     id: string;
     name: string;
@@ -52,7 +53,7 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
       });
 
       // Navigate to grab pass page with useNow=true to start payment immediately
-      navigate(`/grab/${data.grab.id}?useNow=true`);
+      navigate(`/grab-pass/${data.grab.id}?useNow=true`);
     } catch (error) {
       console.error('Error grabbing deal:', error);
       toast({
@@ -87,62 +88,95 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
     return diff <= 6 * 60 * 60 * 1000; // 6 hours
   };
 
+  const getTotalSavings = () => {
+    const discount = deal.discount_pct || 0;
+    const cashback = deal.cashback_pct || 0;
+    return discount + cashback;
+  };
+
   return (
     <Card 
-      className={`cursor-pointer hover:shadow-md transition-all animate-fade-in ${
+      className={`group cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-[1.02] ${
         isExpiringSoon(deal.end_at) 
-          ? 'border-orange-200 bg-orange-50/50 dark:border-orange-800 dark:bg-orange-950/20' 
-          : ''
-      }`}
+          ? 'border-orange-200 bg-gradient-to-br from-orange-50 to-orange-100/50' 
+          : 'hover:shadow-primary/5'
+      } overflow-hidden`}
       onClick={() => navigate(`/deals/${deal.id}`)}
     >
-      <CardHeader className={compact ? "pb-2" : "pb-3"}>
-        <div className="flex justify-between items-start gap-3">
-          <CardTitle className={`${compact ? 'text-base' : 'text-lg'} line-clamp-2`}>
-            {deal.title}
-          </CardTitle>
-          <DealBadge 
-            discountPct={deal.discount_pct} 
-            cashbackPct={deal.cashback_pct} 
-          />
-        </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <MapPin className="h-4 w-4" />
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/merchant/${deal.merchants.id}`);
-            }}
-            className="hover:text-primary transition-colors cursor-pointer text-left underline text-primary font-medium"
-          >
-            {deal.merchants.name}
-          </button>
-        </div>
-      </CardHeader>
-      <CardContent className="pt-0 space-y-3">
-        <div className="flex justify-between items-center">
-          <div className={`flex items-center gap-1 text-sm ${
-            isExpiringSoon(deal.end_at) 
-              ? 'text-orange-600 font-medium' 
-              : 'text-muted-foreground'
-          }`}>
-            <Clock className="h-4 w-4" />
-            <span>{getTimeLeft(deal.end_at)}</span>
+      <CardContent className="p-4">
+        <div className="space-y-3">
+          {/* Header with merchant info */}
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <Store className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-lg leading-tight group-hover:text-primary transition-colors">
+                {deal.title}
+              </h3>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/merchant/${deal.merchant_id}`);
+                }}
+                className="text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer text-left"
+              >
+                {deal.merchants.name}
+              </button>
+            </div>
+            <div className="flex flex-col gap-1">
+              <DealBadge 
+                discountPct={deal.discount_pct} 
+                cashbackPct={deal.cashback_pct} 
+              />
+            </div>
           </div>
+          
+          {/* Location */}
+          {deal.merchants.address && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <MapPin className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate">{deal.merchants.address}</span>
+            </div>
+          )}
+          
+          {/* Time and savings benefit */}
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-2">
+              <Clock className="h-3 w-3" />
+              <span className={isExpiringSoon(deal.end_at) ? 'text-orange-600 font-medium' : 'text-muted-foreground'}>
+                {getTimeLeft(deal.end_at)}
+              </span>
+            </div>
+            {getTotalSavings() > 0 && (
+              <div className="text-xs text-primary font-medium">
+                Save up to {getTotalSavings()}%
+              </div>
+            )}
+          </div>
+
+          {/* Benefit message */}
+          {(deal.discount_pct > 0 || deal.cashback_pct > 0) && (
+            <div className="text-xs text-muted-foreground bg-muted/50 rounded-md p-2">
+              {deal.discount_pct > 0 && deal.cashback_pct > 0 
+                ? `Get ${deal.discount_pct}% instant discount + earn ${deal.cashback_pct}% credits`
+                : deal.discount_pct > 0 
+                ? `Get ${deal.discount_pct}% instant discount`
+                : `Earn ${deal.cashback_pct}% credits back`
+              }
+            </div>
+          )}
+
+          {/* CTA Button */}
+          <Button 
+            onClick={handleGrabDeal}
+            variant="cta"
+            className="w-full mt-3"
+            size="sm"
+          >
+            Grab This Deal
+          </Button>
         </div>
-        {deal.description && !compact && (
-          <p className="text-sm text-muted-foreground line-clamp-2">
-            {deal.description}
-          </p>
-        )}
-        <Button 
-          onClick={handleGrabDeal}
-          className="w-full"
-          size="sm"
-        >
-          <Grab className="h-4 w-4 mr-2" />
-          Grab Deal Now
-        </Button>
       </CardContent>
     </Card>
   );
