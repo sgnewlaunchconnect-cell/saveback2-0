@@ -35,7 +35,7 @@ export default function Navigation() {
         <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
           <Tag className="h-4 w-4 text-primary-foreground" />
         </div>
-        <span className="font-bold text-lg">Grab</span>
+            <span className="font-bold text-lg">Save&Shop</span>
       </div>
 
       <nav className="flex-1 p-4 space-y-2">
@@ -59,11 +59,6 @@ export default function Navigation() {
         })}
       </nav>
 
-      <div className="p-4 border-t space-y-3">
-        <p className="text-sm text-muted-foreground">
-          Demo Mode - Full Access
-        </p>
-      </div>
     </div>
   );
 
@@ -71,13 +66,14 @@ export default function Navigation() {
     <>
       {/* Mobile Navigation - Top Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-background border-b">
-        <div className="flex items-center justify-center p-4">
+        <div className="flex flex-col items-center justify-center p-4">
           <Link to="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <Tag className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="font-bold text-lg">Grab</span>
+            <span className="font-bold text-lg">Save&Shop</span>
           </Link>
+          <span className="text-xs text-muted-foreground mt-1">Discover amazing deals and save money</span>
         </div>
       </div>
 
@@ -113,7 +109,10 @@ export default function Navigation() {
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <Tag className="h-4 w-4 text-primary-foreground" />
               </div>
-              <span className="font-bold text-lg">Grab</span>
+              <div className="flex flex-col">
+                <span className="font-bold text-lg">Save&Shop</span>
+                <span className="text-xs text-muted-foreground hidden md:block">Discover amazing deals and save money</span>
+              </div>
             </Link>
 
             <nav className="flex items-center gap-6">
@@ -136,11 +135,6 @@ export default function Navigation() {
               })}
             </nav>
 
-            <div className="flex items-center gap-3">
-              <p className="text-sm text-muted-foreground">
-                Demo Mode - Full Access
-              </p>
-            </div>
           </div>
         </div>
       </div>

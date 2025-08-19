@@ -105,10 +105,10 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
       onClick={() => navigate(`/deals/${deal.id}`)}
     >
       <CardContent className="p-4">
-        <div className="space-y-3">
+        <div className="space-y-2">
           {/* Header with merchant info */}
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+            <div className="w-12 h-12 md:w-14 md:h-14 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
               {deal.merchants.logo_url ? (
                 <img 
                   src={deal.merchants.logo_url} 
@@ -116,7 +116,7 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <Store className="h-5 w-5 text-primary" />
+                <Store className="h-6 w-6 text-primary" />
               )}
             </div>
             <div className="flex-1 min-w-0">
@@ -184,7 +184,7 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
               onClick={handleGrabDeal}
               variant="cta"
               size="sm"
-              className="px-4"
+              
             >
               Grab Deal
             </Button>

@@ -170,6 +170,7 @@ export default function Redeem() {
           {showUseButton && !isUsed && !isExpired && (
             <Button 
               onClick={(e) => handleUseNow(grab.id, e)}
+              variant="cta"
               className="w-full"
               size="sm"
             >
