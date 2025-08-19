@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, MapPin, Clock, Star } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { getUserId } from '@/utils/userIdManager';
 
 interface DealDetail {
   id: string;
@@ -75,12 +76,8 @@ const DealDetail = () => {
     
     setGrabbing(true);
     try {
-      // Get or create anonymous user ID
-      let anonymousUserId = localStorage.getItem('anonymousUserId');
-      if (!anonymousUserId) {
-        anonymousUserId = `anon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        localStorage.setItem('anonymousUserId', anonymousUserId);
-      }
+      // Use consistent getUserId helper
+      const anonymousUserId = getUserId();
 
       // Use createGrab edge function to ensure proper expiry and validation
       const { data, error } = await supabase.functions.invoke('createGrab', {

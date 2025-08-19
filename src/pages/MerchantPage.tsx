@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { getUserId } from "@/utils/userIdManager";
 
 interface Merchant {
   id: string;
@@ -168,12 +169,8 @@ export default function MerchantPage() {
 
   const handleGrabDeal = async (dealId: string) => {
     try {
-      // Get or create anonymous user ID
-      let anonymousUserId = localStorage.getItem('anonymousUserId');
-      if (!anonymousUserId) {
-        anonymousUserId = `anon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        localStorage.setItem('anonymousUserId', anonymousUserId);
-      }
+      // Use consistent getUserId helper
+      const anonymousUserId = getUserId();
 
       // Use createGrab edge function to ensure proper expiry and validation
       const { data, error } = await supabase.functions.invoke('createGrab', {

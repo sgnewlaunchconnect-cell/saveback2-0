@@ -47,12 +47,14 @@ export default function GrabPassPage() {
     if (grabId) {
       fetchGrabData();
     }
-    
-    // Auto-open payment if useNow param is present
-    if (searchParams.get('useNow') === 'true') {
+  }, [grabId]);
+
+  useEffect(() => {
+    // Auto-open payment if useNow param is present, but only for cashback deals
+    if (searchParams.get('useNow') === 'true' && grabData && !isDiscountOnlyDeal() && grabData.status === 'ACTIVE') {
       setShowPayment(true);
     }
-  }, [grabId, searchParams]);
+  }, [searchParams, grabData]);
 
   useEffect(() => {
     if (grabData) {
@@ -142,13 +144,33 @@ export default function GrabPassPage() {
           status: 'USED'
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error marking grab as used:', error);
-      toast({
-        title: "Error",
-        description: "Payment processed but failed to update grab status",
-        variant: "destructive"
-      });
+      
+      // Handle specific error codes
+      if (error.message?.includes('409') || error.message?.includes('ALREADY_USED')) {
+        // Grab already used, refetch data and show updated status
+        await fetchGrabData();
+        toast({
+          title: "Already Used",
+          description: "This grab pass has already been used",
+          variant: "destructive"
+        });
+      } else if (error.message?.includes('410') || error.message?.includes('EXPIRED')) {
+        // Grab expired, refetch data and show updated status
+        await fetchGrabData();
+        toast({
+          title: "Expired",
+          description: "This grab pass has expired",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Payment processed but failed to update grab status",
+          variant: "destructive"
+        });
+      }
     }
   };
 

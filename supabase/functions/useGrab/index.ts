@@ -49,6 +49,7 @@ serve(async (req) => {
       }
     }
 
+    // First try exact match with status and expiry filters
     let grabQuery = supabaseClient
       .from('grabs')
       .select('*')
@@ -77,13 +78,57 @@ serve(async (req) => {
       }
     }
 
-    const { data: grab, error: grabError } = await grabQuery.single();
+    let { data: grab, error: grabError } = await grabQuery.single();
 
+    // If not found with ACTIVE status, try finding any grab with this ID to check its status
     if (grabError || !grab) {
-      console.error('Grab not found or error:', grabError);
+      console.log('Active grab not found, checking grab status:', grabError);
+      
+      const { data: anyGrab, error: anyGrabError } = await supabaseClient
+        .from('grabs')
+        .select('*')
+        .eq('id', grabId)
+        .single();
+
+      if (anyGrabError || !anyGrab) {
+        console.error('Grab not found at all:', anyGrabError);
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Grab pass not found'
+        }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Check if grab is already used
+      if (anyGrab.status === 'USED') {
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Grab pass already used',
+          code: 'ALREADY_USED'
+        }), {
+          status: 409,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Check if grab is expired
+      if (new Date(anyGrab.expires_at) <= new Date()) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Grab pass expired',
+          code: 'EXPIRED'
+        }), {
+          status: 410,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // If we get here, the grab exists but didn't match our filters (probably user mismatch)
       return new Response(JSON.stringify({
         success: false,
-        error: 'Grab pass not found, already used, or expired'
+        error: 'Grab pass not found or access denied'
       }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
