@@ -7,7 +7,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
-import { Search, Filter, Grid3X3, List, MapIcon, SlidersHorizontal, Clock, Percent, Tag } from 'lucide-react';
+import { Search, Filter, Grid3X3, List, MapIcon, SlidersHorizontal, Clock, Percent, Tag, TrendingUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import DealCard from '@/components/DealCard';
@@ -160,15 +160,14 @@ const Deals = () => {
     }
   };
 
-
   if (loading) {
     return (
       <div className="min-h-screen bg-background p-4">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-md mx-auto">
           <div className="animate-pulse space-y-6">
             <div className="h-12 bg-muted rounded w-1/3"></div>
             <div className="h-16 bg-muted rounded"></div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="space-y-4">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div key={i} className="h-48 bg-muted rounded-lg"></div>
               ))}
@@ -181,27 +180,85 @@ const Deals = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto p-4 space-y-6">
+      <div className="max-w-md mx-auto p-4 space-y-4">
+        {/* Header with Save&Shop branding */}
+        <div className="text-center space-y-2 mb-6">
+          <div className="flex items-center justify-center gap-3">
+            <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
+              <Tag className="h-6 w-6 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold">Save&Shop</h1>
+          </div>
+          <p className="text-muted-foreground">Discover amazing deals and save money</p>
+        </div>
 
         {/* Search and Controls */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* Search Bar */}
-          <div className="relative max-w-md mx-auto">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search deals or merchants..."
+              placeholder="Search deals, merchants..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
             />
           </div>
 
+          {/* Reward Type Filters */}
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            <Badge
+              variant={selectedRewardTypes.includes('all') ? 'default' : 'outline'}
+              className="cursor-pointer whitespace-nowrap"
+              onClick={() => toggleRewardType('all')}
+            >
+              All
+            </Badge>
+            <Badge
+              variant={selectedRewardTypes.includes('discount') ? 'default' : 'outline'}
+              className="cursor-pointer whitespace-nowrap"
+              onClick={() => toggleRewardType('discount')}
+            >
+              <Tag className="h-3 w-3 mr-1" />
+              Direct Discount
+            </Badge>
+            <Badge
+              variant={selectedRewardTypes.includes('cashback') ? 'default' : 'outline'}
+              className="cursor-pointer whitespace-nowrap"
+              onClick={() => toggleRewardType('cashback')}
+            >
+              <Percent className="h-3 w-3 mr-1" />
+              Credit Rewards
+            </Badge>
+          </div>
+
+          {/* Category Filters */}
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            <Badge
+              variant={selectedCategories.length === 0 ? 'default' : 'outline'}
+              className="cursor-pointer whitespace-nowrap"
+              onClick={() => setSelectedCategories([])}
+            >
+              All
+            </Badge>
+            {getUniqueCategories().map((category) => (
+              <Badge
+                key={category}
+                variant={selectedCategories.includes(category) ? 'default' : 'outline'}
+                className="cursor-pointer whitespace-nowrap capitalize"
+                onClick={() => toggleCategory(category)}
+              >
+                {category}
+              </Badge>
+            ))}
+          </div>
+
           {/* Controls Row */}
-          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
               {/* Sort */}
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-36">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -230,44 +287,6 @@ const Deals = () => {
                     <SheetDescription>Narrow down deals to find exactly what you want</SheetDescription>
                   </SheetHeader>
                   <div className="space-y-6 mt-6">
-                    {/* Reward Type */}
-                    <div>
-                      <h4 className="font-medium mb-3 flex items-center gap-2">
-                        <Percent className="h-4 w-4" />
-                        Reward Type
-                      </h4>
-                      <div className="space-y-2">
-                        {['all', 'discount', 'cashback'].map((type) => (
-                          <label key={type} className="flex items-center space-x-2 cursor-pointer">
-                            <Checkbox 
-                              checked={selectedRewardTypes.includes(type)}
-                              onCheckedChange={() => toggleRewardType(type)}
-                            />
-                            <span className="capitalize text-sm">{type === 'all' ? 'All Types' : type === 'cashback' ? 'Earn Credits' : 'Instant Discount'}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Categories */}
-                    <div>
-                      <h4 className="font-medium mb-3 flex items-center gap-2">
-                        <Tag className="h-4 w-4" />
-                        Categories
-                      </h4>
-                      <div className="space-y-2">
-                        {getUniqueCategories().map((category) => (
-                          <label key={category} className="flex items-center space-x-2 cursor-pointer">
-                            <Checkbox 
-                              checked={selectedCategories.includes(category)}
-                              onCheckedChange={() => toggleCategory(category)}
-                            />
-                            <span className="capitalize text-sm">{category}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-
                     {/* Time Filter */}
                     <div>
                       <h4 className="font-medium mb-3 flex items-center gap-2">
@@ -291,71 +310,34 @@ const Deals = () => {
               </Sheet>
             </div>
 
-            {/* View Toggle and Results Count */}
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-muted-foreground">
-                {filteredDeals.length} deal{filteredDeals.length !== 1 ? 's' : ''}
-              </span>
-              <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'grid' | 'list' | 'map')}>
-                <TabsList className="grid grid-cols-3 w-24">
-                  <TabsTrigger value="grid" className="p-2">
-                    <Grid3X3 className="h-4 w-4" />
-                  </TabsTrigger>
-                  <TabsTrigger value="list" className="p-2">
-                    <List className="h-4 w-4" />
-                  </TabsTrigger>
-                  <TabsTrigger value="map" className="p-2">
-                    <MapIcon className="h-4 w-4" />
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
+            <span className="text-sm text-muted-foreground">
+              {filteredDeals.length} deal{filteredDeals.length !== 1 ? 's' : ''}
+            </span>
           </div>
         </div>
 
-        {/* Results */}
-        <Tabs value={viewMode} className="w-full">
-          <TabsContent value="grid" className="mt-0">
-            {filteredDeals.length === 0 ? (
-              <div className="text-center py-12">
-                <Tag className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-lg text-muted-foreground mb-2">No deals found</p>
-                <p className="text-sm text-muted-foreground">Try adjusting your filters or search terms</p>
-              </div>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {filteredDeals.map((deal) => (
-                  <DealCard key={deal.id} deal={deal} />
-                ))}
-              </div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="list" className="mt-0">
-            {filteredDeals.length === 0 ? (
-              <div className="text-center py-12">
-                <Tag className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-lg text-muted-foreground mb-2">No deals found</p>
-                <p className="text-sm text-muted-foreground">Try adjusting your filters or search terms</p>
-              </div>
-            ) : (
-              <div className="max-w-2xl mx-auto space-y-4">
-                {filteredDeals.map((deal) => (
-                  <DealCard key={deal.id} deal={deal} />
-                ))}
-              </div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="map" className="mt-0">
-            <div className="bg-muted rounded-lg h-96 flex items-center justify-center">
-              <div className="text-center">
-                <MapIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">Map view coming soon</p>
-              </div>
+        {/* Trending Section */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">Trending</h2>
+          </div>
+
+          {/* Results */}
+          {filteredDeals.length === 0 ? (
+            <div className="text-center py-12">
+              <Tag className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-lg text-muted-foreground mb-2">No deals found</p>
+              <p className="text-sm text-muted-foreground">Try adjusting your filters or search terms</p>
             </div>
-          </TabsContent>
-        </Tabs>
+          ) : (
+            <div className="space-y-3">
+              {filteredDeals.map((deal) => (
+                <DealCard key={deal.id} deal={deal} />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
