@@ -171,10 +171,10 @@ export default function GrabPassPage() {
           </div>
           
           <PaymentFlow
-            originalAmount={2500} // Demo amount in cents
             localCredits={850}    // Demo credits
             networkCredits={725}
             autoApplyCredits={true}
+            allowAmountInput={true}  // Allow user to enter purchase amount
             onPaymentComplete={handlePaymentComplete}
           />
         </div>

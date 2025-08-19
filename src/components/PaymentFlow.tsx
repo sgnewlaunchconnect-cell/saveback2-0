@@ -9,12 +9,13 @@ import { useToast } from '@/hooks/use-toast';
 import { CreditCard, DollarSign, Zap, Check, ArrowRight } from 'lucide-react';
 
 interface PaymentFlowProps {
-  originalAmount: number; // in cents
+  originalAmount?: number; // in cents - optional, if not provided shows input
   localCredits: number; // in cents
   networkCredits: number; // in cents
   merchantId?: string;
   onPaymentComplete?: (paymentDetails: PaymentResult) => void;
   autoApplyCredits?: boolean;
+  allowAmountInput?: boolean; // Allow user to input amount
 }
 
 interface PaymentResult {
@@ -26,30 +27,37 @@ interface PaymentResult {
 }
 
 export default function PaymentFlow({
-  originalAmount,
+  originalAmount = 0,
   localCredits,
   networkCredits,
   merchantId,
   onPaymentComplete,
-  autoApplyCredits = false
+  autoApplyCredits = false,
+  allowAmountInput = false
 }: PaymentFlowProps) {
   const { toast } = useToast();
   const [useCredits, setUseCredits] = useState(autoApplyCredits);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [billAmount, setBillAmount] = useState<string>("");
+  
+  // Use input amount if allowed, otherwise use original amount
+  const currentAmount = allowAmountInput 
+    ? (parseFloat(billAmount) || 0) * 100  // Convert dollars to cents
+    : originalAmount;
 
   // Calculate credit application
   const calculatePayment = (): PaymentResult => {
-    if (!useCredits) {
+    if (!useCredits || currentAmount <= 0) {
       return {
-        originalAmount,
+        originalAmount: currentAmount,
         localCreditsUsed: 0,
         networkCreditsUsed: 0,
-        finalAmount: originalAmount,
+        finalAmount: currentAmount,
         totalSaved: 0
       };
     }
 
-    let remainingAmount = originalAmount;
+    let remainingAmount = currentAmount;
     let localCreditsUsed = 0;
     let networkCreditsUsed = 0;
 
@@ -66,7 +74,7 @@ export default function PaymentFlow({
     }
 
     return {
-      originalAmount,
+      originalAmount: currentAmount,
       localCreditsUsed,
       networkCreditsUsed,
       finalAmount: remainingAmount,
@@ -79,6 +87,15 @@ export default function PaymentFlow({
   const canCoverFull = totalAvailableCredits >= originalAmount;
 
   const handlePayment = async () => {
+    if (allowAmountInput && (!billAmount || parseFloat(billAmount) <= 0)) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid bill amount",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsProcessing(true);
     
     try {
@@ -111,13 +128,32 @@ export default function PaymentFlow({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Original Amount */}
-        <div className="flex justify-between items-center">
-          <span className="text-base">Subtotal</span>
-          <span className="text-lg font-semibold">
-            ${(originalAmount / 100).toFixed(2)}
-          </span>
-        </div>
+        {/* Amount Input or Display */}
+        {allowAmountInput ? (
+          <div className="space-y-2">
+            <label htmlFor="billAmount" className="text-base font-medium">Bill Amount</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
+              <input
+                id="billAmount"
+                type="number"
+                placeholder="0.00"
+                value={billAmount}
+                onChange={(e) => setBillAmount(e.target.value)}
+                className="w-full pl-8 pr-4 py-2 border border-input bg-background rounded-md text-lg font-semibold"
+                step="0.01"
+                min="0"
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="flex justify-between items-center">
+            <span className="text-base">Subtotal</span>
+            <span className="text-lg font-semibold">
+              ${(currentAmount / 100).toFixed(2)}
+            </span>
+          </div>
+        )}
 
         <Separator />
 
