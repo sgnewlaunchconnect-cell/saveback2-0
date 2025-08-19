@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import PaymentMethodBadge from "@/components/PaymentMethodBadge";
 import { 
   Store, 
   DollarSign, 
@@ -50,6 +51,7 @@ interface DemoGrab {
 export default function MerchantDemo() {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [merchantType, setMerchantType] = useState<'in-app' | 'pin-only'>('in-app');
   const [stats] = useState<DemoStats>({
     active_deals: 8,
     total_grabs: 247,
@@ -178,6 +180,28 @@ export default function MerchantDemo() {
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-7xl mx-auto space-y-6">
         
+        {/* Merchant Type Toggle */}
+        <div className="flex justify-center mb-4">
+          <div className="flex bg-muted rounded-lg p-1">
+            <Button
+              variant={merchantType === 'in-app' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setMerchantType('in-app')}
+              className="rounded-md"
+            >
+              In-app PSP Merchant
+            </Button>
+            <Button
+              variant={merchantType === 'pin-only' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setMerchantType('pin-only')}
+              className="rounded-md"
+            >
+              PIN-only Merchant
+            </Button>
+          </div>
+        </div>
+
         {/* Header with Live Demo Badge */}
         <div className="flex justify-between items-start">
           <div className="space-y-2">
@@ -191,6 +215,10 @@ export default function MerchantDemo() {
                     Downtown Tech District
                   </span>
                   <Badge className="bg-green-100 text-green-800">Live Demo</Badge>
+                  <PaymentMethodBadge 
+                    payoutMethod={merchantType === 'in-app' ? 'stripe' : 'manual'}
+                    hasCashback={merchantType === 'in-app'}
+                  />
                 </div>
               </div>
             </div>
@@ -433,6 +461,38 @@ export default function MerchantDemo() {
           </Card>
         </div>
 
+        {/* Payment Method Info Card */}
+        <Card className={merchantType === 'in-app' ? "bg-green-50 border-green-200" : "bg-orange-50 border-orange-200"}>
+          <CardHeader>
+            <CardTitle className={merchantType === 'in-app' ? "text-green-800" : "text-orange-800"}>
+              💳 {merchantType === 'in-app' ? 'In-app Payment Merchant' : 'PIN-only Merchant'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className={merchantType === 'in-app' ? "text-green-700" : "text-orange-700"}>
+            {merchantType === 'in-app' ? (
+              <div className="space-y-2">
+                <p className="font-medium">✅ Customers can pay directly in the app using PSP integration</p>
+                <ul className="text-sm space-y-1">
+                  <li>• Seamless payment experience with credit cards</li>
+                  <li>• Automatic credit processing and cashback</li>
+                  <li>• Real-time transaction notifications</li>
+                  <li>• Lower validation overhead for merchants</li>
+                </ul>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="font-medium">📍 Customers must pay at counter and validate with PIN</p>
+                <ul className="text-sm space-y-1">
+                  <li>• Traditional payment at merchant location</li>
+                  <li>• Manual PIN validation required</li>
+                  <li>• Higher merchant interaction needed</li>
+                  <li>• Suitable for cash-preferred businesses</li>
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Demo Instructions */}
         <Card className="bg-blue-50 border-blue-200">
           <CardHeader>
@@ -451,6 +511,7 @@ export default function MerchantDemo() {
               <div>
                 <h4 className="font-medium mb-2">Explore Features:</h4>
                 <ul className="text-sm space-y-1">
+                  <li>• Toggle merchant types above</li>
                   <li>• Click Quick Actions to see demos</li>
                   <li>• Visit Full Dashboard for complete interface</li>
                   <li>• Check Validation Center for advanced tools</li>

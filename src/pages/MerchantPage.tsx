@@ -230,7 +230,13 @@ export default function MerchantPage() {
         <div className="max-w-4xl mx-auto">
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
-              <h1 className="text-3xl font-bold mb-2">{merchant.name}</h1>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-3xl font-bold">{merchant.name}</h1>
+                <PaymentMethodBadge 
+                  payoutMethod={merchant.payout_method}
+                  hasCashback={true}
+                />
+              </div>
               <div className="flex items-center gap-4 text-muted-foreground mb-2">
                 <div className="flex items-center gap-1">
                   <MapPin className="w-4 h-4" />

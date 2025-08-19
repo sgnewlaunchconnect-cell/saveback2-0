@@ -115,6 +115,11 @@ const Index = () => {
     .filter(deal => deal.cashback_pct > 0)
     .slice(0, 6);
 
+  // Get in-app payment deals
+  const inAppPaymentDeals = filteredDeals
+    .filter(deal => deal.merchants.payout_method !== 'manual' && deal.cashback_pct > 0)
+    .slice(0, 6);
+
   // Get unique categories
   const categories = ['all', ...new Set(deals.map(deal => deal.merchants.category || 'other'))];
 
@@ -239,6 +244,12 @@ const Index = () => {
               title="Trending" 
               deals={trendingDeals} 
               icon={<TrendingUp className="h-5 w-5 text-primary" />} 
+            />
+
+            <DealSection 
+              title="In-app Payment" 
+              deals={inAppPaymentDeals} 
+              icon={<Coins className="h-5 w-5 text-green-600" />} 
             />
 
             <DealSection 
