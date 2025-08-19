@@ -91,11 +91,11 @@ const DealDetail = () => {
 
       toast({
         title: "Deal Grabbed! 🎉",
-        description: "Your grab pass is ready. Valid for 24 hours!"
+        description: "Ready to pay with your credits!"
       });
 
-      // Navigate to grab pass
-      navigate(`/grab-pass/${data.id}`);
+      // Navigate directly to pay page with grab details
+      navigate(`/pay?grabId=${data.id}&dealId=${deal.id}&merchantId=${deal.merchant_id}`);
     } catch (error) {
       console.error('Error grabbing deal:', error);
       toast({
