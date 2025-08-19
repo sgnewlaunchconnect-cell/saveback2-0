@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,8 @@ import { QrCode, Clock, CheckCircle, XCircle, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import PaymentFlow from "@/components/PaymentFlow";
+import PaymentSuccess from "@/components/PaymentSuccess";
+import { getUserId } from "@/utils/userIdManager";
 
 interface GrabData {
   id: string;
@@ -32,17 +34,25 @@ export default function GrabPassPage() {
   const { grabId } = useParams<{ grabId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   
   const [grabData, setGrabData] = useState<GrabData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showPayment, setShowPayment] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [paymentData, setPaymentData] = useState<any>(null);
   const [timeLeft, setTimeLeft] = useState(0);
 
   useEffect(() => {
     if (grabId) {
       fetchGrabData();
     }
-  }, [grabId]);
+    
+    // Auto-open payment if useNow param is present
+    if (searchParams.get('useNow') === 'true') {
+      setShowPayment(true);
+    }
+  }, [grabId, searchParams]);
 
   useEffect(() => {
     if (grabData) {
@@ -64,8 +74,7 @@ export default function GrabPassPage() {
   const fetchGrabData = async () => {
     setLoading(true);
     try {
-      // Get anonymous user ID
-      const anonymousUserId = localStorage.getItem('anonymousUserId') || '';
+      const anonymousUserId = getUserId();
 
       const { data, error } = await supabase.functions.invoke('getGrab', {
         body: { grabId, anonymousUserId }
@@ -91,22 +100,48 @@ export default function GrabPassPage() {
     setShowPayment(true);
   };
 
-  const handlePaymentComplete = () => {
-    toast({
-      title: "Payment Complete! 🎉",
-      description: "Your grab pass has been used successfully"
-    });
-    
-    // Update grab status to USED
-    supabase
-      .from('grabs')
-      .update({ 
-        status: 'USED',
-        used_at: new Date().toISOString()
-      })
-      .eq('id', grabId);
+  const handlePaymentComplete = async (paymentResult: any) => {
+    try {
+      const anonymousUserId = getUserId();
       
-    setShowPayment(false);
+      // Call useGrab function to mark as used
+      const { data, error } = await supabase.functions.invoke('useGrab', {
+        body: { 
+          grabId, 
+          anonymousUserId,
+          paymentCode: paymentResult.paymentCode 
+        }
+      });
+
+      if (error) throw error;
+
+      // Store payment data for success screen
+      setPaymentData({
+        paymentCode: paymentResult.paymentCode,
+        totalSavings: paymentResult.totalSavings,
+        originalAmount: paymentResult.originalAmount,
+        finalAmount: paymentResult.finalAmount,
+        creditsUsed: paymentResult.creditsUsed
+      });
+      
+      setShowPayment(false);
+      setShowSuccess(true);
+      
+      // Update local state
+      if (grabData) {
+        setGrabData({
+          ...grabData,
+          status: 'USED'
+        });
+      }
+    } catch (error) {
+      console.error('Error marking grab as used:', error);
+      toast({
+        title: "Error",
+        description: "Payment processed but failed to update grab status",
+        variant: "destructive"
+      });
+    }
   };
 
   if (loading) {
@@ -144,6 +179,26 @@ export default function GrabPassPage() {
   const hours = Math.floor(timeLeft / (1000 * 60 * 60));
   const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
   const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+  if (showSuccess && paymentData) {
+    return (
+      <div className="min-h-screen bg-background p-4">
+        <div className="max-w-md mx-auto">
+          <PaymentSuccess
+            paymentCode={paymentData.paymentCode}
+            totalSavings={paymentData.totalSavings}
+            originalAmount={paymentData.originalAmount}
+            finalAmount={paymentData.finalAmount}
+            creditsUsed={paymentData.creditsUsed}
+            onContinue={() => {
+              setShowSuccess(false);
+              navigate('/redeem');
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
 
   if (showPayment) {
     return (

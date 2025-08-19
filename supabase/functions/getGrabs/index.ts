@@ -20,7 +20,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
-    const { anonymousUserId } = await req.json();
+    const { anonymousUserId, includeHistory = false } = await req.json();
 
     let userId = null;
     const authHeader = req.headers.get('Authorization');
@@ -41,9 +41,14 @@ serve(async (req) => {
     // First, fetch grabs with basic info
     let grabsQuery = supabaseClient
       .from('grabs')
-      .select('id, pin, status, expires_at, created_at, deal_id, merchant_id')
-      .gt('expires_at', new Date().toISOString())
-      .eq('status', 'ACTIVE');
+      .select('id, pin, status, expires_at, created_at, used_at, deal_id, merchant_id');
+
+    if (!includeHistory) {
+      // Only active, non-expired grabs
+      grabsQuery = grabsQuery
+        .gt('expires_at', new Date().toISOString())
+        .eq('status', 'ACTIVE');
+    }
 
     if (userId) {
       // Get grabs for authenticated user
@@ -114,6 +119,7 @@ serve(async (req) => {
         status: grab.status,
         expires_at: grab.expires_at,
         created_at: grab.created_at,
+        used_at: grab.used_at,
         deals: {
           id: deal?.id || '',
           title: deal?.title || 'Unknown Deal',

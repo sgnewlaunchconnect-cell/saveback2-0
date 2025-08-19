@@ -1,12 +1,14 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, QrCode, MapPin, RefreshCw } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Clock, QrCode, MapPin, RefreshCw, CheckCircle, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { getUserId } from "@/utils/userIdManager";
+import { DealBadge } from "@/components/DealBadge";
 
 interface GrabData {
   id: string;
@@ -14,6 +16,7 @@ interface GrabData {
   status: string;
   expires_at: string;
   created_at: string;
+  used_at?: string;
   deals: {
     id: string;
     title: string;
@@ -30,8 +33,10 @@ interface GrabData {
 export default function Redeem() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [grabs, setGrabs] = useState<GrabData[]>([]);
+  const [activeGrabs, setActiveGrabs] = useState<GrabData[]>([]);
+  const [historyGrabs, setHistoryGrabs] = useState<GrabData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("active");
 
   useEffect(() => {
     fetchGrabs();
@@ -40,31 +45,36 @@ export default function Redeem() {
   const fetchGrabs = async () => {
     setLoading(true);
     try {
-      // Get or generate anonymous user ID
-      let anonymousUserId = localStorage.getItem('anonymousUserId');
-      if (!anonymousUserId) {
-        anonymousUserId = crypto.randomUUID();
-        localStorage.setItem('anonymousUserId', anonymousUserId);
-      }
-
+      const anonymousUserId = getUserId();
       console.log('Fetching grabs for anonymous user:', anonymousUserId);
 
-      const { data, error } = await supabase.functions.invoke('getGrabs', {
-        body: { anonymousUserId }
+      // Fetch active grabs
+      const { data: activeData, error: activeError } = await supabase.functions.invoke('getGrabs', {
+        body: { anonymousUserId, includeHistory: false }
       });
 
-      if (error) {
-        console.error('Supabase function error:', error);
-        throw error;
+      if (activeError) throw activeError;
+
+      // Fetch history grabs
+      const { data: historyData, error: historyError } = await supabase.functions.invoke('getGrabs', {
+        body: { anonymousUserId, includeHistory: true }
+      });
+
+      if (historyError) throw historyError;
+
+      if (activeData?.success) {
+        setActiveGrabs(activeData.data || []);
       }
 
-      if (data?.success) {
-        setGrabs(data.data || []);
-        console.log('Successfully fetched grabs:', data.data?.length || 0);
-      } else {
-        console.error('Function returned error:', data?.error);
-        throw new Error(data?.error || 'Unknown error');
+      if (historyData?.success) {
+        const allGrabs = historyData.data || [];
+        const expiredOrUsed = allGrabs.filter((grab: GrabData) => 
+          grab.status === 'USED' || new Date(grab.expires_at) <= new Date()
+        );
+        setHistoryGrabs(expiredOrUsed);
       }
+
+      console.log('Successfully fetched grabs');
     } catch (error) {
       console.error('Error fetching grabs:', error);
       toast({
@@ -92,6 +102,85 @@ export default function Redeem() {
     return 'Ending soon';
   };
 
+  const handleUseNow = (grabId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/grab-pass/${grabId}?useNow=true`);
+  };
+
+  const renderGrabCard = (grab: GrabData, showUseButton = false) => {
+    const isExpired = new Date(grab.expires_at) <= new Date();
+    const isUsed = grab.status === 'USED';
+    
+    return (
+      <Card 
+        key={grab.id} 
+        className="cursor-pointer hover:shadow-md transition-all duration-300 border-l-4 border-l-primary/20"
+        onClick={() => navigate(`/grab-pass/${grab.id}`)}
+      >
+        <CardContent className="p-4">
+          <div className="flex justify-between items-start mb-3">
+            <div className="flex-1">
+              <h3 className="font-semibold text-sm leading-tight mb-2">
+                {grab.deals.title}
+              </h3>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
+                <MapPin className="h-3 w-3" />
+                {grab.deals.merchants.name}
+              </div>
+              <DealBadge 
+                discountPct={grab.deals.discount_pct}
+                cashbackPct={grab.deals.cashback_pct}
+              />
+            </div>
+            <div className="ml-4">
+              {isUsed ? (
+                <div className="flex items-center gap-1 text-green-600">
+                  <CheckCircle className="h-4 w-4" />
+                  <span className="text-xs font-medium">Used</span>
+                </div>
+              ) : isExpired ? (
+                <div className="flex items-center gap-1 text-red-500">
+                  <XCircle className="h-4 w-4" />
+                  <span className="text-xs font-medium">Expired</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 text-green-600">
+                  <CheckCircle className="h-4 w-4" />
+                  <span className="text-xs font-medium">Active</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-xs font-mono bg-muted px-2 py-1 rounded">
+              PIN: {grab.pin}
+            </div>
+            
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Clock className="h-3 w-3" />
+              {isUsed && grab.used_at ? (
+                `Used ${new Date(grab.used_at).toLocaleDateString()}`
+              ) : (
+                getTimeLeft(grab.expires_at)
+              )}
+            </div>
+          </div>
+
+          {showUseButton && !isUsed && !isExpired && (
+            <Button 
+              onClick={(e) => handleUseNow(grab.id, e)}
+              className="w-full"
+              size="sm"
+            >
+              Use Now & Pay
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background p-4">
@@ -117,75 +206,65 @@ export default function Redeem() {
           </Button>
         </div>
 
-        {grabs.length === 0 ? (
-          <Card>
-            <CardContent className="pt-6 text-center">
-              <QrCode className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No Grab Passes Yet</h3>
-              <p className="text-muted-foreground mb-4">
-                Start grabbing deals to see your passes here!
-              </p>
-              <Button onClick={() => navigate('/deals')} className="w-full">
-                Browse Deals
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-4">
-            {grabs.map((grab) => (
-              <Card 
-                key={grab.id} 
-                className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => navigate(`/grab-pass/${grab.id}`)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-sm leading-tight mb-1">
-                        {grab.deals.title}
-                      </h3>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                        <MapPin className="h-3 w-3" />
-                        {grab.deals.merchants.name}
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      {grab.deals.discount_pct > 0 && (
-                        <Badge variant="destructive" className="text-xs">
-                          {grab.deals.discount_pct}% OFF
-                        </Badge>
-                      )}
-                      {grab.deals.cashback_pct > 0 && (
-                        <Badge variant="secondary" className="text-xs">
-                          {grab.deals.cashback_pct}% back
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="active" className="relative">
+              Active
+              {activeGrabs.length > 0 && (
+                <Badge variant="secondary" className="ml-2 h-5 text-xs">
+                  {activeGrabs.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="history" className="relative">
+              History
+              {historyGrabs.length > 0 && (
+                <Badge variant="outline" className="ml-2 h-5 text-xs">
+                  {historyGrabs.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
 
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="text-xs font-mono bg-muted px-2 py-1 rounded">
-                        PIN: {grab.pin}
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Clock className="h-3 w-3" />
-                      {getTimeLeft(grab.expires_at)}
-                    </div>
-                  </div>
-
-                  {grab.status === 'USED' && (
-                    <div className="mt-2 text-xs text-green-600 font-medium">
-                      ✓ Used
-                    </div>
-                  )}
+          <TabsContent value="active" className="mt-4">
+            {activeGrabs.length === 0 ? (
+              <Card>
+                <CardContent className="pt-6 text-center">
+                  <QrCode className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No Active Grab Passes</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Start grabbing deals to see your active passes here!
+                  </p>
+                  <Button onClick={() => navigate('/deals')} className="w-full">
+                    Browse Deals
+                  </Button>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        )}
+            ) : (
+              <div className="space-y-4">
+                {activeGrabs.map((grab) => renderGrabCard(grab, true))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="history" className="mt-4">
+            {historyGrabs.length === 0 ? (
+              <Card>
+                <CardContent className="pt-6 text-center">
+                  <Clock className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No History Yet</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Your used and expired grab passes will appear here.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {historyGrabs.map((grab) => renderGrabCard(grab, false))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
 
         <div className="mt-6">
           <Button 

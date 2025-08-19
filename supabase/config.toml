@@ -77,5 +77,14 @@ verify_jwt = false
 [functions.issueCredits]
 verify_jwt = false
 
+[functions.useGrab]
+verify_jwt = false
+
+[functions.mock-payment]
+verify_jwt = false
+
+[functions.processCredits]
+verify_jwt = false
+
 [analytics]
 enabled = false

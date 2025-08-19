@@ -23,7 +23,9 @@ interface PaymentResult {
   localCreditsUsed: number;
   networkCreditsUsed: number;
   finalAmount: number;
-  totalSaved: number;
+  totalSavings: number;
+  creditsUsed: number;
+  paymentCode: string;
 }
 
 export default function PaymentFlow({
@@ -48,13 +50,15 @@ export default function PaymentFlow({
   // Calculate credit application
   const calculatePayment = (): PaymentResult => {
     if (!useCredits || currentAmount <= 0) {
-      return {
-        originalAmount: currentAmount,
-        localCreditsUsed: 0,
-        networkCreditsUsed: 0,
-        finalAmount: currentAmount,
-        totalSaved: 0
-      };
+    return {
+      originalAmount: currentAmount,
+      localCreditsUsed: 0,
+      networkCreditsUsed: 0,
+      finalAmount: currentAmount,
+      totalSavings: 0,
+      creditsUsed: 0,
+      paymentCode: ''
+    };
     }
 
     let remainingAmount = currentAmount;
@@ -78,7 +82,9 @@ export default function PaymentFlow({
       localCreditsUsed,
       networkCreditsUsed,
       finalAmount: remainingAmount,
-      totalSaved: localCreditsUsed + networkCreditsUsed
+      totalSavings: localCreditsUsed + networkCreditsUsed,
+      creditsUsed: localCreditsUsed + networkCreditsUsed,
+      paymentCode: ''
     };
   };
 
@@ -99,15 +105,18 @@ export default function PaymentFlow({
     setIsProcessing(true);
     
     try {
+      // Generate payment code
+      const paymentCode = Math.floor(100000 + Math.random() * 900000).toString();
+      
       // Simulate payment processing
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      toast({
-        title: "Payment Successful! 🎉",
-        description: `Saved $${(paymentResult.totalSaved / 100).toFixed(2)} with credits`,
-      });
+      const result = {
+        ...paymentResult,
+        paymentCode
+      };
 
-      onPaymentComplete?.(paymentResult);
+      onPaymentComplete?.(result);
     } catch (error) {
       toast({
         title: "Payment Failed",
@@ -221,9 +230,9 @@ export default function PaymentFlow({
         <div className="flex justify-between items-center text-lg font-bold">
           <span>Total to Pay</span>
           <div className="text-right">
-            {paymentResult.totalSaved > 0 && (
+            {paymentResult.totalSavings > 0 && (
               <div className="text-sm text-green-600 dark:text-green-400">
-                You save ${(paymentResult.totalSaved / 100).toFixed(2)}!
+                You save ${(paymentResult.totalSavings / 100).toFixed(2)}!
               </div>
             )}
             <span className={paymentResult.finalAmount === 0 ? "text-green-600 dark:text-green-400" : ""}>
@@ -255,10 +264,10 @@ export default function PaymentFlow({
         </Button>
 
         {/* Motivation Message */}
-        {paymentResult.totalSaved > 0 && (
+        {paymentResult.totalSavings > 0 && (
           <div className="text-center p-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg">
             <p className="text-sm text-blue-700 dark:text-blue-300">
-              🎉 Amazing! You just saved ${(paymentResult.totalSaved / 100).toFixed(2)} with your credits!
+              🎉 Amazing! You just saved ${(paymentResult.totalSavings / 100).toFixed(2)} with your credits!
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               Keep earning to unlock even bigger savings!
