@@ -200,24 +200,44 @@ const Index = () => {
           ))}
         </div>
 
-        {/* Deal Sections */}
-        <DealSection 
-          title="Trending" 
-          deals={trendingDeals} 
-          icon={<TrendingUp className="h-5 w-5 text-primary" />} 
-        />
+        {/* Deal Sections - conditionally rendered based on filter */}
+        {selectedRewardType === 'all' && (
+          <>
+            <DealSection 
+              title="Trending" 
+              deals={trendingDeals} 
+              icon={<TrendingUp className="h-5 w-5 text-primary" />} 
+            />
 
-        <DealSection 
-          title="Direct Discounts" 
-          deals={directDiscountDeals} 
-          icon={<Tag className="h-5 w-5 text-destructive" />} 
-        />
+            <DealSection 
+              title="Direct Discounts" 
+              deals={directDiscountDeals} 
+              icon={<Tag className="h-5 w-5 text-destructive" />} 
+            />
 
-        <DealSection 
-          title="Credit Rewards" 
-          deals={creditRewardDeals} 
-          icon={<Coins className="h-5 w-5 text-secondary-foreground" />} 
-        />
+            <DealSection 
+              title="Credit Rewards" 
+              deals={creditRewardDeals} 
+              icon={<Coins className="h-5 w-5 text-secondary-foreground" />} 
+            />
+          </>
+        )}
+
+        {selectedRewardType === 'discount' && (
+          <DealSection 
+            title="Direct Discount Deals" 
+            deals={filteredDeals.filter(deal => deal.discount_pct > 0)} 
+            icon={<Tag className="h-5 w-5 text-destructive" />} 
+          />
+        )}
+
+        {selectedRewardType === 'cashback' && (
+          <DealSection 
+            title="Credit Reward Deals" 
+            deals={filteredDeals.filter(deal => deal.cashback_pct > 0)} 
+            icon={<Coins className="h-5 w-5 text-secondary-foreground" />} 
+          />
+        )}
 
         {/* Browse All Deals Button */}
         <div className="animate-fade-in">
