@@ -64,27 +64,16 @@ export default function GrabPassPage() {
   const fetchGrabData = async () => {
     setLoading(true);
     try {
-      // Simplified query for demo - fetch grab and deal separately
-      const { data: grabData, error: grabError } = await supabase
-        .from('grabs')
-        .select('id, pin, status, expires_at, created_at, deal_id')
-        .eq('id', grabId)
-        .single();
+      // Get anonymous user ID
+      const anonymousUserId = localStorage.getItem('anonymousUserId') || '';
 
-      if (grabError) throw grabError;
-
-      const { data: dealData, error: dealError } = await supabase
-        .from('deals')
-        .select('title, description, discount_pct, cashback_pct, reward_mode, merchants(name, address)')
-        .eq('id', grabData.deal_id)
-        .single();
-
-      if (dealError) throw dealError;
-
-      setGrabData({
-        ...grabData,
-        deals: dealData
+      const { data, error } = await supabase.functions.invoke('getGrab', {
+        body: { grabId, anonymousUserId }
       });
+
+      if (error) throw error;
+
+      setGrabData(data.data);
     } catch (error) {
       console.error('Error fetching grab data:', error);
       toast({
@@ -289,7 +278,7 @@ export default function GrabPassPage() {
             {isExpired && !isUsed && (
               <Button 
                 variant="outline" 
-                onClick={() => navigate(`/deals/${grabData.deals}`)} 
+                onClick={() => navigate(`/deals`)} 
                 className="w-full"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />

@@ -189,6 +189,7 @@ export type Database = {
       }
       grabs: {
         Row: {
+          anon_user_id: string | null
           created_at: string
           deal_id: string
           expires_at: string
@@ -200,9 +201,10 @@ export type Database = {
           status: string
           updated_at: string
           used_at: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
+          anon_user_id?: string | null
           created_at?: string
           deal_id: string
           expires_at?: string
@@ -214,9 +216,10 @@ export type Database = {
           status?: string
           updated_at?: string
           used_at?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
+          anon_user_id?: string | null
           created_at?: string
           deal_id?: string
           expires_at?: string
@@ -228,7 +231,7 @@ export type Database = {
           status?: string
           updated_at?: string
           used_at?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }

@@ -1,3 +1,4 @@
+
 project_id = "imqdasdegvltcgzklbtj"
 
 [api]
@@ -59,6 +60,12 @@ enable_confirmations = false
 template = "Your code is {{ .Code }} ."
 
 [functions.createGrab]
+verify_jwt = false
+
+[functions.getGrab]
+verify_jwt = false
+
+[functions.getGrabs]
 verify_jwt = false
 
 [functions.validateGrab]

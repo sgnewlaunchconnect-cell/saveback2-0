@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -37,9 +38,10 @@ serve(async (req) => {
   }
 
   try {
+    // Use service role for anonymous operations
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
     const { dealId, anonymousUserId } = await req.json();
@@ -52,8 +54,8 @@ serve(async (req) => {
       throw new Error('Anonymous user ID is required');
     }
 
-    // Try to get authenticated user, but allow anonymous users
-    let userId = anonymousUserId; // Default to anonymous
+    // Try to get authenticated user if auth header is present
+    let userId = null;
     const authHeader = req.headers.get('Authorization');
     
     if (authHeader) {
@@ -93,15 +95,23 @@ serve(async (req) => {
       throw new Error('Deal has expired');
     }
 
-    // Check for existing active grab by this user for this deal
-    const { data: existingGrab } = await supabaseClient
+    // Check for existing active grab
+    let existingGrabQuery = supabaseClient
       .from('grabs')
       .select('*')
-      .eq('user_id', userId)
       .eq('deal_id', dealId)
       .eq('status', 'ACTIVE')
-      .gt('expires_at', new Date().toISOString())
-      .single();
+      .gt('expires_at', new Date().toISOString());
+
+    if (userId) {
+      // For authenticated users, check by user_id
+      existingGrabQuery = existingGrabQuery.eq('user_id', userId);
+    } else {
+      // For anonymous users, check by anon_user_id
+      existingGrabQuery = existingGrabQuery.eq('anon_user_id', anonymousUserId);
+    }
+
+    const { data: existingGrab } = await existingGrabQuery.single();
 
     if (existingGrab) {
       // Return existing grab instead of creating new one
@@ -137,7 +147,7 @@ serve(async (req) => {
     // Create token data for HMAC
     const tokenData = JSON.stringify({
       dealId: deal.id,
-      userId: userId,
+      userId: userId || anonymousUserId,
       merchantId: deal.merchant_id,
       pin,
       expiresAt: expiresAt.toISOString()
@@ -147,18 +157,25 @@ serve(async (req) => {
     const signature = await generateHMAC(tokenData, DEMO_SECRET);
     const qrToken = `${btoa(tokenData)}.${signature}`;
 
-    // Create grab record
+    // Create grab record with proper user handling
+    const grabData: any = {
+      deal_id: deal.id,
+      merchant_id: deal.merchant_id,
+      pin,
+      qr_token: qrToken,
+      expires_at: expiresAt.toISOString(),
+      status: 'ACTIVE'
+    };
+
+    if (userId) {
+      grabData.user_id = userId;
+    } else {
+      grabData.anon_user_id = anonymousUserId;
+    }
+
     const { data: grab, error: grabError } = await supabaseClient
       .from('grabs')
-      .insert({
-        user_id: userId,
-        deal_id: deal.id,
-        merchant_id: deal.merchant_id,
-        pin,
-        qr_token: qrToken,
-        expires_at: expiresAt.toISOString(),
-        status: 'ACTIVE'
-      })
+      .insert(grabData)
       .select()
       .single();
 
