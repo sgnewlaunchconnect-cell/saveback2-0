@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { User, CreditCard, Trophy, History, Settings, Wallet } from "lucide-react";
+import TierBadge from "@/components/TierBadge";
 
 
 interface UserProfile {
@@ -15,6 +16,8 @@ interface UserProfile {
   total_grabs: number;
   total_redemptions: number;
   total_savings: number;
+  tier_level: string;
+  tier_points: number;
 }
 
 interface CreditBalance {
@@ -43,7 +46,9 @@ export default function Profile() {
         email: "demo@example.com",
         total_grabs: 15,
         total_redemptions: 8,
-        total_savings: 2500 // $25.00
+        total_savings: 2500, // $25.00
+        tier_level: "Silver",
+        tier_points: 23
       };
       setProfile(demoProfile);
     } catch (error) {
@@ -107,9 +112,16 @@ export default function Profile() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Name</p>
-              <p className="font-medium">{profile?.display_name || 'Not set'}</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Name</p>
+                <p className="font-medium">{profile?.display_name || 'Not set'}</p>
+              </div>
+              <TierBadge 
+                tier={profile?.tier_level || 'Bronze'} 
+                points={profile?.tier_points || 0}
+                showPoints={true}
+              />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Email</p>
@@ -158,6 +170,73 @@ export default function Profile() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Tier Benefits */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="h-5 w-5" />
+              Your Tier Benefits
+            </CardTitle>
+            <CardDescription>
+              Unlock more benefits by using more grab passes
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <TierBadge 
+                tier={profile?.tier_level || 'Bronze'} 
+                points={profile?.tier_points || 0}
+                showPoints={true}
+              />
+            </div>
+            
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
+                <p className="text-sm font-medium text-primary">Current Tier Benefits</p>
+                <ul className="text-xs text-muted-foreground mt-1 space-y-1">
+                  {profile?.tier_level === 'Bronze' && (
+                    <>
+                      <li>• Basic grab pass functionality</li>
+                      <li>• Standard credit earning rate</li>
+                    </>
+                  )}
+                  {profile?.tier_level === 'Silver' && (
+                    <>
+                      <li>• +5% bonus network credits</li>
+                      <li>• 2 concurrent grab passes</li>
+                      <li>• Priority customer support</li>
+                    </>
+                  )}
+                  {profile?.tier_level === 'Gold' && (
+                    <>
+                      <li>• +10% bonus network credits</li>
+                      <li>• 3 concurrent grab passes</li>
+                      <li>• Early access to new deals</li>
+                    </>
+                  )}
+                  {profile?.tier_level === 'Platinum' && (
+                    <>
+                      <li>• +15% bonus network credits</li>
+                      <li>• 5 concurrent grab passes</li>
+                      <li>• VIP customer support</li>
+                      <li>• Exclusive platinum deals</li>
+                    </>
+                  )}
+                </ul>
+              </div>
+              
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <p className="text-sm font-medium">How to Earn Points</p>
+                <ul className="text-xs text-muted-foreground mt-1 space-y-1">
+                  <li>• +1 point per used grab pass</li>
+                  <li>• +1 bonus point for new merchants</li>
+                  <li>• Points reset every 90 days</li>
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Credits Balance */}
         <Card>

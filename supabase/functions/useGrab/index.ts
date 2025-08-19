@@ -122,6 +122,27 @@ serve(async (req) => {
 
     console.log('Successfully marked grab as used:', grab.id);
 
+    // Award tier points if the grab has an associated user_id
+    if (grab.user_id && grab.user_id !== '550e8400-e29b-41d4-a716-446655440000') {
+      try {
+        const { error: tierError } = await supabaseClient.rpc('award_tier_points', {
+          p_user_id: grab.user_id,
+          p_grab_id: grab.id,
+          p_merchant_id: grab.merchant_id
+        });
+
+        if (tierError) {
+          console.error('Error awarding tier points:', tierError);
+          // Don't fail the entire operation for tier point errors
+        } else {
+          console.log('Successfully awarded tier points for grab:', grab.id);
+        }
+      } catch (tierError) {
+        console.error('Exception awarding tier points:', tierError);
+        // Don't fail the entire operation for tier point errors
+      }
+    }
+
     return new Response(JSON.stringify({
       success: true,
       data: {
