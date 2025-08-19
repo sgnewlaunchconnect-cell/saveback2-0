@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { CreditCard, Gift, Zap } from 'lucide-react';
 import { PaymentInstructions } from '@/components/PaymentInstructions';
 import { supabase } from '@/integrations/supabase/client';
+import { getUserId } from '@/utils/userIdManager';
 
 interface PaymentFlowProps {
   billAmount: number;
@@ -19,6 +20,7 @@ interface PaymentFlowProps {
   dealId?: string;
   allowBillInput?: boolean;
   directDiscount?: number; // Direct discount percentage (0-100)
+  cashbackPercentage?: number; // Cashback percentage for display (0-100)
   isInAppPayment?: boolean;
   onPaymentComplete: (result: PaymentResult) => void;
 }
@@ -42,6 +44,7 @@ export default function PaymentFlow({
   dealId,
   allowBillInput = false,
   directDiscount = 0,
+  cashbackPercentage = 0,
   isInAppPayment = false,
   onPaymentComplete
 }: PaymentFlowProps) {
@@ -106,13 +109,15 @@ export default function PaymentFlow({
     
     try {
       // Create pending transaction with credit information
+      const anonymousUserId = getUserId();
       const { data, error } = await supabase.functions.invoke('createPendingTransaction', {
         body: {
           merchantId,
           originalAmount: calculation.originalAmount,
           dealId,
           localCreditsUsed: calculation.localCreditsUsed,
-          networkCreditsUsed: calculation.networkCreditsUsed
+          networkCreditsUsed: calculation.networkCreditsUsed,
+          anonymousUserId
         }
       });
 
@@ -217,7 +222,22 @@ export default function PaymentFlow({
               checked={useCredits}
               onCheckedChange={setUseCredits}
             />
-          </div>
+           </div>
+
+          {/* Estimated Cashback */}
+          {cashbackPercentage > 0 && (
+            <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-green-700 dark:text-green-300">Estimated cashback:</span>
+                <span className="font-medium text-green-700 dark:text-green-300">
+                  ₹{((currentAmount * cashbackPercentage) / 100).toFixed(2)}
+                </span>
+              </div>
+              <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                You'll earn this back after payment validation
+              </p>
+            </div>
+          )}
 
           {/* Discount & Credit Breakdown */}
           {(calculation.directDiscountAmount > 0 || (useCredits && calculation.totalSavings > 0)) && (

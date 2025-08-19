@@ -261,6 +261,7 @@ export default function GrabPassPage() {
             dealId={grabData?.deal_id}
             allowBillInput={true}  // Allow user to enter purchase amount
             directDiscount={grabData?.deals?.discount_pct || 0}
+            cashbackPercentage={grabData?.deals?.cashback_pct || 0}
             onPaymentComplete={handlePaymentComplete}
           />
         </div>
@@ -379,9 +380,9 @@ export default function GrabPassPage() {
                           Missing Cashback
                         </AlertDialogTitle>
                         <AlertDialogDescription>
-                          This deal offers {grabData?.deals?.cashback_pct}% cashback, but redeeming with PIN only applies the discount. You'll miss out on cashback rewards.
+                          This deal offers {grabData?.deals?.cashback_pct}% cashback, but redeeming with PIN only applies the discount. No cashback will be earned.
                           <br /><br />
-                          Choose "Use Credits / Log Purchase" instead to earn full rewards.
+                          Choose "Log Purchase (Earn Cashback)" instead to earn full rewards.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -403,14 +404,14 @@ export default function GrabPassPage() {
                   </Button>
                 )}
                 
-                {/* Use Credits / Log Purchase - Always show */}
+                {/* Log Purchase (Earn Cashback) - Always show */}
                 <Button 
                   onClick={handleUseCreditsAndPay} 
                   variant="outline" 
                   className="w-full" 
                   size="sm"
                 >
-                  Use Credits / Log Purchase
+                  Log Purchase (Earn Cashback)
                 </Button>
               </>
             )}
@@ -440,9 +441,12 @@ export default function GrabPassPage() {
             <div className="bg-muted p-4 rounded-lg">
               <h4 className="font-medium text-sm mb-2">Choose Your Redemption:</h4>
               <ol className="text-xs text-muted-foreground space-y-1">
-                <li>• <strong>Redeem with PIN:</strong> Quick discount only, no bill tracking</li>
-                <li>• <strong>Use Credits / Log Purchase:</strong> Enter bill amount, apply credits, earn full rewards</li>
+                <li>• <strong>Redeem with PIN:</strong> Quick discount only, no cashback earned</li>
+                <li>• <strong>Log Purchase (Earn Cashback):</strong> Credits optional, earn full rewards</li>
               </ol>
+              <p className="text-xs text-blue-600 mt-2">
+                💡 <strong>Tip:</strong> Want cashback? Use "Log Purchase" — credits are optional!
+              </p>
             </div>
           )}
         </CardContent>
