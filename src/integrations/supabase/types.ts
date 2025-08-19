@@ -493,7 +493,9 @@ export type Database = {
           expires_at: string
           final_amount: number
           id: string
+          local_credits_used: number | null
           merchant_id: string
+          network_credits_used: number | null
           original_amount: number
           payment_code: string
           status: string | null
@@ -508,7 +510,9 @@ export type Database = {
           expires_at?: string
           final_amount: number
           id?: string
+          local_credits_used?: number | null
           merchant_id: string
+          network_credits_used?: number | null
           original_amount: number
           payment_code: string
           status?: string | null
@@ -523,7 +527,9 @@ export type Database = {
           expires_at?: string
           final_amount?: number
           id?: string
+          local_credits_used?: number | null
           merchant_id?: string
+          network_credits_used?: number | null
           original_amount?: number
           payment_code?: string
           status?: string | null
