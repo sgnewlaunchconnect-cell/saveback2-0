@@ -57,7 +57,7 @@ serve(async (req) => {
         )
       `)
       .gt('expires_at', new Date().toISOString())
-      .in('status', ['ACTIVE', 'LOCKED']);
+      .eq('status', 'ACTIVE');
 
     if (userId) {
       // Get grabs for authenticated user
