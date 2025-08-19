@@ -174,7 +174,10 @@ export default function Redeem() {
               className="w-full"
               size="sm"
             >
-              Use Now & Pay
+              {grab.deals.discount_pct > 0 && grab.deals.cashback_pct === 0 
+                ? "View Instructions" 
+                : "Use Now & Pay"
+              }
             </Button>
           )}
         </CardContent>

@@ -18,14 +18,15 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
-    const { grabId, anonymousUserId, paymentCode } = await req.json();
+    const { grabId, anonymousUserId, paymentCode, pin } = await req.json();
 
-    console.log('useGrab called with:', { grabId, anonymousUserId, paymentCode });
+    console.log('useGrab called with:', { grabId, anonymousUserId, paymentCode, pin });
 
-    if (!grabId || !paymentCode) {
+    // Support both grabId-based redemption and PIN-based redemption
+    if (!grabId && !pin) {
       return new Response(JSON.stringify({
         success: false,
-        error: 'Missing required parameters'
+        error: 'Missing grabId or PIN'
       }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -48,26 +49,42 @@ serve(async (req) => {
       }
     }
 
-    // Verify the grab exists and belongs to the user
     let grabQuery = supabaseClient
       .from('grabs')
-      .select('*')
-      .eq('id', grabId)
+      .select(`
+        *,
+        deals (
+          title,
+          discount_pct,
+          cashback_pct,
+          merchants (
+            name
+          )
+        )
+      `)
       .eq('status', 'ACTIVE')
       .gt('expires_at', new Date().toISOString());
 
-    if (userId) {
-      grabQuery = grabQuery.eq('user_id', userId);
-    } else if (anonymousUserId) {
-      grabQuery = grabQuery.eq('anon_user_id', anonymousUserId);
+    // Query by PIN or grabId
+    if (pin) {
+      grabQuery = grabQuery.eq('pin', pin);
     } else {
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'No user identification provided'
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      grabQuery = grabQuery.eq('id', grabId);
+      
+      // Add user identification for grabId-based queries
+      if (userId) {
+        grabQuery = grabQuery.eq('user_id', userId);
+      } else if (anonymousUserId) {
+        grabQuery = grabQuery.eq('anon_user_id', anonymousUserId);
+      } else {
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'No user identification provided'
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     const { data: grab, error: grabError } = await grabQuery.single();
@@ -76,7 +93,7 @@ serve(async (req) => {
       console.error('Grab not found or error:', grabError);
       return new Response(JSON.stringify({
         success: false,
-        error: 'Grab pass not found or already used'
+        error: 'Grab pass not found, already used, or expired'
       }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -90,7 +107,7 @@ serve(async (req) => {
         status: 'USED',
         used_at: new Date().toISOString()
       })
-      .eq('id', grabId);
+      .eq('id', grab.id);
 
     if (updateError) {
       console.error('Error updating grab status:', updateError);
@@ -103,7 +120,7 @@ serve(async (req) => {
       });
     }
 
-    console.log('Successfully marked grab as used:', grabId);
+    console.log('Successfully marked grab as used:', grab.id);
 
     return new Response(JSON.stringify({
       success: true,
@@ -111,7 +128,10 @@ serve(async (req) => {
         grabId: grab.id,
         status: 'USED',
         usedAt: new Date().toISOString(),
-        paymentCode
+        paymentCode,
+        dealTitle: grab.deals?.title,
+        discountPct: grab.deals?.discount_pct,
+        merchantName: grab.deals?.merchants?.name
       }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -97,7 +97,16 @@ export default function GrabPassPage() {
   };
 
   const handleUseNow = () => {
+    // For discount-only deals, don't show payment flow
+    if (isDiscountOnlyDeal()) {
+      navigate('/redeem');
+      return;
+    }
     setShowPayment(true);
+  };
+
+  const isDiscountOnlyDeal = () => {
+    return grabData?.deals?.discount_pct > 0 && grabData?.deals?.cashback_pct === 0;
   };
 
   const handlePaymentComplete = async (paymentResult: any) => {
@@ -319,7 +328,7 @@ export default function GrabPassPage() {
           <div className="space-y-2">
             {!isUsed && !isExpired && (
               <Button onClick={handleUseNow} variant="cta" className="w-full" size="sm">
-                Use Now & Pay
+                {isDiscountOnlyDeal() ? "View Instructions" : "Use Now & Pay"}
               </Button>
             )}
             
@@ -348,10 +357,21 @@ export default function GrabPassPage() {
             <div className="bg-muted p-4 rounded-lg">
               <h4 className="font-medium text-sm mb-2">How to Use:</h4>
               <ol className="text-xs text-muted-foreground space-y-1">
-                <li>1. Visit the merchant location</li>
-                <li>2. Show your PIN: <strong>{grabData.pin}</strong></li>
-                <li>3. Use "Pay Now" to calculate final amount with credits</li>
-                <li>4. Pay the final amount and earn cashback!</li>
+                {isDiscountOnlyDeal() ? (
+                  <>
+                    <li>1. Visit the merchant location</li>
+                    <li>2. Show your PIN: <strong>{grabData.pin}</strong></li>
+                    <li>3. Merchant will enter PIN to validate your discount</li>
+                    <li>4. Get {grabData?.deals?.discount_pct}% off your purchase!</li>
+                  </>
+                ) : (
+                  <>
+                    <li>1. Visit the merchant location</li>
+                    <li>2. Show your PIN: <strong>{grabData.pin}</strong></li>
+                    <li>3. Use "Pay Now" to calculate final amount with credits</li>
+                    <li>4. Pay the final amount and earn cashback!</li>
+                  </>
+                )}
               </ol>
             </div>
           )}
