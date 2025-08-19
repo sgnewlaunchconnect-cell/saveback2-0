@@ -46,10 +46,18 @@ serve(async (req) => {
       .from('merchants')
       .select('default_cashback_pct, name')
       .eq('id', merchantId)
-      .single();
+      .maybeSingle();
 
     if (merchantError) {
       console.error('Error fetching merchant:', merchantError);
+      return new Response(
+        JSON.stringify({ error: 'Database error fetching merchant' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!merchant) {
+      console.error('Merchant not found:', merchantId);
       return new Response(
         JSON.stringify({ error: 'Merchant not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -72,7 +80,7 @@ serve(async (req) => {
           )
         `)
         .eq('id', grabId)
-        .single();
+        .maybeSingle();
 
       if (!grabError && grab?.deals) {
         dealInfo = grab.deals;
@@ -83,7 +91,7 @@ serve(async (req) => {
         .from('deals')
         .select('id, title, cashback_pct, discount_pct')
         .eq('id', dealId)
-        .single();
+        .maybeSingle();
 
       if (!dealError && deal) {
         dealInfo = deal;
@@ -110,7 +118,7 @@ serve(async (req) => {
         expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString() // 5 minutes from now
       })
       .select('id, payment_code, expires_at')
-      .single();
+      .maybeSingle();
 
     if (transactionError) {
       console.error('Error creating transaction:', transactionError);
