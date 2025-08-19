@@ -228,55 +228,15 @@ const Index = () => {
           icon={<Coins className="h-5 w-5 text-secondary-foreground" />} 
         />
 
-        {/* Quick Actions */}
-        <div className="space-y-4 animate-fade-in">
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <Button 
-                  className="w-full" 
-                  onClick={() => navigate('/pay')}
-                >
-                  Pay at Merchant
-                </Button>
-                <Button 
-                  variant="outline"
-                  className="w-full" 
-                  onClick={() => navigate('/deals')}
-                >
-                  Browse All Deals
-                </Button>
-                <Button 
-                  variant="outline"
-                  className="w-full" 
-                  onClick={() => navigate('/demo-scenarios')}
-                >
-                  Try Demo Scenarios
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Merchant Tools</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                Process customer payments and manage your business
-              </p>
-              <Button 
-                variant="outline"
-                className="w-full" 
-                onClick={() => navigate('/merchant/validate')}
-              >
-                Merchant Terminal
-              </Button>
-            </CardContent>
-          </Card>
+        {/* Browse All Deals Button */}
+        <div className="animate-fade-in">
+          <Button 
+            className="w-full" 
+            size="lg"
+            onClick={() => navigate('/deals')}
+          >
+            Browse All Deals
+          </Button>
         </div>
       </div>
     </div>

@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MapPin, Clock, List, Map as MapIcon } from 'lucide-react';
+import { List, Map as MapIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import DealCard from '@/components/DealCard';
 
 interface Deal {
   id: string;
@@ -94,68 +93,6 @@ const Deals = () => {
     navigate(`/deals/${dealId}`);
   };
 
-  const DealCard = ({ deal }: { deal: Deal }) => (
-    <Card 
-      className={`cursor-pointer hover:shadow-md transition-all ${
-        isExpiringSoon(deal.end_at) 
-          ? 'border-orange-200 bg-orange-50/50 dark:border-orange-800 dark:bg-orange-950/20 shadow-lg' 
-          : ''
-      }`}
-      onClick={() => openDealDetail(deal.id)}
-    >
-      <CardHeader className="pb-3">
-        <div className="flex justify-between items-start">
-          <CardTitle className="text-lg line-clamp-2">{deal.title}</CardTitle>
-          <div className="flex gap-2">
-            {deal.discount_pct > 0 && (
-              <Badge variant="destructive">{deal.discount_pct}% OFF</Badge>
-            )}
-            {isExpiringSoon(deal.end_at) && (
-              <Badge variant="outline" className="text-orange-600 border-orange-300 animate-pulse">
-                ENDING SOON
-              </Badge>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <MapPin className="h-4 w-4" />
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/merchant/${deal.merchants.id}`);
-            }}
-            className="hover:text-primary transition-colors cursor-pointer text-left underline text-primary font-medium"
-          >
-            {deal.merchants.name}
-          </button>
-        </div>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className={`flex items-center gap-1 text-sm ${
-              isExpiringSoon(deal.end_at) 
-                ? 'text-orange-600 font-medium' 
-                : 'text-muted-foreground'
-            }`}>
-              <Clock className="h-4 w-4" />
-              <span>{getTimeLeft(deal.end_at)}</span>
-            </div>
-            {deal.cashback_pct > 0 && (
-              <Badge variant="secondary" className="text-xs">
-                {deal.cashback_pct}% back
-              </Badge>
-            )}
-          </div>
-        </div>
-        {deal.description && (
-          <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-            {deal.description}
-          </p>
-        )}
-      </CardContent>
-    </Card>
-  );
 
   if (loading) {
     return (

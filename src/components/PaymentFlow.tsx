@@ -3,97 +3,84 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { CreditCard, DollarSign, Zap, Check, ArrowRight } from 'lucide-react';
+import { CreditCard, Gift, Zap } from 'lucide-react';
 
 interface PaymentFlowProps {
-  originalAmount?: number; // in cents - optional, if not provided shows input
-  localCredits: number; // in cents
-  networkCredits: number; // in cents
-  merchantId?: string;
-  onPaymentComplete?: (paymentDetails: PaymentResult) => void;
-  autoApplyCredits?: boolean;
-  allowAmountInput?: boolean; // Allow user to input amount
+  billAmount: number;
+  localCredits: number;
+  networkCredits: number;
+  allowBillInput?: boolean;
+  directDiscount?: number; // Direct discount percentage (0-100)
+  onPaymentComplete: (result: PaymentResult) => void;
 }
 
 interface PaymentResult {
-  originalAmount: number;
-  localCreditsUsed: number;
-  networkCreditsUsed: number;
-  finalAmount: number;
-  totalSavings: number;
-  creditsUsed: number;
   paymentCode: string;
+  totalSavings: number;
+  originalAmount: number;
+  finalAmount: number;
+  creditsUsed: number;
+  directDiscountAmount?: number;
 }
 
 export default function PaymentFlow({
-  originalAmount = 0,
+  billAmount: originalBillAmount,
   localCredits,
   networkCredits,
-  merchantId,
-  onPaymentComplete,
-  autoApplyCredits = false,
-  allowAmountInput = false
+  allowBillInput = false,
+  directDiscount = 0,
+  onPaymentComplete
 }: PaymentFlowProps) {
   const { toast } = useToast();
-  const [useCredits, setUseCredits] = useState(autoApplyCredits);
+  const [useCredits, setUseCredits] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [billAmount, setBillAmount] = useState<string>("");
-  
-  // Use input amount if allowed, otherwise use original amount
-  const currentAmount = allowAmountInput 
-    ? (parseFloat(billAmount) || 0) * 100  // Convert dollars to cents
-    : originalAmount;
+  const [inputAmount, setInputAmount] = useState('');
 
-  // Calculate credit application
-  const calculatePayment = (): PaymentResult => {
-    if (!useCredits || currentAmount <= 0) {
-    return {
-      originalAmount: currentAmount,
-      localCreditsUsed: 0,
-      networkCreditsUsed: 0,
-      finalAmount: currentAmount,
-      totalSavings: 0,
-      creditsUsed: 0,
-      paymentCode: ''
-    };
-    }
+  const currentAmount = allowBillInput 
+    ? (parseFloat(inputAmount) || 0)
+    : originalBillAmount;
 
-    let remainingAmount = currentAmount;
-    let localCreditsUsed = 0;
-    let networkCreditsUsed = 0;
+  const calculatePayment = () => {
+    let amount = currentAmount;
+    
+    // Apply direct discount first (if any)
+    const directDiscountAmount = (amount * directDiscount) / 100;
+    amount -= directDiscountAmount;
+    
+    let localUsed = 0;
+    let networkUsed = 0;
 
-    // Step 1: Apply local credits first
-    if (remainingAmount > 0 && localCredits > 0) {
-      localCreditsUsed = Math.min(remainingAmount, localCredits);
-      remainingAmount -= localCreditsUsed;
-    }
+    if (useCredits) {
+      // Then apply local credits
+      const availableLocal = localCredits;
+      localUsed = Math.min(amount, availableLocal);
+      amount -= localUsed;
 
-    // Step 2: Apply network credits second
-    if (remainingAmount > 0 && networkCredits > 0) {
-      networkCreditsUsed = Math.min(remainingAmount, networkCredits);
-      remainingAmount -= networkCreditsUsed;
+      // Then apply network credits
+      if (amount > 0) {
+        const availableNetwork = networkCredits;
+        networkUsed = Math.min(amount, availableNetwork);
+        amount -= networkUsed;
+      }
     }
 
     return {
       originalAmount: currentAmount,
-      localCreditsUsed,
-      networkCreditsUsed,
-      finalAmount: remainingAmount,
-      totalSavings: localCreditsUsed + networkCreditsUsed,
-      creditsUsed: localCreditsUsed + networkCreditsUsed,
-      paymentCode: ''
+      directDiscountAmount,
+      localCreditsUsed: localUsed,
+      networkCreditsUsed: networkUsed,
+      finalAmount: Math.max(0, amount),
+      totalSavings: directDiscountAmount + localUsed + networkUsed
     };
   };
 
-  const paymentResult = calculatePayment();
-  const totalAvailableCredits = localCredits + networkCredits;
-  const canCoverFull = totalAvailableCredits >= originalAmount;
+  const calculation = calculatePayment();
 
   const handlePayment = async () => {
-    if (allowAmountInput && (!billAmount || parseFloat(billAmount) <= 0)) {
+    if (allowBillInput && (!inputAmount || parseFloat(inputAmount) <= 0)) {
       toast({
         title: "Invalid Amount",
         description: "Please enter a valid bill amount",
@@ -111,12 +98,14 @@ export default function PaymentFlow({
       // Simulate payment processing
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      const result = {
-        ...paymentResult,
-        paymentCode
-      };
-
-      onPaymentComplete?.(result);
+      onPaymentComplete({
+        paymentCode,
+        totalSavings: calculation.totalSavings,
+        originalAmount: calculation.originalAmount,
+        finalAmount: calculation.finalAmount,
+        creditsUsed: calculation.localCreditsUsed + calculation.networkCreditsUsed,
+        directDiscountAmount: calculation.directDiscountAmount
+      });
     } catch (error) {
       toast({
         title: "Payment Failed",
@@ -128,153 +117,126 @@ export default function PaymentFlow({
     }
   };
 
+  const totalAvailableCredits = localCredits + networkCredits;
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <CreditCard className="h-5 w-5" />
-          Payment Summary
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Amount Input or Display */}
-        {allowAmountInput ? (
-          <div className="space-y-2">
-            <label htmlFor="billAmount" className="text-base font-medium">Bill Amount</label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
-              <input
-                id="billAmount"
-                type="number"
-                placeholder="0.00"
-                value={billAmount}
-                onChange={(e) => setBillAmount(e.target.value)}
-                className="w-full pl-8 pr-4 py-2 border border-input bg-background rounded-md text-lg font-semibold"
-                step="0.01"
-                min="0"
-              />
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Payment Summary
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Amount Input */}
+          {allowBillInput && (
+            <div className="space-y-2">
+              <Label htmlFor="billAmount">Bill Amount</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">₹</span>
+                <Input
+                  id="billAmount"
+                  type="number"
+                  placeholder="0.00"
+                  value={inputAmount}
+                  onChange={(e) => setInputAmount(e.target.value)}
+                  className="pl-8 text-lg font-semibold"
+                  step="0.01"
+                  min="0"
+                />
+              </div>
             </div>
-          </div>
-        ) : (
+          )}
+
+          {/* Original Amount */}
           <div className="flex justify-between items-center">
-            <span className="text-base">Subtotal</span>
-            <span className="text-lg font-semibold">
-              ${(currentAmount / 100).toFixed(2)}
-            </span>
+            <span>Bill Amount:</span>
+            <span className="font-medium">₹{currentAmount.toFixed(2)}</span>
           </div>
-        )}
 
-        <Separator />
-
-        {/* Credit Toggle */}
-        <div className="flex items-center justify-between space-x-2">
-          <div className="space-y-1">
-            <Label htmlFor="use-credits" className="text-base">
-              Use available credits
-            </Label>
-            <div className="flex items-center gap-2">
+          {/* Credit Toggle */}
+          <div className="flex items-center justify-between space-x-2">
+            <div className="space-y-1">
+              <Label htmlFor="use-credits" className="text-base">
+                Use available credits
+              </Label>
               <Badge variant="secondary">
-                ${(totalAvailableCredits / 100).toFixed(2)} available
+                ₹{totalAvailableCredits.toFixed(2)} available
               </Badge>
-              {canCoverFull && (
-                <Badge variant="default" className="bg-green-100 text-green-800">
-                  Can cover full amount!
-                </Badge>
+            </div>
+            <Switch
+              id="use-credits"
+              checked={useCredits}
+              onCheckedChange={setUseCredits}
+            />
+          </div>
+
+          {/* Discount & Credit Breakdown */}
+          {(calculation.directDiscountAmount > 0 || (useCredits && calculation.totalSavings > 0)) && (
+            <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+              <h4 className="text-sm font-medium">Savings Applied</h4>
+              {calculation.directDiscountAmount > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span>Direct Discount ({directDiscount}%):</span>
+                  <span className="text-green-600">-₹{calculation.directDiscountAmount.toFixed(2)}</span>
+                </div>
+              )}
+              {calculation.localCreditsUsed > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span>Local Credits:</span>
+                  <span className="text-green-600">-₹{calculation.localCreditsUsed.toFixed(2)}</span>
+                </div>
+              )}
+              {calculation.networkCreditsUsed > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span>Network Credits:</span>
+                  <span className="text-green-600">-₹{calculation.networkCreditsUsed.toFixed(2)}</span>
+                </div>
               )}
             </div>
-          </div>
-          <Switch
-            id="use-credits"
-            checked={useCredits}
-            onCheckedChange={setUseCredits}
-          />
-        </div>
+          )}
 
-        {/* Credit Breakdown */}
-        {useCredits && (paymentResult.localCreditsUsed > 0 || paymentResult.networkCreditsUsed > 0) && (
-          <div className="space-y-3 p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
-            <h4 className="font-medium text-green-800 dark:text-green-200 flex items-center gap-2">
-              <Zap className="h-4 w-4" />
-              Credits Applied
-            </h4>
-            
-            {paymentResult.localCreditsUsed > 0 && (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">1</div>
-                  <span className="text-sm">Local Credits</span>
-                </div>
-                <span className="text-sm font-medium text-green-700 dark:text-green-300">
-                  -${(paymentResult.localCreditsUsed / 100).toFixed(2)}
-                </span>
-              </div>
-            )}
-
-            {paymentResult.networkCreditsUsed > 0 && (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-muted text-muted-foreground text-xs flex items-center justify-center">2</div>
-                  <span className="text-sm">Network Credits</span>
-                </div>
-                <span className="text-sm font-medium text-green-700 dark:text-green-300">
-                  -${(paymentResult.networkCreditsUsed / 100).toFixed(2)}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-
-        <Separator />
-
-        {/* Final Amount */}
-        <div className="flex justify-between items-center text-lg font-bold">
-          <span>Total to Pay</span>
-          <div className="text-right">
-            {paymentResult.totalSavings > 0 && (
-              <div className="text-sm text-green-600 dark:text-green-400">
-                You save ${(paymentResult.totalSavings / 100).toFixed(2)}!
-              </div>
-            )}
-            <span className={paymentResult.finalAmount === 0 ? "text-green-600 dark:text-green-400" : ""}>
-              {paymentResult.finalAmount === 0 ? "FREE" : `$${(paymentResult.finalAmount / 100).toFixed(2)}`}
+          {/* Final Amount */}
+          <div className="flex justify-between items-center text-lg font-bold">
+            <span>Total to Pay:</span>
+            <span className={calculation.finalAmount === 0 ? "text-green-600" : ""}>
+              {calculation.finalAmount === 0 ? "FREE" : `₹${calculation.finalAmount.toFixed(2)}`}
             </span>
           </div>
-        </div>
 
-        {/* Payment Button */}
-        <Button 
-          onClick={handlePayment}
-          disabled={isProcessing}
-          className="w-full h-12 text-base"
-          size="lg"
-        >
-          {isProcessing ? (
-            "Processing..."
-          ) : paymentResult.finalAmount === 0 ? (
-            <>
-              <Check className="h-5 w-5 mr-2" />
-              Complete Free Purchase
-            </>
-          ) : (
-            <>
-              <DollarSign className="h-5 w-5 mr-2" />
-              Pay ${(paymentResult.finalAmount / 100).toFixed(2)}
-            </>
+          {/* Motivation Message */}
+          {calculation.totalSavings > 0 && (
+            <div className="text-center bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
+              <div className="flex items-center justify-center gap-2 text-green-700 dark:text-green-300">
+                <Gift className="w-4 h-4" />
+                <span className="font-medium">
+                  Total Savings: ₹{calculation.totalSavings.toFixed(2)}!
+                </span>
+              </div>
+              <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                Amazing! You're saving big! 🎉
+              </p>
+            </div>
           )}
-        </Button>
 
-        {/* Motivation Message */}
-        {paymentResult.totalSavings > 0 && (
-          <div className="text-center p-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg">
-            <p className="text-sm text-blue-700 dark:text-blue-300">
-              🎉 Amazing! You just saved ${(paymentResult.totalSavings / 100).toFixed(2)} with your credits!
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Keep earning to unlock even bigger savings!
-            </p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          {/* Payment Button */}
+          <Button 
+            onClick={handlePayment}
+            disabled={isProcessing || (allowBillInput && currentAmount <= 0)}
+            className="w-full"
+            size="lg"
+          >
+            {isProcessing ? (
+              "Processing..."
+            ) : calculation.finalAmount === 0 ? (
+              "Complete Free Purchase"
+            ) : (
+              `Pay ₹${calculation.finalAmount.toFixed(2)}`
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

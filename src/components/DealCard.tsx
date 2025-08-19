@@ -1,7 +1,11 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MapPin, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { MapPin, Clock, Grab } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { getUserId } from '@/utils/userIdManager';
 import DealBadge from './DealBadge';
 
 interface Deal {
@@ -25,6 +29,39 @@ interface DealCardProps {
 
 export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleGrabDeal = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    try {
+      const anonymousUserId = getUserId();
+      
+      const { data, error } = await supabase.functions.invoke('createGrab', {
+        body: {
+          dealId: deal.id,
+          anonymousUserId
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Deal Grabbed!",
+        description: "Redirecting to payment...",
+      });
+
+      // Navigate to grab pass page with useNow=true to start payment immediately
+      navigate(`/grab/${data.grab.id}?useNow=true`);
+    } catch (error) {
+      console.error('Error grabbing deal:', error);
+      toast({
+        title: "Error",
+        description: "Failed to grab deal. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   const getTimeLeft = (endAt: string) => {
     const now = new Date();
@@ -82,7 +119,7 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
           </button>
         </div>
       </CardHeader>
-      <CardContent className="pt-0">
+      <CardContent className="pt-0 space-y-3">
         <div className="flex justify-between items-center">
           <div className={`flex items-center gap-1 text-sm ${
             isExpiringSoon(deal.end_at) 
@@ -94,10 +131,18 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
           </div>
         </div>
         {deal.description && !compact && (
-          <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+          <p className="text-sm text-muted-foreground line-clamp-2">
             {deal.description}
           </p>
         )}
+        <Button 
+          onClick={handleGrabDeal}
+          className="w-full"
+          size="sm"
+        >
+          <Grab className="h-4 w-4 mr-2" />
+          Grab Deal Now
+        </Button>
       </CardContent>
     </Card>
   );

@@ -9,6 +9,7 @@ interface PaymentSuccessProps {
   originalAmount: number;
   finalAmount: number;
   creditsUsed: number;
+  directDiscountAmount?: number;
   onContinue: () => void;
 }
 
@@ -18,6 +19,7 @@ export default function PaymentSuccess({
   originalAmount,
   finalAmount,
   creditsUsed,
+  directDiscountAmount = 0,
   onContinue
 }: PaymentSuccessProps) {
   return (
@@ -51,38 +53,61 @@ export default function PaymentSuccess({
         </CardContent>
       </Card>
 
-      {/* Savings Summary */}
+      {/* Payment Breakdown */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Gift className="w-5 h-5" />
-            Your Savings
+            Payment Summary
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex justify-between items-center">
-            <span>Original Amount:</span>
-            <span className="font-medium">₹{originalAmount.toFixed(2)}</span>
+          {/* Total Amount Paid - Large Display */}
+          <div className="text-center bg-muted/50 rounded-lg p-4">
+            <p className="text-sm text-muted-foreground mb-1">Total Paid</p>
+            <p className="text-3xl font-bold text-primary">₹{finalAmount.toFixed(2)}</p>
           </div>
           
-          {creditsUsed > 0 && (
-            <div className="flex justify-between items-center text-green-600">
-              <span>Credits Applied:</span>
-              <span className="font-medium">-₹{creditsUsed.toFixed(2)}</span>
+          {/* Breakdown */}
+          <div className="space-y-3 text-sm">
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Bill Amount:</span>
+              <span>₹{originalAmount.toFixed(2)}</span>
             </div>
-          )}
-          
-          <div className="border-t pt-3 flex justify-between items-center text-lg font-bold">
-            <span>Final Amount Paid:</span>
-            <span>₹{finalAmount.toFixed(2)}</span>
+            
+            {directDiscountAmount > 0 && (
+              <div className="flex justify-between items-center text-green-600">
+                <span>Direct Discount:</span>
+                <span>-₹{directDiscountAmount.toFixed(2)}</span>
+              </div>
+            )}
+            
+            {creditsUsed > 0 && (
+              <div className="flex justify-between items-center text-green-600">
+                <span>Credits Applied:</span>
+                <span>-₹{creditsUsed.toFixed(2)}</span>
+              </div>
+            )}
+            
+            <div className="border-t pt-2 flex justify-between items-center font-medium">
+              <span>Net Paid:</span>
+              <span>₹{finalAmount.toFixed(2)}</span>
+            </div>
           </div>
           
           {totalSavings > 0 && (
-            <div className="text-center pt-2">
-              <Badge variant="secondary" className="text-lg px-4 py-2">
-                <Gift className="w-4 h-4 mr-2" />
-                You saved ₹{totalSavings.toFixed(2)}!
-              </Badge>
+            <div className="text-center pt-3">
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
+                <div className="flex items-center justify-center gap-2 text-green-700 dark:text-green-300">
+                  <Gift className="w-5 h-5" />
+                  <span className="font-semibold text-lg">
+                    Total Saved: ₹{totalSavings.toFixed(2)}!
+                  </span>
+                </div>
+                <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                  Great job saving money! 🎉
+                </p>
+              </div>
             </div>
           )}
         </CardContent>
