@@ -14,7 +14,7 @@ export const PaymentMethodBadge: React.FC<PaymentMethodBadgeProps> = ({
   className = ""
 }) => {
   // Determine if it supports in-app payment (PSP)
-  const supportsInAppPayment = payoutMethod !== 'manual' && hasCashback;
+  const supportsInAppPayment = payoutMethod !== 'manual';
 
   if (supportsInAppPayment) {
     return (

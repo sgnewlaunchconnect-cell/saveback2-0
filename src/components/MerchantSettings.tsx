@@ -17,6 +17,7 @@ interface MerchantInfo {
   default_cashback_pct: number;
   default_discount_pct?: number;
   default_reward_mode: string;
+  payout_method?: string;
   address?: string;
   phone?: string;
   logo_url?: string;
@@ -37,6 +38,7 @@ export default function MerchantSettings({ merchantInfo, onUpdate }: MerchantSet
     default_cashback_pct: merchantInfo.default_cashback_pct,
     default_discount_pct: merchantInfo.default_discount_pct || 0,
     default_reward_mode: merchantInfo.default_reward_mode,
+    payout_method: merchantInfo.payout_method || 'manual',
     address: merchantInfo.address || '',
     phone: merchantInfo.phone || '',
     logo_url: merchantInfo.logo_url || '',
@@ -58,6 +60,7 @@ export default function MerchantSettings({ merchantInfo, onUpdate }: MerchantSet
           default_cashback_pct: formData.default_cashback_pct,
           default_discount_pct: formData.default_discount_pct,
           default_reward_mode: formData.default_reward_mode as any,
+          payout_method: formData.payout_method,
           address: formData.address,
           phone: formData.phone,
           logo_url: formData.logo_url,
@@ -177,17 +180,33 @@ export default function MerchantSettings({ merchantInfo, onUpdate }: MerchantSet
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="default_reward_mode">Default Reward Type</Label>
-              <Select value={formData.default_reward_mode} onValueChange={(value) => updateField('default_reward_mode', value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="CASHBACK">Cashback</SelectItem>
-                  <SelectItem value="DISCOUNT">Discount</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="default_reward_mode">Default Reward Type</Label>
+                <Select value={formData.default_reward_mode} onValueChange={(value) => updateField('default_reward_mode', value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CASHBACK">Cashback</SelectItem>
+                    <SelectItem value="DISCOUNT">Discount</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="payout_method">Payment Processing</Label>
+                <Select value={formData.payout_method} onValueChange={(value) => updateField('payout_method', value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manual">PIN Only (Manual)</SelectItem>
+                    <SelectItem value="stripe">In-app (Stripe)</SelectItem>
+                    <SelectItem value="paypal">In-app (PayPal)</SelectItem>
+                    <SelectItem value="other_psp">In-app (Other PSP)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

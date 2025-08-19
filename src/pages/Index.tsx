@@ -90,8 +90,8 @@ const Index = () => {
       deal.merchants.category === selectedCategory;
 
     const matchesPaymentType = selectedPaymentType === 'all' ||
-      (selectedPaymentType === 'in-app' && deal.merchants.payout_method !== 'manual' && deal.cashback_pct > 0) ||
-      (selectedPaymentType === 'pin-only' && (deal.merchants.payout_method === 'manual' || deal.cashback_pct === 0));
+      (selectedPaymentType === 'in-app' && deal.merchants.payout_method !== 'manual') ||
+      (selectedPaymentType === 'pin-only' && deal.merchants.payout_method === 'manual');
 
     return matchesSearch && matchesRewardType && matchesCategory && matchesPaymentType;
   });
@@ -117,7 +117,7 @@ const Index = () => {
 
   // Get in-app payment deals
   const inAppPaymentDeals = filteredDeals
-    .filter(deal => deal.merchants.payout_method !== 'manual' && deal.cashback_pct > 0)
+    .filter(deal => deal.merchants.payout_method !== 'manual')
     .slice(0, 6);
 
   // Get unique categories
@@ -125,6 +125,10 @@ const Index = () => {
 
   const DealSection = ({ title, deals, icon }: { title: string; deals: Deal[]; icon: React.ReactNode }) => (
     <div className="space-y-3 animate-fade-in">
+      <div className="flex items-center gap-2 mb-4">
+        {icon}
+        <h3 className="text-lg font-semibold">{title}</h3>
+      </div>
       {deals.length === 0 ? (
         <p className="text-sm text-muted-foreground">No deals available</p>
       ) : (
