@@ -55,8 +55,8 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
         description: "Redirecting to payment...",
       });
 
-      // Navigate to grab pass page with useNow=true to start payment immediately
-      navigate(`/grab-pass/${data.grab.id}?useNow=true`);
+      // Navigate to grab pass page
+      navigate(`/grab-pass/${data.grab.id}`);
     } catch (error) {
       console.error('Error grabbing deal:', error);
       toast({

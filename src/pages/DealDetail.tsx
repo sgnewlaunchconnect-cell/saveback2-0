@@ -95,8 +95,8 @@ const DealDetail = () => {
         description: "You can use this deal before it expires"
       });
 
-      // Navigate to grab pass page with useNow to start payment immediately
-      navigate(`/grab-pass/${data.grab.id}?useNow=true`);
+      // Navigate to grab pass page
+      navigate(`/grab-pass/${data.grab.id}`);
     } catch (error) {
       console.error('Error grabbing deal:', error);
       toast({

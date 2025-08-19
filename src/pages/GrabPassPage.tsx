@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { QrCode, Clock, CheckCircle, XCircle, RefreshCw } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { QrCode, Clock, CheckCircle, XCircle, RefreshCw, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import PaymentFlow from "@/components/PaymentFlow";
@@ -51,13 +52,7 @@ export default function GrabPassPage() {
     }
   }, [grabId]);
 
-  useEffect(() => {
-    // Auto-open payment only for mixed deals with useNow param
-    // Discount-only deals should just show PIN instructions
-    if (searchParams.get('useNow') === 'true' && grabData && !isDiscountOnlyDeal() && grabData.status === 'ACTIVE') {
-      setShowPayment(true);
-    }
-  }, [searchParams, grabData]);
+  // Removed auto-open behavior - always land on grab pass page first
 
   useEffect(() => {
     if (grabData) {
@@ -108,6 +103,10 @@ export default function GrabPassPage() {
       title: "Redeem with PIN",
       description: `Show PIN ${grabData?.pin} to the merchant for instant discount`,
     });
+  };
+
+  const handleConfirmPINRedemption = () => {
+    handleRedeemWithPIN();
   };
 
   const handleUseCreditsAndPay = () => {
@@ -361,27 +360,58 @@ export default function GrabPassPage() {
           <div className="space-y-2">
             {!isUsed && !isExpired && (
               <>
-                {/* Redeem with PIN - Fast path for discount-only deals */}
-                <Button 
-                  onClick={handleRedeemWithPIN} 
-                  variant="cta" 
-                  className="w-full" 
-                  size="sm"
-                >
-                  Redeem with PIN
-                </Button>
-                
-                {/* Use Credits / Log Purchase - Only show for cashback/mixed deals */}
-                {!isDiscountOnlyDeal() && (
+                {/* Redeem with PIN - Always show, with warning for cashback deals */}
+                {!isDiscountOnlyDeal() ? (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="cta" 
+                        className="w-full" 
+                        size="sm"
+                      >
+                        Redeem with PIN
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                          <AlertTriangle className="w-5 h-5 text-orange-500" />
+                          Missing Cashback
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This deal offers {grabData?.deals?.cashback_pct}% cashback, but redeeming with PIN only applies the discount. You'll miss out on cashback rewards.
+                          <br /><br />
+                          Choose "Use Credits / Log Purchase" instead to earn full rewards.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleConfirmPINRedemption}>
+                          Continue with PIN
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                ) : (
                   <Button 
-                    onClick={handleUseCreditsAndPay} 
-                    variant="outline" 
+                    onClick={handleRedeemWithPIN} 
+                    variant="cta" 
                     className="w-full" 
                     size="sm"
                   >
-                    Use Credits / Log Purchase
+                    Redeem with PIN
                   </Button>
                 )}
+                
+                {/* Use Credits / Log Purchase - Always show */}
+                <Button 
+                  onClick={handleUseCreditsAndPay} 
+                  variant="outline" 
+                  className="w-full" 
+                  size="sm"
+                >
+                  Use Credits / Log Purchase
+                </Button>
               </>
             )}
             
@@ -408,15 +438,10 @@ export default function GrabPassPage() {
           {/* Usage Instructions */}
           {!isUsed && !isExpired && (
             <div className="bg-muted p-4 rounded-lg">
-              <h4 className="font-medium text-sm mb-2">How to Use:</h4>
+              <h4 className="font-medium text-sm mb-2">Choose Your Redemption:</h4>
               <ol className="text-xs text-muted-foreground space-y-1">
-                <li>1. Visit the merchant location</li>
-                <li>2. Show your PIN: <strong>{grabData.pin}</strong></li>
-                <li>3. Choose redemption method:</li>
-                <li className="ml-4">• <strong>Redeem with PIN:</strong> Quick discount, no bill logging</li>
-                {!isDiscountOnlyDeal() && (
-                  <li className="ml-4">• <strong>Use Credits/Log Purchase:</strong> Enter bill amount, apply credits, earn cashback</li>
-                )}
+                <li>• <strong>Redeem with PIN:</strong> Quick discount only, no bill tracking</li>
+                <li>• <strong>Use Credits / Log Purchase:</strong> Enter bill amount, apply credits, earn full rewards</li>
               </ol>
             </div>
           )}

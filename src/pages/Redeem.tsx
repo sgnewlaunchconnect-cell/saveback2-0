@@ -104,7 +104,7 @@ export default function Redeem() {
 
   const handleUseNow = (grabId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    navigate(`/grab-pass/${grabId}?useNow=true`);
+    navigate(`/grab-pass/${grabId}`);
   };
 
   const renderGrabCard = (grab: GrabData, showUseButton = false) => {
