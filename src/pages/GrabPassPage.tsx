@@ -52,7 +52,8 @@ export default function GrabPassPage() {
   }, [grabId]);
 
   useEffect(() => {
-    // Auto-open payment if useNow param is present, but only for cashback deals
+    // Auto-open payment only for mixed deals with useNow param
+    // Discount-only deals should just show PIN instructions
     if (searchParams.get('useNow') === 'true' && grabData && !isDiscountOnlyDeal() && grabData.status === 'ACTIVE') {
       setShowPayment(true);
     }
