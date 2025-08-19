@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CheckCircle, XCircle, Camera, Scan } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function HawkerValidation() {
@@ -14,69 +14,59 @@ export default function HawkerValidation() {
     success: boolean;
     billAmount?: number;
     creditsAwarded?: number;
-    creditsUsed?: number;
-    txnRef?: string;
+    transactionReference?: string;
+    customerName?: string;
+    merchantName?: string;
     message?: string;
   } | null>(null);
-  const { toast } = useToast();
 
   const handleValidation = async () => {
-    if (!validationCode.trim()) {
-      toast({
-        title: "Enter Code",
-        description: "Please enter the customer's validation code",
-        variant: "destructive"
-      });
+    if (validationCode.length !== 6) {
+      toast.error("Please enter a valid 6-digit code");
       return;
     }
 
     setIsValidating(true);
     
     try {
-      const { data, error } = await supabase.functions.invoke('validateGrab', {
-        body: {
-          pin: validationCode.trim()
-        }
+      const { data, error } = await supabase.functions.invoke('validatePendingTransaction', {
+        body: { paymentCode: validationCode }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Validation error:', error);
+        toast.error("Validation failed. Please try again.");
+        setValidationResult({ 
+          success: false, 
+          message: "Network error occurred" 
+        });
+        return;
+      }
 
-      if (data.isValid) {
+      if (data.success) {
         setValidationResult({
           success: true,
-          billAmount: 8.00, // Demo amount
-          creditsAwarded: 0.80, // 10% cashback
-          creditsUsed: 0,
-          txnRef: `JD-${Math.random().toString(36).substr(2, 4).toUpperCase()}`,
-          message: data.message
+          billAmount: data.data.originalAmount / 100, // Convert from cents
+          creditsAwarded: data.data.totalCredits / 100, // Convert from cents
+          transactionReference: data.data.transactionId,
+          customerName: "Customer",
+          merchantName: data.data.merchantName
         });
-        
-        toast({
-          title: "Validation Successful! ✅",
-          description: "Credits have been released to customer"
-        });
+        toast.success("Payment validated successfully!");
       } else {
         setValidationResult({
           success: false,
-          message: data.message || "Invalid or expired code"
+          message: data.error || "Invalid code or code has expired"
         });
-        
-        toast({
-          title: "Validation Failed",
-          description: data.message || "Invalid or expired code",
-          variant: "destructive"
-        });
+        toast.error(data.error || "Validation failed");
       }
-    } catch (error) {
-      setValidationResult({
-        success: false,
-        message: "System error - please try again"
-      });
       
-      toast({
-        title: "System Error",
-        description: "Please try again or contact support",
-        variant: "destructive"
+    } catch (error) {
+      console.error('Validation error:', error);
+      toast.error("Validation failed. Please try again.");
+      setValidationResult({ 
+        success: false, 
+        message: "An unexpected error occurred" 
       });
     } finally {
       setIsValidating(false);
@@ -111,16 +101,24 @@ export default function HawkerValidation() {
                     <CardContent className="p-4">
                       <div className="space-y-3">
                         <div className="flex justify-between">
-                          <span className="font-medium">Bill Amount:</span>
-                          <span className="font-bold">${validationResult.billAmount?.toFixed(2)}</span>
+                          <span>Customer:</span>
+                          <span className="font-semibold">{validationResult.customerName}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Merchant:</span>
+                          <span className="font-semibold">{validationResult.merchantName}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Bill Amount:</span>
+                          <span className="font-semibold">${validationResult.billAmount?.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between text-green-600">
-                          <span className="font-medium">Credits Released:</span>
-                          <span className="font-bold">+${validationResult.creditsAwarded?.toFixed(2)}</span>
+                          <span>Credits Awarded:</span>
+                          <span className="font-semibold">+${validationResult.creditsAwarded}</span>
                         </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Reference:</span>
-                          <span className="font-mono">{validationResult.txnRef}</span>
+                        <div className="flex justify-between text-xs text-gray-500">
+                          <span>Transaction Ref:</span>
+                          <span>{validationResult.transactionReference}</span>
                         </div>
                       </div>
                     </CardContent>
@@ -150,7 +148,7 @@ export default function HawkerValidation() {
               )}
               
               <Button onClick={resetValidation} className="w-full" size="lg">
-                Scan Another Code
+                Validate Another Code
               </Button>
             </div>
           </CardContent>
@@ -171,15 +169,15 @@ export default function HawkerValidation() {
         <CardContent className="space-y-6">
           <div className="text-center space-y-2">
             <Camera className="w-16 h-16 text-muted-foreground mx-auto" />
-            <h2 className="text-xl font-semibold">Scan Customer Code</h2>
+            <h2 className="text-xl font-semibold">Validate Customer Code</h2>
             <p className="text-sm text-muted-foreground">
-              Enter the 6-digit code shown by customer after payment
+              Enter the 6-digit payment code shown by customer
             </p>
           </div>
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="validationCode">Customer Validation Code</Label>
+              <Label htmlFor="validationCode">Customer Payment Code</Label>
               <Input
                 id="validationCode"
                 type="text"
@@ -203,7 +201,7 @@ export default function HawkerValidation() {
 
           <div className="bg-muted p-4 rounded-lg">
             <p className="text-xs text-muted-foreground text-center">
-              Demo Mode: Use PIN "123456" from customer's grab code
+              Demo Mode: Generate codes at /customer/validate
             </p>
           </div>
         </CardContent>

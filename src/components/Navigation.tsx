@@ -25,8 +25,10 @@ export default function Navigation() {
     { path: '/deals', label: 'Deals', icon: Tag },
     { path: '/redeem', label: 'Redeem', icon: Gift },
     { path: '/wallet', label: 'Wallet', icon: Wallet },
-    { path: '/profile', label: 'Profile', icon: User },
     { path: '/merchant/demo', label: 'Merchant Demo', icon: Store },
+    { path: '/merchant/dashboard', label: 'Merchant Dashboard', icon: Store },
+    { path: '/hawker/validate', label: 'Validate (Hawker)', icon: Tag },
+    { path: '/profile', label: 'Profile', icon: User },
   ];
 
   const NavContent = () => (

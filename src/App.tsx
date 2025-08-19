@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Navigation from "./components/Navigation";
 import Index from "./pages/Index";
 import Deals from "./pages/Deals";
@@ -39,7 +39,7 @@ const App = () => (
           <Route path="/demo-scenarios" element={<DemoScenarios />} />
           <Route path="/grab-pass/:grabId" element={<GrabPass />} />
           <Route path="/merchant/:merchantId" element={<MerchantPage />} />
-          <Route path="/merchant/validate" element={<MerchantValidation />} />
+          <Route path="/merchant/validate" element={<Navigate to="/hawker/validate" replace />} />
           <Route path="/merchant/dashboard" element={<MerchantDashboard />} />
           <Route path="/merchant/demo" element={<MerchantDemo />} />
           <Route path="/profile" element={<Profile />} />

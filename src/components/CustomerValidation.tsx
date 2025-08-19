@@ -4,212 +4,176 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { QrCode, Timer, CheckCircle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { Loader2, Check, AlertCircle } from "lucide-react";
 
 export default function CustomerValidation() {
   const [billAmount, setBillAmount] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [validationCode, setValidationCode] = useState<{
-    code: string;
-    expiresAt: Date;
-    txnRef: string;
-  } | null>(null);
-  const { toast } = useToast();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentResult, setPaymentResult] = useState<any>(null);
+  
+  // Demo merchant ID (Hawker Corner)
+  const DEMO_MERCHANT_ID = "e8d2f33c-cddd-4943-8963-f26fb0022176";
 
-  const generateValidationCode = async () => {
-    const bill = parseFloat(billAmount);
-    if (!bill || bill <= 0) {
-      toast({
-        title: "Invalid Amount",
-        description: "Please enter a valid bill amount",
-        variant: "destructive"
-      });
+  const handlePayment = async () => {
+    if (!billAmount || parseFloat(billAmount) <= 0) {
+      toast.error("Please enter a valid bill amount");
       return;
     }
 
-    setIsGenerating(true);
+    setIsProcessing(true);
     
     try {
-      // Generate validation code
-      const { data, error } = await supabase.functions.invoke('generateValidationCode', {
+      // Create pending transaction
+      const { data, error } = await supabase.functions.invoke('createPendingTransaction', {
         body: {
-          billAmount: bill,
-          merchantId: '550e8400-e29b-41d4-a716-446655440002' // Demo merchant ID
+          merchantId: DEMO_MERCHANT_ID,
+          originalAmount: Math.round(parseFloat(billAmount) * 100), // Convert to cents
+          anonymousUserId: true // Use demo user
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Transaction error:", error);
+        toast.error("Failed to create transaction");
+        return;
+      }
 
       if (data.success) {
-        setValidationCode({
-          code: data.pin,
-          expiresAt: new Date(data.expiresAt),
-          txnRef: data.txnRef
+        setPaymentResult({
+          success: true,
+          paymentCode: data.data.paymentCode,
+          billAmount: parseFloat(billAmount),
+          creditEarned: Math.round((parseFloat(billAmount) * data.data.cashbackPct) / 100),
+          transactionId: data.data.transactionId,
+          merchantName: data.data.merchantName,
+          expiresAt: data.data.expiresAt
         });
-        
-        toast({
-          title: "Code Generated! ✅",
-          description: "Show this code to the hawker for validation"
-        });
+        toast.success("Payment code generated successfully!");
       } else {
-        throw new Error(data.error || 'Failed to generate code');
+        toast.error("Failed to generate payment code");
       }
+      
     } catch (error) {
-      toast({
-        title: "Generation Failed",
-        description: error instanceof Error ? error.message : "Please try again",
-        variant: "destructive"
-      });
+      console.error("Payment error:", error);
+      toast.error("Payment failed. Please try again.");
     } finally {
-      setIsGenerating(false);
+      setIsProcessing(false);
     }
   };
 
-  const resetCode = () => {
-    setValidationCode(null);
+  const resetPayment = () => {
+    setPaymentResult(null);
     setBillAmount("");
   };
 
-  if (validationCode) {
-    const timeLeft = Math.max(0, Math.floor((validationCode.expiresAt.getTime() - Date.now()) / 1000));
-    const minutes = Math.floor(timeLeft / 60);
-    const seconds = timeLeft % 60;
+  return (
+    <div className="min-h-screen bg-background p-4">
+      <div className="max-w-2xl mx-auto">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5" />
+              Customer Payment
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {paymentResult ? (
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                  <Check className="w-8 h-8 text-green-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-green-800">Payment Code Generated!</h3>
+                
+                <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                  <div className="text-3xl font-bold text-blue-600">
+                    {paymentResult.paymentCode}
+                  </div>
+                  <p className="text-sm text-gray-600">6-digit payment code</p>
+                  <p className="text-xs text-gray-500">Show this code to the hawker for verification</p>
+                  <p className="text-xs text-gray-400">Expires in 5 minutes</p>
+                </div>
 
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-8">
-            <div className="text-center space-y-6">
-              <div>
-                <h1 className="text-2xl font-bold text-primary mb-2">
-                  Show to Hawker
-                </h1>
-                <p className="text-muted-foreground">
-                  Present this code for validation
-                </p>
-              </div>
-              
-              {/* Large Validation Code Display */}
-              <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
-                <CardContent className="p-8 text-center">
-                  <QrCode className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-                  <div className="text-6xl font-mono font-bold text-blue-600 tracking-wider mb-2">
-                    {validationCode.code}
+                <Separator />
+
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span>Merchant:</span>
+                    <span className="font-semibold">{paymentResult.merchantName}</span>
                   </div>
-                  <div className="text-sm text-blue-700">
-                    Validation Code
+                  <div className="flex justify-between">
+                    <span>Bill Amount:</span>
+                    <span className="font-semibold">${paymentResult.billAmount.toFixed(2)}</span>
                   </div>
-                </CardContent>
-              </Card>
-              
-              {/* Timer */}
-              <Card className="bg-muted/50">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-center gap-2">
-                    <Timer className="w-4 h-4 text-muted-foreground" />
-                    <span className="font-mono text-lg">
-                      {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
-                    </span>
+                  <div className="flex justify-between text-green-600">
+                    <span>Credits to Earn:</span>
+                    <span className="font-semibold">+${paymentResult.creditEarned}</span>
                   </div>
-                  <div className="text-xs text-muted-foreground text-center mt-1">
-                    Code expires
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>Transaction ID:</span>
+                    <span>{paymentResult.transactionId}</span>
                   </div>
-                </CardContent>
-              </Card>
-              
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <div className="flex justify-between">
-                  <span>Bill Amount:</span>
-                  <span className="font-semibold">${parseFloat(billAmount).toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Reference:</span>
-                  <span className="font-mono">{validationCode.txnRef}</span>
+
+                <Button 
+                  onClick={resetPayment}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Generate Another Code
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="billAmount">Bill Amount</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
+                    <Input
+                      id="billAmount"
+                      type="number"
+                      placeholder="0.00"
+                      value={billAmount}
+                      onChange={(e) => setBillAmount(e.target.value)}
+                      className="pl-8"
+                      step="0.01"
+                      min="0"
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  onClick={handlePayment}
+                  disabled={!billAmount || parseFloat(billAmount) <= 0 || isProcessing}
+                  className="w-full"
+                  size="lg"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Generating Code...
+                    </>
+                  ) : (
+                    "Generate Payment Code"
+                  )}
+                </Button>
+
+                <div className="bg-muted p-4 rounded-lg">
+                  <h3 className="font-medium text-sm mb-2">How it works:</h3>
+                  <ol className="text-xs text-muted-foreground space-y-1">
+                    <li>1. Enter your bill amount</li>
+                    <li>2. Generate a payment code</li>
+                    <li>3. Show the code to the hawker</li>
+                    <li>4. Hawker validates code and you earn credits!</li>
+                  </ol>
                 </div>
               </div>
-              
-              <Separator />
-              
-              <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                  <span className="text-sm font-medium text-green-700">
-                    Payment Confirmed
-                  </span>
-                </div>
-                <p className="text-xs text-green-600">
-                  You've paid the hawker via PayNow. Now show this code to get your credits!
-                </p>
-              </div>
-              
-              <Button onClick={resetCode} variant="outline" className="w-full">
-                Generate New Code
-              </Button>
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <QrCode className="w-5 h-5" />
-            I've Paid the Hawker
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="text-center space-y-2">
-            <h2 className="text-xl font-semibold">Generate Validation Code</h2>
-            <p className="text-sm text-muted-foreground">
-              After paying the hawker via PayNow, generate a code to get your credits
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="billAmount">Bill Amount You Paid</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
-                <Input
-                  id="billAmount"
-                  type="number"
-                  placeholder="0.00"
-                  value={billAmount}
-                  onChange={(e) => setBillAmount(e.target.value)}
-                  className="pl-8"
-                  step="0.01"
-                  min="0"
-                />
-              </div>
-            </div>
-
-            <Button
-              onClick={generateValidationCode}
-              disabled={!billAmount || parseFloat(billAmount) <= 0 || isGenerating}
-              className="w-full"
-              size="lg"
-            >
-              {isGenerating ? "Generating..." : "Generate Code for Hawker"}
-            </Button>
-          </div>
-
-          <div className="bg-muted p-4 rounded-lg space-y-2">
-            <h3 className="font-medium text-sm">How it works:</h3>
-            <ol className="text-xs text-muted-foreground space-y-1">
-              <li>1. Pay hawker via their PayNow QR (normal payment)</li>
-              <li>2. Enter the amount you paid here</li>
-              <li>3. Show the generated code to hawker</li>
-              <li>4. Hawker scans code → you get credits!</li>
-            </ol>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
