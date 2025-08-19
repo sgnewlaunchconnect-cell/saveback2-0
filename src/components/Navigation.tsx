@@ -21,8 +21,7 @@ export default function Navigation() {
   };
 
   const navItems = [
-    { path: '/', label: 'Home', icon: Home },
-    { path: '/deals', label: 'Deals', icon: Tag },
+    { path: '/', label: 'Deals', icon: Tag },
     { path: '/redeem', label: 'Redeem', icon: Gift },
     { path: '/wallet', label: 'Wallet', icon: Wallet },
     { path: '/merchant/demo', label: 'Merchant Demo', icon: Store },

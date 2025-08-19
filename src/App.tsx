@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Navigation from "./components/Navigation";
 import Index from "./pages/Index";
-import Deals from "./pages/Deals";
 import DealDetail from "./pages/DealDetail";
 import GrabPass from "./pages/GrabPass";
 import MerchantValidation from "./pages/MerchantValidation";
@@ -34,7 +33,6 @@ const App = () => (
         <Navigation />
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/deals" element={<Deals />} />
           <Route path="/deals/:id" element={<DealDetail />} />
           <Route path="/redeem" element={<Redeem />} />
           <Route path="/demo-scenarios" element={<DemoScenarios />} />

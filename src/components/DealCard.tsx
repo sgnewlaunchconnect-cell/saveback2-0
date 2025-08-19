@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { getUserId } from '@/utils/userIdManager';
 import DealBadge from './DealBadge';
+import PaymentMethodBadge from './PaymentMethodBadge';
 
 interface Deal {
   id: string;
@@ -21,6 +22,7 @@ interface Deal {
     name: string;
     address?: string;
     logo_url?: string;
+    payout_method?: string;
   };
 }
 
@@ -132,10 +134,14 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
               >
                 {deal.merchants.name}
               </button>
-              <div className="mt-1">
+              <div className="mt-1 flex flex-wrap gap-1">
                 <DealBadge 
                   discountPct={deal.discount_pct} 
                   cashbackPct={deal.cashback_pct} 
+                />
+                <PaymentMethodBadge 
+                  payoutMethod={deal.merchants.payout_method}
+                  hasCashback={!!deal.cashback_pct && deal.cashback_pct > 0}
                 />
               </div>
             </div>

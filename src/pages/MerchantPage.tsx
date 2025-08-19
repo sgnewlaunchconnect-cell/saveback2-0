@@ -12,6 +12,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getUserId } from "@/utils/userIdManager";
+import PaymentMethodBadge from "@/components/PaymentMethodBadge";
 
 interface Merchant {
   id: string;
@@ -22,6 +23,7 @@ interface Merchant {
   latitude: number;
   longitude: number;
   is_active: boolean;
+  payout_method?: string;
 }
 
 interface Deal {
@@ -211,7 +213,7 @@ export default function MerchantPage() {
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-2">Merchant Not Found</h2>
           <p className="text-muted-foreground mb-4">The merchant you're looking for doesn't exist.</p>
-          <Button onClick={() => navigate('/deals')}>Browse Deals</Button>
+          <Button onClick={() => navigate('/')}>Browse Deals</Button>
         </div>
       </div>
     );
@@ -282,7 +284,7 @@ export default function MerchantPage() {
                         <h3 className="text-xl font-semibold mb-2">{deal.title}</h3>
                         <p className="text-muted-foreground mb-3">{deal.description}</p>
                         
-                        <div className="flex items-center gap-4 mb-3">
+                        <div className="flex items-center gap-2 mb-3 flex-wrap">
                           {deal.discount_pct > 0 && (
                             <Badge variant="secondary">
                               {deal.discount_pct}% OFF
@@ -293,6 +295,10 @@ export default function MerchantPage() {
                               {deal.cashback_pct}% Cashback
                             </Badge>
                           )}
+                          <PaymentMethodBadge 
+                            payoutMethod={merchant.payout_method}
+                            hasCashback={!!deal.cashback_pct && deal.cashback_pct > 0}
+                          />
                         </div>
                         
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -457,6 +463,16 @@ export default function MerchantPage() {
                 <div>
                   <h4 className="font-medium mb-2">Category</h4>
                   <Badge variant="secondary">{merchant.category}</Badge>
+                </div>
+                
+                <Separator />
+                
+                <div>
+                  <h4 className="font-medium mb-2">Payment Methods</h4>
+                  <PaymentMethodBadge 
+                    payoutMethod={merchant.payout_method}
+                    hasCashback={deals.some(deal => deal.cashback_pct > 0)}
+                  />
                 </div>
                 
                 <Separator />

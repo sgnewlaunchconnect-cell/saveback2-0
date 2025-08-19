@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import DealCard from '@/components/DealCard';
 import DealBadge from '@/components/DealBadge';
+import PaymentMethodBadge from '@/components/PaymentMethodBadge';
 
 interface Deal {
   id: string;
@@ -28,6 +29,7 @@ interface Deal {
     address: string;
     category: string;
     logo_url: string;
+    payout_method: string;
   };
 }
 
@@ -39,6 +41,7 @@ const Index = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRewardType, setSelectedRewardType] = useState<'all' | 'discount' | 'cashback'>('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedPaymentType, setSelectedPaymentType] = useState<'all' | 'in-app' | 'pin-only'>('all');
 
   useEffect(() => {
     fetchDeals();
@@ -52,7 +55,7 @@ const Index = () => {
         .select(`
           id, title, description, discount_pct, cashback_pct, reward_mode, 
           end_at, views, grabs, merchant_id,
-          merchants(id, name, address, category, logo_url)
+          merchants(id, name, address, category, logo_url, payout_method)
         `)
         .eq('is_active', true)
         .gt('end_at', now)
@@ -86,7 +89,11 @@ const Index = () => {
     const matchesCategory = selectedCategory === 'all' ||
       deal.merchants.category === selectedCategory;
 
-    return matchesSearch && matchesRewardType && matchesCategory;
+    const matchesPaymentType = selectedPaymentType === 'all' ||
+      (selectedPaymentType === 'in-app' && deal.merchants.payout_method !== 'manual' && deal.cashback_pct > 0) ||
+      (selectedPaymentType === 'pin-only' && (deal.merchants.payout_method === 'manual' || deal.cashback_pct === 0));
+
+    return matchesSearch && matchesRewardType && matchesCategory && matchesPaymentType;
   });
 
   // Get trending deals (sort by grabs desc, views desc, then end_at asc)
@@ -184,6 +191,31 @@ const Index = () => {
               Credit Rewards
             </Badge>
           </div>
+          
+          {/* Payment Type Filter */}
+          <div className="flex gap-2">
+            <Badge
+              variant={selectedPaymentType === 'all' ? 'default' : 'outline'}
+              className="cursor-pointer"
+              onClick={() => setSelectedPaymentType('all')}
+            >
+              All Payment Types
+            </Badge>
+            <Badge
+              variant={selectedPaymentType === 'in-app' ? 'default' : 'outline'}
+              className="cursor-pointer"
+              onClick={() => setSelectedPaymentType('in-app')}
+            >
+              In-app Payment
+            </Badge>
+            <Badge
+              variant={selectedPaymentType === 'pin-only' ? 'default' : 'outline'}
+              className="cursor-pointer"
+              onClick={() => setSelectedPaymentType('pin-only')}
+            >
+              PIN Only
+            </Badge>
+          </div>
         </div>
 
         {/* Category Chips */}
@@ -239,17 +271,6 @@ const Index = () => {
           />
         )}
 
-        {/* Browse All Deals Button */}
-        <div className="animate-fade-in">
-          <Button 
-            variant="cta"
-            className="w-full" 
-            size="lg"
-            onClick={() => navigate('/deals')}
-          >
-            Browse All Deals
-          </Button>
-        </div>
       </div>
     </div>
   );

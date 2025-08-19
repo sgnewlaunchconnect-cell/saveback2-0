@@ -7,6 +7,8 @@ import { ArrowLeft, MapPin, Clock, Star } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { getUserId } from '@/utils/userIdManager';
+import DealBadge from '@/components/DealBadge';
+import PaymentMethodBadge from '@/components/PaymentMethodBadge';
 
 interface DealDetail {
   id: string;
@@ -23,6 +25,7 @@ interface DealDetail {
     latitude: number;
     longitude: number;
     phone: string;
+    payout_method?: string;
   };
 }
 
@@ -46,13 +49,14 @@ const DealDetail = () => {
         .from('deals')
         .select(`
           *,
-          merchants (
-            name,
-            address,
-            latitude,
-            longitude,
-            phone
-          )
+           merchants (
+             name,
+             address,
+             latitude,
+             longitude,
+             phone,
+             payout_method
+           )
         `)
         .eq('id', dealId)
         .single();
@@ -145,11 +149,11 @@ const DealDetail = () => {
         <div className="max-w-md mx-auto">
           <Button 
             variant="ghost" 
-            onClick={() => navigate('/deals')}
+          onClick={() => navigate('/')}
             className="mb-4"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Deals
+            Back to Home
           </Button>
           <div className="text-center py-8">
             <p className="text-muted-foreground">Deal not found</p>
@@ -164,28 +168,26 @@ const DealDetail = () => {
       <div className="max-w-md mx-auto p-4">
         <Button 
           variant="ghost" 
-          onClick={() => navigate('/deals')}
+          onClick={() => navigate('/')}
           className="mb-4"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Deals
+          Back to Home
         </Button>
 
         <Card className="mb-6">
           <CardHeader>
-            <div className="flex justify-between items-start gap-3">
+            <div className="space-y-3">
               <CardTitle className="text-xl leading-tight">{deal.title}</CardTitle>
-              <div className="flex flex-col gap-2">
-                {deal.discount_pct > 0 && (
-                  <Badge variant="destructive" className="text-sm">
-                    {deal.discount_pct}% OFF
-                  </Badge>
-                )}
-                {deal.cashback_pct > 0 && (
-                  <Badge variant="secondary" className="text-sm">
-                    {deal.cashback_pct}% back
-                  </Badge>
-                )}
+              <div className="flex flex-wrap gap-2">
+                <DealBadge 
+                  discountPct={deal.discount_pct} 
+                  cashbackPct={deal.cashback_pct} 
+                />
+                <PaymentMethodBadge 
+                  payoutMethod={deal.merchants.payout_method}
+                  hasCashback={!!deal.cashback_pct && deal.cashback_pct > 0}
+                />
               </div>
             </div>
           </CardHeader>
