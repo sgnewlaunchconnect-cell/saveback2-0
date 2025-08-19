@@ -29,7 +29,7 @@ serve(async (req) => {
     // Get grab data
     const { data: grabData, error: grabError } = await supabaseClient
       .from('grabs')
-      .select('id, pin, status, expires_at, created_at, deal_id, user_id, anon_user_id')
+      .select('id, pin, status, expires_at, created_at, deal_id, merchant_id, user_id, anon_user_id')
       .eq('id', grabId)
       .single();
 
