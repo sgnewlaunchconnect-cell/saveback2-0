@@ -51,17 +51,7 @@ serve(async (req) => {
 
     let grabQuery = supabaseClient
       .from('grabs')
-      .select(`
-        *,
-        deals (
-          title,
-          discount_pct,
-          cashback_pct,
-          merchants (
-            name
-          )
-        )
-      `)
+      .select('*')
       .eq('status', 'ACTIVE')
       .gt('expires_at', new Date().toISOString());
 
@@ -98,6 +88,25 @@ serve(async (req) => {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    // Fetch deal and merchant info separately
+    const { data: dealData, error: dealError } = await supabaseClient
+      .from('deals')
+      .select(`
+        title,
+        discount_pct,
+        cashback_pct,
+        merchants (
+          name
+        )
+      `)
+      .eq('id', grab.deal_id)
+      .single();
+
+    if (dealError) {
+      console.error('Deal not found:', dealError);
+      // Continue without deal info rather than failing
     }
 
     // Update grab status to USED
@@ -150,9 +159,9 @@ serve(async (req) => {
         status: 'USED',
         usedAt: new Date().toISOString(),
         paymentCode,
-        dealTitle: grab.deals?.title,
-        discountPct: grab.deals?.discount_pct,
-        merchantName: grab.deals?.merchants?.name
+        dealTitle: dealData?.title,
+        discountPct: dealData?.discount_pct,
+        merchantName: dealData?.merchants?.name
       }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

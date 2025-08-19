@@ -97,10 +97,9 @@ export default function GrabPassPage() {
   };
 
   const handleUseNow = () => {
-    // For discount-only deals, don't show payment flow
+    // For discount-only deals, just show instructions - no navigation needed
     if (isDiscountOnlyDeal()) {
-      navigate('/redeem');
-      return;
+      return; // Instructions are already visible on the page
     }
     setShowPayment(true);
   };
