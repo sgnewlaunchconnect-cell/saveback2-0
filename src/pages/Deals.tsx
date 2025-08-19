@@ -107,7 +107,7 @@ const Deals = () => {
         <div className="flex justify-between items-start">
           <CardTitle className="text-lg line-clamp-2">{deal.title}</CardTitle>
           <div className="flex gap-2">
-            {deal.discount_pct && (
+            {deal.discount_pct > 0 && (
               <Badge variant="destructive">{deal.discount_pct}% OFF</Badge>
             )}
             {isExpiringSoon(deal.end_at) && (
@@ -141,7 +141,7 @@ const Deals = () => {
               <Clock className="h-4 w-4" />
               <span>{getTimeLeft(deal.end_at)}</span>
             </div>
-            {deal.cashback_pct && (
+            {deal.cashback_pct > 0 && (
               <Badge variant="secondary" className="text-xs">
                 {deal.cashback_pct}% back
               </Badge>

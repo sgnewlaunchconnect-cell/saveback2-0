@@ -179,12 +179,12 @@ const DealDetail = () => {
             <div className="flex justify-between items-start gap-3">
               <CardTitle className="text-xl leading-tight">{deal.title}</CardTitle>
               <div className="flex flex-col gap-2">
-                {deal.discount_pct && (
+                {deal.discount_pct > 0 && (
                   <Badge variant="destructive" className="text-sm">
                     {deal.discount_pct}% OFF
                   </Badge>
                 )}
-                {deal.cashback_pct && (
+                {deal.cashback_pct > 0 && (
                   <Badge variant="secondary" className="text-sm">
                     {deal.cashback_pct}% back
                   </Badge>
