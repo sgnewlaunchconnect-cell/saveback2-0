@@ -42,24 +42,32 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     );
 
-    // Get user from JWT token
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('No authorization header');
-    }
-
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      throw new Error('Invalid authentication');
-    }
-
-    const { dealId } = await req.json();
+    const { dealId, anonymousUserId } = await req.json();
 
     if (!dealId) {
       throw new Error('Deal ID is required');
+    }
+
+    if (!anonymousUserId) {
+      throw new Error('Anonymous user ID is required');
+    }
+
+    // Try to get authenticated user, but allow anonymous users
+    let userId = anonymousUserId; // Default to anonymous
+    const authHeader = req.headers.get('Authorization');
+    
+    if (authHeader) {
+      try {
+        const { data: { user } } = await supabaseClient.auth.getUser(
+          authHeader.replace('Bearer ', '')
+        );
+        if (user) {
+          userId = user.id;
+        }
+      } catch (authError) {
+        // Ignore auth errors, continue with anonymous user
+        console.log('Auth failed, using anonymous user:', authError);
+      }
     }
 
     // Validate deal exists and is active
@@ -85,14 +93,51 @@ serve(async (req) => {
       throw new Error('Deal has expired');
     }
 
+    // Check for existing active grab by this user for this deal
+    const { data: existingGrab } = await supabaseClient
+      .from('grabs')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('deal_id', dealId)
+      .eq('status', 'ACTIVE')
+      .gt('expires_at', new Date().toISOString())
+      .single();
+
+    if (existingGrab) {
+      // Return existing grab instead of creating new one
+      const expiresAt = new Date(existingGrab.expires_at);
+      const countdown = Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / 1000));
+      
+      return new Response(JSON.stringify({
+        success: true,
+        grab: {
+          id: existingGrab.id,
+          qrToken: existingGrab.qr_token,
+          pin: existingGrab.pin,
+          expiresAt: existingGrab.expires_at,
+          countdown,
+          deal: {
+            title: deal.title,
+            merchant: deal.merchants?.name
+          }
+        }
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Generate PIN and create grab token data
     const pin = generatePIN();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes from now
+    
+    // Set expiry to earlier of deal end time or 24 hours from now
+    const dealEndTime = deal.end_at ? new Date(deal.end_at) : null;
+    const maxGrabTime = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+    const expiresAt = dealEndTime && dealEndTime < maxGrabTime ? dealEndTime : maxGrabTime;
     
     // Create token data for HMAC
     const tokenData = JSON.stringify({
       dealId: deal.id,
-      userId: user.id,
+      userId: userId,
       merchantId: deal.merchant_id,
       pin,
       expiresAt: expiresAt.toISOString()
@@ -106,13 +151,13 @@ serve(async (req) => {
     const { data: grab, error: grabError } = await supabaseClient
       .from('grabs')
       .insert({
-        user_id: user.id,
+        user_id: userId,
         deal_id: deal.id,
         merchant_id: deal.merchant_id,
         pin,
         qr_token: qrToken,
         expires_at: expiresAt.toISOString(),
-        status: 'LOCKED'
+        status: 'ACTIVE'
       })
       .select()
       .single();
@@ -136,7 +181,7 @@ serve(async (req) => {
         qrToken,
         pin,
         expiresAt: expiresAt.toISOString(),
-        countdown: 300, // 5 minutes in seconds
+        countdown: Math.floor((expiresAt.getTime() - Date.now()) / 1000),
         deal: {
           title: deal.title,
           merchant: deal.merchants?.name

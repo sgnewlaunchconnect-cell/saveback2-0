@@ -75,9 +75,16 @@ const DealDetail = () => {
     
     setGrabbing(true);
     try {
+      // Get or create anonymous user ID
+      let anonymousUserId = localStorage.getItem('anonymousUserId');
+      if (!anonymousUserId) {
+        anonymousUserId = `anon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        localStorage.setItem('anonymousUserId', anonymousUserId);
+      }
+
       // Use createGrab edge function to ensure proper expiry and validation
       const { data, error } = await supabase.functions.invoke('createGrab', {
-        body: { dealId: deal.id }
+        body: { dealId: deal.id, anonymousUserId }
       });
 
       if (error) throw error;

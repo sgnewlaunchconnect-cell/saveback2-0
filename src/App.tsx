@@ -20,6 +20,7 @@ import NotFound from "./pages/NotFound";
 import CustomerValidation from "./components/CustomerValidation";
 import HawkerValidation from "./components/HawkerValidation";
 import MerchantPage from "./pages/MerchantPage";
+import Redeem from "./pages/Redeem";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/deals" element={<Deals />} />
           <Route path="/deals/:id" element={<DealDetail />} />
+          <Route path="/redeem" element={<Redeem />} />
           <Route path="/demo-scenarios" element={<DemoScenarios />} />
           <Route path="/grab-pass/:grabId" element={<GrabPass />} />
           <Route path="/merchant/:merchantId" element={<MerchantPage />} />

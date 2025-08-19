@@ -59,7 +59,7 @@ enable_confirmations = false
 template = "Your code is {{ .Code }} ."
 
 [functions.createGrab]
-verify_jwt = true
+verify_jwt = false
 
 [functions.validateGrab]
 verify_jwt = false
