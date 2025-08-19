@@ -31,7 +31,8 @@ export default function CustomerValidation() {
         body: {
           merchantId: DEMO_MERCHANT_ID,
           originalAmount: Math.round(parseFloat(billAmount) * 100), // Convert to cents
-          anonymousUserId: true // Use demo user
+          anonymousUserId: true, // Use demo user
+          dealId: null // Can be updated to support specific deals
         }
       });
 
