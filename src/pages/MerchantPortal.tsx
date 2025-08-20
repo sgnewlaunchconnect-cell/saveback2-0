@@ -4,13 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Store, BarChart3, Settings, ShieldCheck } from "lucide-react";
+import { Plus, Store, BarChart3, Settings, ShieldCheck, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import DealManagement from "@/components/DealManagement";
 import HawkerValidation from "@/components/HawkerValidation";
 import MerchantAnalytics from "@/components/MerchantAnalytics";
 import MerchantSettings from "@/components/MerchantSettings";
+import ProductManagement from "@/components/ProductManagement";
+import ReelsManager from "@/components/ReelsManager";
 
 interface MerchantInfo {
   id: string;
@@ -105,10 +107,14 @@ export default function MerchantPortal() {
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="deals" className="flex items-center gap-2">
               <Store className="h-4 w-4" />
               Deals
+            </TabsTrigger>
+            <TabsTrigger value="listings" className="flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              Listings
             </TabsTrigger>
             <TabsTrigger value="validation" className="flex items-center gap-2">
               <ShieldCheck className="h-4 w-4" />
@@ -123,6 +129,40 @@ export default function MerchantPortal() {
               Settings
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="listings" className="space-y-4">
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Package className="h-5 w-5" />
+                    Products
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Manage your product catalog and inventory
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <ProductManagement merchantId={merchantId!} />
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Store className="h-5 w-5" />
+                    Video Reels
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Showcase your business with video content
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <ReelsManager merchantId={merchantId!} />
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
 
           <TabsContent value="deals" className="space-y-4">
             <DealManagement merchantId={merchantId!} />
