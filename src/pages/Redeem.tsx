@@ -104,7 +104,7 @@ export default function Redeem() {
 
   const handleUseNow = (grabId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    navigate(`/grab-pass/${grabId}`);
+    navigate(`/pay-at-merchant?grabId=${grabId}`);
   };
 
   const renderGrabCard = (grab: GrabData, showUseButton = false) => {
@@ -115,7 +115,7 @@ export default function Redeem() {
       <Card 
         key={grab.id} 
         className="cursor-pointer hover:shadow-md transition-all duration-300 border-l-4 border-l-primary/20"
-        onClick={() => navigate(`/grab-pass/${grab.id}`)}
+        onClick={() => navigate(`/pay-at-merchant?grabId=${grab.id}`)}
       >
         <CardContent className="p-4">
           <div className="flex justify-between items-start mb-3">

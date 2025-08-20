@@ -186,7 +186,7 @@ export default function MerchantPage() {
         description: "You can use this deal before it expires"
       });
 
-      navigate(`/grab-pass/${data.grab.id}`);
+      navigate(`/pay-at-merchant?grabId=${data.grab.id}`);
     } catch (error) {
       toast({
         title: "Error",

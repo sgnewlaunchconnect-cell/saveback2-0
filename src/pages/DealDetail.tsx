@@ -95,8 +95,8 @@ const DealDetail = () => {
         description: "You can use this deal before it expires"
       });
 
-      // Navigate to grab pass page
-      navigate(`/grab-pass/${data.grab.id}`);
+      // Navigate directly to payment flow
+      navigate(`/pay-at-merchant?grabId=${data.grab.id}`);
     } catch (error) {
       console.error('Error grabbing deal:', error);
       toast({
