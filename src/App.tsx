@@ -17,6 +17,7 @@ import WalletPage from "./pages/WalletPage";
 import PayAtMerchant from "./pages/PayAtMerchant";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentCanceled from "./pages/PaymentCanceled";
+import VerifyPayment from "./pages/VerifyPayment";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import CustomerValidation from "./components/CustomerValidation";
@@ -51,6 +52,7 @@ const App = () => (
           <Route path="/pay-at-merchant" element={<PayAtMerchant />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/payment-canceled" element={<PaymentCanceled />} />
+          <Route path="/verify-payment" element={<VerifyPayment />} />
           <Route path="/hawker/validate" element={<HawkerValidation />} />
           <Route path="/customer/validate" element={<CustomerValidation />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { getUserId } from '@/utils/userIdManager';
 import MerchantPaymentCode from './MerchantPaymentCode';
 import StripePaymentForm from './StripePaymentForm';
+import ProofOfPaymentQR from './ProofOfPaymentQR';
 
 interface QuickPaymentFlowProps {
   grabData: any;
@@ -188,8 +189,18 @@ export default function QuickPaymentFlow({
 
   const handleStripeSuccess = (result: any) => {
     setStripePayment(null);
-    setPaymentResult(result);
-    onComplete(result);
+    
+    // For Stripe payments, show proof of payment QR
+    const stripeResult = {
+      ...result,
+      paymentMethod: 'stripe',
+      showProofQR: true,
+      merchantName: merchantData?.name || 'Merchant',
+      timestamp: new Date().toLocaleString()
+    };
+    
+    setPaymentResult(stripeResult);
+    onComplete(stripeResult);
   };
 
   const handleStripeError = (error: string) => {
@@ -227,6 +238,19 @@ export default function QuickPaymentFlow({
       <MerchantPaymentCode
         paymentResult={paymentResult}
         onBack={handleBackToEdit}
+      />
+    );
+  }
+
+  // If we have Stripe payment result, show proof of payment QR
+  if (paymentResult && paymentResult.paymentMethod === 'stripe' && paymentResult.showProofQR) {
+    return (
+      <ProofOfPaymentQR
+        paymentIntentId={paymentResult.transactionId}
+        merchantName={paymentResult.merchantName}
+        amount={finalAmountWithFees * 100} // Convert to cents
+        timestamp={paymentResult.timestamp}
+        onContinue={handleBackToEdit}
       />
     );
   }
