@@ -17,6 +17,7 @@ interface Deal {
   cashback_pct?: number;
   end_at: string;
   merchant_id: string;
+  grabs?: number;
   merchants: {
     id: string;
     name: string;
@@ -155,7 +156,7 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
             </div>
           )}
           
-          {/* Time and savings benefit */}
+          {/* Time and engagement stats */}
           <div className="flex items-center justify-between text-sm mb-2">
             <div className="flex items-center gap-2">
               <Clock className="h-3 w-3" />
@@ -163,11 +164,19 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
                 {getTimeLeft(deal.end_at)}
               </span>
             </div>
-            {getTotalSavings() > 0 && (
-              <div className="text-xs text-primary font-medium">
-                Save up to {getTotalSavings()}%
-              </div>
-            )}
+            <div className="flex items-center gap-3">
+              {/* Grab count for social proof */}
+              {deal.grabs > 0 && (
+                <div className="text-xs text-muted-foreground bg-primary/10 rounded-full px-2 py-1">
+                  {deal.grabs} grabbed
+                </div>
+              )}
+              {getTotalSavings() > 0 && (
+                <div className="text-xs text-primary font-medium">
+                  Save up to {getTotalSavings()}%
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Benefit message and CTA in same row */}
