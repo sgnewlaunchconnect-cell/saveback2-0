@@ -35,6 +35,7 @@ const App = () => (
         <Navigation />
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/deals" element={<Index />} />
           <Route path="/deals/:id" element={<DealDetail />} />
           <Route path="/redeem" element={<Redeem />} />
           <Route path="/demo-scenarios" element={<DemoScenarios />} />
