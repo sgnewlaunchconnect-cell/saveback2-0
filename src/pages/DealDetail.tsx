@@ -92,11 +92,11 @@ const DealDetail = () => {
 
       toast({
         title: "Deal Grabbed! 🎉",
-        description: "You can use this deal before it expires"
+        description: "Deal reserved successfully. Check 'Redeem' tab to use it."
       });
 
-      // Navigate directly to payment flow
-      navigate(`/pay-at-merchant?grabId=${data.grab.id}`);
+      // Navigate to redeem page to show grabbed deal
+      navigate(`/redeem`);
     } catch (error) {
       console.error('Error grabbing deal:', error);
       toast({

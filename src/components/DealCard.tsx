@@ -52,11 +52,11 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
 
       toast({
         title: "Deal Grabbed!",
-        description: "Redirecting to payment...",
+        description: "Deal reserved successfully. Check 'Redeem' tab to use it.",
       });
 
-      // Navigate directly to payment flow 
-      navigate(`/pay-at-merchant?grabId=${data.grab.id}`);
+      // Navigate to redeem page to show grabbed deal
+      navigate(`/redeem`);
     } catch (error) {
       console.error('Error grabbing deal:', error);
       toast({

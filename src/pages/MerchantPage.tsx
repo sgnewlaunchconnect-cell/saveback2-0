@@ -183,10 +183,10 @@ export default function MerchantPage() {
 
       toast({
         title: "Deal Grabbed! 🎉",
-        description: "You can use this deal before it expires"
+        description: "Deal reserved successfully. Check 'Redeem' tab to use it."
       });
 
-      navigate(`/pay-at-merchant?grabId=${data.grab.id}`);
+      navigate(`/redeem`);
     } catch (error) {
       toast({
         title: "Error",
