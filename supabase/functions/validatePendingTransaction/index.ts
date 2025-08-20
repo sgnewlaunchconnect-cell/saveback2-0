@@ -124,11 +124,11 @@ serve(async (req) => {
         }
       }
 
-      // Mark transaction as completed
+      // Mark transaction as validated (for real-time updates)
       const { error: updateError } = await supabase
         .from('pending_transactions')
         .update({ 
-          status: 'completed',
+          status: 'validated',
           updated_at: new Date().toISOString()
         })
         .eq('id', transaction.id);

@@ -171,16 +171,16 @@ export default function MerchantPaymentCode({
             <div className="space-y-2 text-sm text-muted-foreground">
               <div className="flex items-start gap-2">
                 <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">1</span>
-                <span>Cashier scans QR code to validate your payment</span>
+                <span>
+                  {paymentResult.isFullyCovered 
+                    ? "Complete your purchase - it's FREE!" 
+                    : `Pay ₹${paymentResult.finalAmount.toFixed(2)} at the counter first`
+                  }
+                </span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">2</span>
-                <span>
-                  {paymentResult.isFullyCovered 
-                    ? "No payment needed - purchase is FREE!" 
-                    : `Pay ₹${paymentResult.finalAmount.toFixed(2)} using the merchant's payment system`
-                  }
-                </span>
+                <span>Show this QR code to the cashier for scanning</span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">3</span>
