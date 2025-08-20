@@ -9,6 +9,7 @@ import { QrCode, CreditCard, Gift, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { getUserId } from '@/utils/userIdManager';
+import MerchantPaymentCode from './MerchantPaymentCode';
 
 interface QuickPaymentFlowProps {
   grabData: any;
@@ -27,6 +28,7 @@ export default function QuickPaymentFlow({
   const [billAmount, setBillAmount] = useState('');
   const [useCredits, setUseCredits] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentResult, setPaymentResult] = useState<any>(null);
 
   const totalCredits = localCredits + networkCredits;
   const amount = parseFloat(billAmount) || 0;
@@ -85,11 +87,12 @@ export default function QuickPaymentFlow({
         isFullyCovered: finalAmount === 0
       };
       
+      setPaymentResult(result);
       onComplete(result);
       
       toast({
         title: "Payment Code Generated!",
-        description: "Show this code to the cashier"
+        description: "Show this code to the cashier for validation"
       });
       
     } catch (error) {
@@ -103,6 +106,20 @@ export default function QuickPaymentFlow({
       setIsProcessing(false);
     }
   };
+
+  const handleBackToEdit = () => {
+    setPaymentResult(null);
+  };
+
+  // Show payment code inline after generation
+  if (paymentResult) {
+    return (
+      <MerchantPaymentCode
+        paymentResult={paymentResult}
+        onBack={handleBackToEdit}
+      />
+    );
+  }
 
   return (
     <Card className="w-full max-w-md mx-auto">

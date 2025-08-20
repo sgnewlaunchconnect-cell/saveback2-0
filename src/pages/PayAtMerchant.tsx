@@ -14,26 +14,8 @@ export default function PayAtMerchant() {
   }) => {
     console.log("Payment completed:", paymentData);
     
-    // If this payment is related to a grab, mark it as used
-    if (grabId) {
-      try {
-        const { error } = await supabase
-          .from('grabs')
-          .update({ 
-            status: 'USED',
-            used_at: new Date().toISOString()
-          })
-          .eq('id', grabId);
-          
-        if (error) {
-          console.error('Error updating grab status:', error);
-        } else {
-          console.log('Grab marked as used:', grabId);
-        }
-      } catch (error) {
-        console.error('Error updating grab:', error);
-      }
-    }
+    // Note: Don't mark grab as used here - merchant validation will handle this
+    // The payment code will be validated by the merchant using validatePendingTransaction
   };
 
   return <PayAtMerchantComponent onPaymentComplete={handlePaymentComplete} />;

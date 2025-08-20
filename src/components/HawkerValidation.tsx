@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,21 @@ export default function HawkerValidation() {
     discountPct?: number;
     message?: string;
   } | null>(null);
+
+  // Auto-fill code from URL params if provided
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const codeParam = urlParams.get('code');
+    const modeParam = urlParams.get('mode');
+    
+    if (codeParam && codeParam.length === 6) {
+      setValidationCode(codeParam);
+    }
+    
+    if (modeParam === 'payment' || modeParam === 'grab') {
+      setValidationMode(modeParam);
+    }
+  }, []);
 
   const handleValidation = async () => {
     if (validationCode.length !== 6) {

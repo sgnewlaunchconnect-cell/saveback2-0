@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Copy, CheckCircle, CreditCard, Gift, Clock } from 'lucide-react';
+import { Copy, CheckCircle, CreditCard, Gift, Clock, QrCode } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { QRCodeSVG } from 'qrcode.react';
 
 interface MerchantPaymentCodeProps {
   paymentResult: {
@@ -69,12 +70,24 @@ export default function MerchantPaymentCode({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Large Payment Code */}
+          {/* QR Code for Merchant Scanning */}
           <div className={`text-center p-6 rounded-lg border-2 border-dashed ${
             isExpired ? 'bg-red-50 dark:bg-red-950/20 border-red-300' : 'bg-gray-50 dark:bg-gray-900'
           }`}>
-            <p className="text-sm text-muted-foreground mb-2">Show this code to cashier</p>
-            <div className={`text-4xl font-mono font-bold tracking-wider mb-2 ${
+            <p className="text-sm text-muted-foreground mb-3">For cashier to scan:</p>
+            
+            {!isExpired && (
+              <div className="bg-white p-4 rounded-lg inline-block mb-3">
+                <QRCodeSVG 
+                  value={`${window.location.origin}/hawker/validate?mode=payment&code=${paymentResult.paymentCode}`}
+                  size={160}
+                  level="M"
+                />
+              </div>
+            )}
+            
+            <p className="text-xs text-muted-foreground mb-2">Or manually enter code:</p>
+            <div className={`text-3xl font-mono font-bold tracking-wider mb-2 ${
               isExpired ? 'text-red-500' : 'text-primary'
             }`}>
               {paymentResult.paymentCode}
@@ -158,24 +171,20 @@ export default function MerchantPaymentCode({
             <div className="space-y-2 text-sm text-muted-foreground">
               <div className="flex items-start gap-2">
                 <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">1</span>
-                <span>Go to the cashier and show this code</span>
+                <span>Cashier scans QR code to validate your payment</span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">2</span>
                 <span>
                   {paymentResult.isFullyCovered 
-                    ? "Enjoy your free purchase!" 
-                    : `Pay ₹${paymentResult.finalAmount.toFixed(2)} using cash/card`
+                    ? "No payment needed - purchase is FREE!" 
+                    : `Pay ₹${paymentResult.finalAmount.toFixed(2)} using the merchant's payment system`
                   }
                 </span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">3</span>
-                <span>Cashier will scan their QR and enter your code to validate</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">4</span>
-                <span>You'll automatically earn cashback credits for next time!</span>
+                <span>Cashback credits are applied automatically to your account</span>
               </div>
             </div>
           )}
@@ -197,7 +206,7 @@ export default function MerchantPaymentCode({
       </Card>
 
       <Button onClick={onBack} variant="outline" className="w-full">
-        ← Back to Grab Pass
+        ← Edit Bill Amount
       </Button>
     </div>
   );

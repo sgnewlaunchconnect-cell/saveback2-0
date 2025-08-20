@@ -8,10 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { QrCode, Clock, CheckCircle, XCircle, RefreshCw, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import PaymentFlow from "@/components/PaymentFlow";
-import PaymentSuccess from "@/components/PaymentSuccess";
 import QuickPaymentFlow from "@/components/QuickPaymentFlow";
-import MerchantPaymentCode from "@/components/MerchantPaymentCode";
 import { getUserId } from "@/utils/userIdManager";
 
 interface GrabData {
@@ -44,9 +41,6 @@ export default function GrabPassPage() {
   const [grabData, setGrabData] = useState<GrabData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showPayment, setShowPayment] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [showQuickCode, setShowQuickCode] = useState(false);
-  const [paymentData, setPaymentData] = useState<any>(null);
   const [timeLeft, setTimeLeft] = useState(0);
 
   useEffect(() => {
@@ -122,67 +116,9 @@ export default function GrabPassPage() {
   };
 
   const handlePaymentComplete = async (paymentResult: any) => {
-    try {
-      const anonymousUserId = getUserId();
-      
-      // Call useGrab function to mark as used
-      const { data, error } = await supabase.functions.invoke('useGrab', {
-        body: { 
-          grabId, 
-          anonymousUserId,
-          paymentCode: paymentResult.paymentCode 
-        }
-      });
-
-      if (error) throw error;
-
-      // Store payment data for success screen
-      setPaymentData({
-        paymentCode: paymentResult.paymentCode,
-        totalSavings: paymentResult.totalSavings,
-        originalAmount: paymentResult.originalAmount,
-        finalAmount: paymentResult.finalAmount,
-        creditsUsed: paymentResult.creditsUsed
-      });
-      
-      setShowPayment(false);
-      setShowSuccess(true);
-      
-      // Update local state
-      if (grabData) {
-        setGrabData({
-          ...grabData,
-          status: 'USED'
-        });
-      }
-    } catch (error: any) {
-      console.error('Error marking grab as used:', error);
-      
-      // Handle specific error codes
-      if (error.message?.includes('409') || error.message?.includes('ALREADY_USED')) {
-        // Grab already used, refetch data and show updated status
-        await fetchGrabData();
-        toast({
-          title: "Already Used",
-          description: "This grab pass has already been used",
-          variant: "destructive"
-        });
-      } else if (error.message?.includes('410') || error.message?.includes('EXPIRED')) {
-        // Grab expired, refetch data and show updated status
-        await fetchGrabData();
-        toast({
-          title: "Expired",
-          description: "This grab pass has expired",
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: "Payment processed but failed to update grab status",
-          variant: "destructive"
-        });
-      }
-    }
+    // Note: Don't mark grab as used here - validation by merchant will handle this
+    // This just shows the payment code for cashier validation
+    console.log('Payment code generated for validation:', paymentResult.paymentCode);
   };
 
   if (loading) {
@@ -221,28 +157,8 @@ export default function GrabPassPage() {
   const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
   const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
 
-  if (showSuccess && paymentData) {
-    return (
-      <div className="min-h-screen bg-background p-4">
-        <div className="max-w-md mx-auto">
-          <PaymentSuccess
-            paymentCode={paymentData.paymentCode}
-            totalSavings={paymentData.totalSavings}
-            originalAmount={paymentData.originalAmount}
-            finalAmount={paymentData.finalAmount}
-            creditsUsed={paymentData.creditsUsed}
-            onContinue={() => {
-              setShowSuccess(false);
-              navigate('/redeem');
-            }}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  // Show Quick Payment Flow instead of complex payment flow
-  if (showPayment && !showQuickCode) {
+  // Show unified payment flow when requested
+  if (showPayment) {
     return (
       <div className="min-h-screen bg-background p-4">
         <div className="max-w-md mx-auto">
@@ -259,28 +175,7 @@ export default function GrabPassPage() {
             grabData={grabData}
             localCredits={850}    // Demo credits
             networkCredits={725}
-            onComplete={(result) => {
-              setPaymentData(result);
-              setShowQuickCode(true);
-            }}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  // Show merchant payment code after quick payment
-  if (showQuickCode && paymentData) {
-    return (
-      <div className="min-h-screen bg-background p-4">
-        <div className="max-w-md mx-auto">
-          <MerchantPaymentCode
-            paymentResult={paymentData}
-            onBack={() => {
-              setShowQuickCode(false);
-              setShowPayment(false);
-              setPaymentData(null);
-            }}
+            onComplete={handlePaymentComplete}
           />
         </div>
       </div>
