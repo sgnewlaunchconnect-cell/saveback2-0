@@ -172,20 +172,41 @@ export default function QuickPaymentFlow({
         </div>
 
         {/* Credits Toggle */}
-        <div className="flex items-center justify-between space-x-2">
-          <div className="space-y-1">
-            <Label htmlFor="use-credits" className="text-sm">
-              Use my credits to pay
-            </Label>
-            <Badge variant="secondary" className="text-xs">
-              ₹{totalCredits.toFixed(2)} available
-            </Badge>
+        <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+          <div className="flex items-center justify-between space-x-2 mb-3">
+            <div className="space-y-1">
+              <Label htmlFor="use-credits" className="text-sm font-medium">
+                Apply Credits Now?
+              </Label>
+              <Badge variant="secondary" className="text-xs">
+                ₹{totalCredits.toFixed(2)} available
+              </Badge>
+            </div>
+            <Switch
+              id="use-credits"
+              checked={useCredits}
+              onCheckedChange={setUseCredits}
+            />
           </div>
-          <Switch
-            id="use-credits"
-            checked={useCredits}
-            onCheckedChange={setUseCredits}
-          />
+          
+          {/* Decision Helper Text */}
+          <div className="space-y-2 text-xs">
+            {useCredits ? (
+              <div className="bg-green-100 dark:bg-green-900/20 p-2 rounded border border-green-200 dark:border-green-800">
+                <p className="text-green-700 dark:text-green-300 font-medium">✨ Smart Choice!</p>
+                <p className="text-green-600 dark:text-green-400">
+                  Using ₹{creditsToUse.toFixed(2)} credits now saves you money immediately
+                </p>
+              </div>
+            ) : (
+              <div className="bg-blue-100 dark:bg-blue-900/20 p-2 rounded border border-blue-200 dark:border-blue-800">
+                <p className="text-blue-700 dark:text-blue-300 font-medium">💎 Accumulate & Save More!</p>
+                <p className="text-blue-600 dark:text-blue-400">
+                  Keep your ₹{totalCredits.toFixed(2)} + earn ₹{cashbackEarned.toFixed(2)} more = ₹{(totalCredits + cashbackEarned).toFixed(2)} for bigger savings!
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Savings Breakdown */}
