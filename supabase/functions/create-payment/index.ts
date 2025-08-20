@@ -90,6 +90,14 @@ serve(async (req) => {
 
     console.log("Amounts:", { originalAmount, finalAmount, feeAmount, totalAmount, feeMode: merchant.psp_fee_mode });
 
+    // Check Stripe minimum payment amount (5000 paisa = ₹50)
+    // Stripe requires minimum 50 cents in USD, which is approximately ₹50 in INR
+    const STRIPE_MIN_AMOUNT_INR = 5000; // ₹50 in paisa
+    
+    if (totalAmount < STRIPE_MIN_AMOUNT_INR) {
+      throw new Error(`Payment amount ₹${(totalAmount / 100).toFixed(2)} is below Stripe's minimum requirement of ₹50. Please reduce credits used or increase bill amount.`);
+    }
+
     // Create pending transaction first
     const { data: pendingTransaction, error: transactionError } = await supabaseServiceClient
       .from('pending_transactions')
