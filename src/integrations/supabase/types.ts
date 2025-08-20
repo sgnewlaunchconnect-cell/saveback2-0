@@ -115,6 +115,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           merchant_id: string
+          redemptions: number | null
           reward_mode: Database["public"]["Enums"]["reward_mode"] | null
           start_at: string | null
           stock: number | null
@@ -132,6 +133,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           merchant_id: string
+          redemptions?: number | null
           reward_mode?: Database["public"]["Enums"]["reward_mode"] | null
           start_at?: string | null
           stock?: number | null
@@ -149,6 +151,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           merchant_id?: string
+          redemptions?: number | null
           reward_mode?: Database["public"]["Enums"]["reward_mode"] | null
           start_at?: string | null
           stock?: number | null
@@ -976,6 +979,16 @@ export type Database = {
       generate_payment_code: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_deal_stats: {
+        Args: { deal_id_param: string }
+        Returns: {
+          grabbed_today: number
+          redeemed_today: number
+          remaining_stock: number
+          total_grabbed: number
+          total_redeemed: number
+        }[]
       }
       get_user_role: {
         Args: { _user_id: string }
