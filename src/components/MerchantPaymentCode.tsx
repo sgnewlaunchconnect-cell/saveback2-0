@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Copy, CheckCircle, CreditCard, Gift, Clock, QrCode } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeSVG as QRCode } from 'qrcode.react';
 
 interface MerchantPaymentCodeProps {
   paymentResult: {
@@ -78,7 +78,7 @@ export default function MerchantPaymentCode({
             
             {!isExpired && (
               <div className="bg-white p-4 rounded-lg inline-block mb-3">
-                <QRCodeSVG 
+                <QRCode 
                   value={`${window.location.origin}/hawker/validate?mode=payment&code=${paymentResult.paymentCode}`}
                   size={160}
                   level="M"
