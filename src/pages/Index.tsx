@@ -107,12 +107,28 @@ const Index = () => {
 
   // Get direct discount deals (only discount, no cashback)
   const directDiscountDeals = filteredDeals
-    .filter(deal => (deal.discount_pct || 0) > 0 && (deal.cashback_pct || 0) === 0)
+    .filter(deal => {
+      const hasDiscount = (deal.discount_pct || 0) > 0;
+      const hasCashback = (deal.cashback_pct || 0) > 0;
+      console.log('Deal filtering:', { 
+        title: deal.title, 
+        discount_pct: deal.discount_pct, 
+        cashback_pct: deal.cashback_pct,
+        hasDiscount,
+        hasCashback,
+        qualifiesForDirectDiscount: hasDiscount && !hasCashback
+      });
+      return hasDiscount && !hasCashback;
+    })
     .slice(0, 6);
 
   // Get credit reward deals (only cashback, no discount)
   const creditRewardDeals = filteredDeals
-    .filter(deal => (deal.cashback_pct || 0) > 0 && (deal.discount_pct || 0) === 0)
+    .filter(deal => {
+      const hasDiscount = (deal.discount_pct || 0) > 0;
+      const hasCashback = (deal.cashback_pct || 0) > 0;
+      return hasCashback && !hasDiscount;
+    })
     .slice(0, 6);
 
   // Get in-app payment deals
