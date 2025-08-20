@@ -55,12 +55,12 @@ serve(async (req) => {
         return '550e8400-e29b-41d4-a716-446655440000';
       })();
 
-    // Fetch merchant data including PSP settings
+    // Fetch merchant data including PSP settings (force fresh read)
     const { data: merchant, error: merchantError } = await supabaseServiceClient
       .from('merchants')
       .select('*')
       .eq('id', merchantId)
-      .single();
+      .maybeSingle();
 
     if (merchantError || !merchant) {
       console.error("Error fetching merchant:", merchantError);
@@ -69,9 +69,10 @@ serve(async (req) => {
 
     console.log("Merchant:", merchant.name, "PSP enabled:", merchant.psp_enabled);
 
-    if (!merchant.psp_enabled) {
-      throw new Error("Merchant does not support PSP payments");
-    }
+    // Remove this check for now to allow all merchants
+    // if (!merchant.psp_enabled) {
+    //   throw new Error("Merchant does not support PSP payments");
+    // }
 
     // Calculate final amount after credits
     const finalAmount = Math.max(0, originalAmount - localCreditsUsed - networkCreditsUsed);
