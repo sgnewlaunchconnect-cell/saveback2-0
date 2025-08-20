@@ -10,6 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import PaymentFlow from "@/components/PaymentFlow";
 import PaymentSuccess from "@/components/PaymentSuccess";
+import QuickPaymentFlow from "@/components/QuickPaymentFlow";
+import MerchantPaymentCode from "@/components/MerchantPaymentCode";
 import { getUserId } from "@/utils/userIdManager";
 
 interface GrabData {
@@ -43,6 +45,7 @@ export default function GrabPassPage() {
   const [loading, setLoading] = useState(true);
   const [showPayment, setShowPayment] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showQuickCode, setShowQuickCode] = useState(false);
   const [paymentData, setPaymentData] = useState<any>(null);
   const [timeLeft, setTimeLeft] = useState(0);
 
@@ -238,7 +241,8 @@ export default function GrabPassPage() {
     );
   }
 
-  if (showPayment) {
+  // Show Quick Payment Flow instead of complex payment flow
+  if (showPayment && !showQuickCode) {
     return (
       <div className="min-h-screen bg-background p-4">
         <div className="max-w-md mx-auto">
@@ -246,23 +250,37 @@ export default function GrabPassPage() {
             <Button 
               variant="outline" 
               onClick={() => setShowPayment(false)}
-              className="mb-4"
             >
               ← Back to Grab Pass
             </Button>
           </div>
           
-          <PaymentFlow
-            billAmount={100}
+          <QuickPaymentFlow
+            grabData={grabData}
             localCredits={850}    // Demo credits
             networkCredits={725}
-            merchantName={grabData?.deals?.merchants?.name}
-            merchantId={grabData?.merchant_id}
-            dealId={grabData?.deal_id}
-            allowBillInput={true}  // Allow user to enter purchase amount
-            directDiscount={grabData?.deals?.discount_pct || 0}
-            cashbackPercentage={grabData?.deals?.cashback_pct || 0}
-            onPaymentComplete={handlePaymentComplete}
+            onComplete={(result) => {
+              setPaymentData(result);
+              setShowQuickCode(true);
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Show merchant payment code after quick payment
+  if (showQuickCode && paymentData) {
+    return (
+      <div className="min-h-screen bg-background p-4">
+        <div className="max-w-md mx-auto">
+          <MerchantPaymentCode
+            paymentResult={paymentData}
+            onBack={() => {
+              setShowQuickCode(false);
+              setShowPayment(false);
+              setPaymentData(null);
+            }}
           />
         </div>
       </div>
@@ -404,14 +422,14 @@ export default function GrabPassPage() {
                   </Button>
                 )}
                 
-                {/* Log Purchase (Earn Cashback) - Always show */}
+                {/* Smart Payment - Make credit usage more prominent */}
                 <Button 
                   onClick={handleUseCreditsAndPay} 
-                  variant="outline" 
+                  variant="default" 
                   className="w-full" 
                   size="sm"
                 >
-                  Log Purchase (Earn Cashback)
+                  💳 Smart Payment (Use Credits + Earn Cashback)
                 </Button>
               </>
             )}
@@ -441,11 +459,11 @@ export default function GrabPassPage() {
             <div className="bg-muted p-4 rounded-lg">
               <h4 className="font-medium text-sm mb-2">Choose Your Redemption:</h4>
               <ol className="text-xs text-muted-foreground space-y-1">
-                <li>• <strong>Redeem with PIN:</strong> Quick discount only, no cashback earned</li>
-                <li>• <strong>Log Purchase (Earn Cashback):</strong> Credits optional, earn full rewards</li>
+                <li>• <strong>Redeem with PIN:</strong> Quick discount only, no cashback</li>
+                <li>• <strong>Smart Payment:</strong> Apply credits, pay remainder, earn cashback</li>
               </ol>
               <p className="text-xs text-blue-600 mt-2">
-                💡 <strong>Tip:</strong> Want cashback? Use "Log Purchase" — credits are optional!
+                💡 <strong>Best choice:</strong> Smart Payment maximizes your savings and rewards!
               </p>
             </div>
           )}
