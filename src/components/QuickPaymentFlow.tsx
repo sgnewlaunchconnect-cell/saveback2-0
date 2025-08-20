@@ -38,6 +38,10 @@ export default function QuickPaymentFlow({
   const creditsToUse = useCredits ? Math.min(Math.floor(amountAfterDiscount * 100), Math.floor(totalCredits * 100)) / 100 : 0;
   const finalAmount = Math.max(0, amountAfterDiscount - creditsToUse);
   const totalSavings = directDiscount + creditsToUse;
+  
+  // Calculate cashback earnings
+  const cashbackPct = grabData?.deals?.cashback_pct || 0;
+  const cashbackEarned = (finalAmount * cashbackPct) / 100;
 
   const generateQRCode = async () => {
     if (!billAmount || amount <= 0) {
@@ -221,6 +225,19 @@ export default function QuickPaymentFlow({
           </div>
         )}
 
+        {/* Cashback Earnings Motivation */}
+        {cashbackEarned > 0 && (
+          <div className="text-center bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+            <div className="flex items-center justify-center gap-2 text-blue-700 dark:text-blue-300 mb-1">
+              <Zap className="w-4 h-4" />
+              <span className="font-medium">You'll Earn Back: ₹{cashbackEarned.toFixed(2)}</span>
+            </div>
+            <p className="text-xs text-blue-600 dark:text-blue-400">
+              {cashbackPct}% cashback for your next purchase! 💰
+            </p>
+          </div>
+        )}
+
         {/* Generate QR Button */}
         <Button 
           onClick={generateQRCode}
@@ -251,6 +268,11 @@ export default function QuickPaymentFlow({
             <li>2. Choose to use credits (optional)</li>
             <li>3. Show the generated code to cashier</li>
             <li>4. {finalAmount === 0 ? "Enjoy your free purchase!" : "Pay cashier the remaining amount"}</li>
+            {cashbackEarned > 0 && (
+              <li className="font-medium text-purple-700 dark:text-purple-300">
+                5. Earn ₹{cashbackEarned.toFixed(2)} credits for next time! 🎁
+              </li>
+            )}
           </ol>
         </div>
       </CardContent>
