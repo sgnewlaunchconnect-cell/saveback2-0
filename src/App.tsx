@@ -45,6 +45,7 @@ const App = () => (
           <Route path="/profile" element={<Profile />} />
           <Route path="/wallet" element={<WalletPage />} />
           <Route path="/pay" element={<PayAtMerchant />} />
+          <Route path="/pay-at-merchant" element={<PayAtMerchant />} />
           <Route path="/hawker/validate" element={<HawkerValidation />} />
           <Route path="/customer/validate" element={<CustomerValidation />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
