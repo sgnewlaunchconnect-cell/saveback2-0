@@ -22,6 +22,7 @@ interface MerchantInfo {
   phone?: string;
   logo_url?: string;
   cover_url?: string;
+  allow_pin_fallback?: boolean;
 }
 
 interface MerchantSettingsProps {
@@ -43,6 +44,7 @@ export default function MerchantSettings({ merchantInfo, onUpdate }: MerchantSet
     phone: merchantInfo.phone || '',
     logo_url: merchantInfo.logo_url || '',
     cover_url: merchantInfo.cover_url || '',
+    allow_pin_fallback: merchantInfo.allow_pin_fallback || false,
   });
   const [saving, setSaving] = useState(false);
 
@@ -65,6 +67,7 @@ export default function MerchantSettings({ merchantInfo, onUpdate }: MerchantSet
           phone: formData.phone,
           logo_url: formData.logo_url,
           cover_url: formData.cover_url,
+          allow_pin_fallback: formData.allow_pin_fallback,
         })
         .eq('id', merchantInfo.id)
         .select()
@@ -233,6 +236,20 @@ export default function MerchantSettings({ merchantInfo, onUpdate }: MerchantSet
                   value={formData.default_discount_pct}
                   onChange={(e) => updateField('default_discount_pct', parseFloat(e.target.value))}
                 />
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="allow_pin_fallback"
+                checked={formData.allow_pin_fallback}
+                onCheckedChange={(checked) => updateField('allow_pin_fallback', checked)}
+              />
+              <div>
+                <Label htmlFor="allow_pin_fallback">Allow PIN Fallback</Label>
+                <p className="text-xs text-muted-foreground">
+                  Enable deal PIN entry as backup when QR scanning isn't available (disabled by default)
+                </p>
               </div>
             </div>
           </CardContent>

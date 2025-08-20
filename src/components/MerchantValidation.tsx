@@ -101,6 +101,25 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
           }
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'merchant_notifications',
+          filter: `merchant_id=eq.${merchantId}`
+        },
+        (payload) => {
+          const notification = payload.new;
+          if (notification.type === 'PAYMENT_VALIDATED') {
+            const data = notification.payload;
+            toast({
+              title: "💰 Payment Received",
+              description: `₹${data.amount?.toFixed(2)} payment validated successfully`,
+            });
+          }
+        }
+      )
       .subscribe();
   };
 
@@ -423,7 +442,7 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
                   className="flex-1"
                 >
                   <QrCode className="w-4 h-4 mr-1" />
-                  QR Deal
+                  Deal PIN (Fallback)
                 </Button>
               </div>
 

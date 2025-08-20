@@ -492,6 +492,7 @@ export type Database = {
       merchants: {
         Row: {
           address: string | null
+          allow_pin_fallback: boolean | null
           category: Database["public"]["Enums"]["merchant_category"] | null
           cover_url: string | null
           created_at: string
@@ -521,6 +522,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          allow_pin_fallback?: boolean | null
           category?: Database["public"]["Enums"]["merchant_category"] | null
           cover_url?: string | null
           created_at?: string
@@ -552,6 +554,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          allow_pin_fallback?: boolean | null
           category?: Database["public"]["Enums"]["merchant_category"] | null
           cover_url?: string | null
           created_at?: string
@@ -591,6 +594,7 @@ export type Database = {
           discount_applied: number | null
           expires_at: string
           final_amount: number
+          grab_id: string | null
           id: string
           local_credits_used: number | null
           merchant_id: string
@@ -608,6 +612,7 @@ export type Database = {
           discount_applied?: number | null
           expires_at?: string
           final_amount: number
+          grab_id?: string | null
           id?: string
           local_credits_used?: number | null
           merchant_id: string
@@ -625,6 +630,7 @@ export type Database = {
           discount_applied?: number | null
           expires_at?: string
           final_amount?: number
+          grab_id?: string | null
           id?: string
           local_credits_used?: number | null
           merchant_id?: string
@@ -635,7 +641,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pending_transactions_grab_id_fkey"
+            columns: ["grab_id"]
+            isOneToOne: false
+            referencedRelation: "grabs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       products: {
         Row: {

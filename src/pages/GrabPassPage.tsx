@@ -94,11 +94,10 @@ export default function GrabPassPage() {
   };
 
   const handleRedeemWithPIN = () => {
-    // Fast path: just show instructions, no payment flow needed
-    // This path doesn't log purchase amounts or apply credits
+    // Hidden function - PIN not displayed to users
     toast({
-      title: "Redeem with PIN",
-      description: `Show PIN ${grabData?.pin} to the merchant for instant discount`,
+      title: "Contact Support",
+      description: "For assistance with redemption, please contact merchant support.",
     });
   };
 
@@ -238,15 +237,15 @@ export default function GrabPassPage() {
             </CardContent>
           </Card>
 
-          {/* PIN Display */}
+          {/* Reservation Status */}
           <Card>
             <CardContent className="p-6 text-center">
-              <p className="text-sm text-muted-foreground mb-2">Backup Code</p>
-              <div className="text-4xl font-mono font-bold tracking-wider mb-2 text-primary">
-                {grabData.pin}
+              <p className="text-sm text-muted-foreground mb-2">Reservation Status</p>
+              <div className="text-2xl font-semibold mb-2 text-primary">
+                Reserved ✓
               </div>
               <p className="text-xs text-muted-foreground">
-                Use this only if the merchant can't scan your code
+                Deal reserved until expiry. Use payment code to redeem.
               </p>
             </CardContent>
           </Card>
@@ -274,58 +273,19 @@ export default function GrabPassPage() {
           <div className="space-y-2">
             {!isUsed && !isExpired && (
               <>
-                {/* Redeem with PIN - Always show, with warning for cashback deals */}
-                {!isDiscountOnlyDeal() ? (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button 
-                        variant="cta" 
-                        className="w-full" 
-                        size="sm"
-                      >
-                        Redeem with PIN
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center gap-2">
-                          <AlertTriangle className="w-5 h-5 text-orange-500" />
-                          Missing Cashback
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This deal offers {grabData?.deals?.cashback_pct}% cashback, but redeeming with PIN only applies the discount. No cashback will be earned.
-                          <br /><br />
-                          Choose "Get Payment Code" instead to earn full rewards.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleConfirmPINRedemption}>
-                          Continue with PIN
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                ) : (
-                  <Button 
-                    onClick={handleRedeemWithPIN} 
-                    variant="cta" 
-                    className="w-full" 
-                    size="sm"
-                  >
-                    Redeem with PIN
-                  </Button>
-                )}
-                
-                {/* Get Payment Code - Apply credits and pay cashier */}
+                {/* Primary action: Get Payment Code */}
                 <Button 
                   onClick={handleUseCreditsAndPay} 
-                  variant="default" 
+                  variant="cta" 
                   className="w-full" 
-                  size="sm"
+                  size="lg"
                 >
-                  💳 Get Payment Code (Use credits)
+                  💳 Get Payment Code
                 </Button>
+                
+                <div className="text-xs text-muted-foreground text-center">
+                  Enter amount → Get QR → Show to cashier → Done!
+                </div>
               </>
             )}
             
@@ -352,14 +312,13 @@ export default function GrabPassPage() {
           {/* Usage Instructions */}
           {!isUsed && !isExpired && (
             <div className="bg-muted p-4 rounded-lg">
-              <h4 className="font-medium text-sm mb-2">Choose Your Redemption:</h4>
+              <h4 className="font-medium text-sm mb-2">How to redeem:</h4>
               <ol className="text-xs text-muted-foreground space-y-1">
-                <li>• <strong>Redeem with PIN:</strong> Quick discount only, no cashback</li>
-                <li>• <strong>Get Payment Code:</strong> Apply credits, pay cashier, earn cashback</li>
+                <li>1. Tap "Get Payment Code"</li>
+                <li>2. Enter your bill amount</li>
+                <li>3. Show QR code to cashier</li>
+                <li>4. Pay the final amount & earn cashback!</li>
               </ol>
-              <p className="text-xs text-blue-600 mt-2">
-                💡 <strong>Best choice:</strong> Get Payment Code maximizes your savings and rewards!
-              </p>
             </div>
           )}
         </CardContent>

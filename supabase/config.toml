@@ -92,5 +92,8 @@ verify_jwt = false
 [functions.verify-payment]
 verify_jwt = false
 
+[functions.sendMerchantNotification]
+verify_jwt = false
+
 [analytics]
 enabled = false

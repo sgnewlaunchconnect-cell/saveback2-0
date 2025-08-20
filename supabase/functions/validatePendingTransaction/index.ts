@@ -201,25 +201,56 @@ serve(async (req) => {
         }
       }
 
-      // If this was from a grab, mark it as redeemed
-      if (transaction.deal_id) {
-        // Find grab by deal_id and user_id/anon_user_id
-        const grabFilter = transaction.user_id
-          ? { user_id: transaction.user_id, deal_id: transaction.deal_id }
-          : { anon_user_id: { neq: null }, deal_id: transaction.deal_id };
-
+      // Auto-consume linked grab if present
+      if (transaction.grab_id) {
         const { error: grabUpdateError } = await supabase
           .from('grabs')
           .update({ 
-            status: 'REDEEMED',
+            status: 'USED',
             used_at: new Date().toISOString()
           })
-          .match(grabFilter)
-          .eq('status', 'ACTIVE');
+          .eq('id', transaction.grab_id)
+          .eq('status', 'ACTIVE'); // Only update if still ACTIVE
 
         if (grabUpdateError) {
-          console.error('Failed to update grab status:', grabUpdateError);
+          console.error('Failed to auto-consume grab:', grabUpdateError);
+        } else {
+          console.log('Auto-consumed grab:', transaction.grab_id);
         }
+
+        // Award tier points if user is authenticated
+        if (transaction.user_id && transaction.user_id !== '550e8400-e29b-41d4-a716-446655440000') {
+          const { error: tierError } = await supabase.rpc('award_tier_points', {
+            p_user_id: transaction.user_id,
+            p_grab_id: transaction.grab_id,
+            p_merchant_id: transaction.merchant_id
+          });
+          
+          if (tierError) {
+            console.error('Failed to award tier points:', tierError);
+          }
+        }
+      }
+
+      // Send merchant notification
+      try {
+        await supabase.functions.invoke('sendMerchantNotification', {
+          body: {
+            merchantId: transaction.merchant_id,
+            type: 'PAYMENT_VALIDATED',
+            payload: {
+              transactionId: transaction.id,
+              paymentCode: paymentCode,
+              amount: transaction.original_amount,
+              finalAmount: transaction.final_amount,
+              creditsEarned: totalCredits,
+              dealTitle: transaction.deals?.title
+            }
+          }
+        });
+      } catch (notificationError) {
+        console.error('Failed to send merchant notification:', notificationError);
+        // Don't fail the transaction for notification errors
       }
 
       console.log('Successfully validated transaction and released credits:', {

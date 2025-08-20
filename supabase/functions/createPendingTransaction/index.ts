@@ -64,14 +64,17 @@ serve(async (req) => {
       );
     }
 
-    // Get deal info if grabId or dealId provided
+    // Get deal info if grabId or dealId provided, and check for existing grab
     let cashbackPct = merchant.default_cashback_pct || 5; // Default 5% if merchant has no default
     let dealInfo = null;
+    let linkedGrabId = grabId;
 
     if (grabId) {
       const { data: grab, error: grabError } = await supabase
         .from('grabs')
         .select(`
+          id,
+          status,
           deals (
             id,
             title,
@@ -85,6 +88,8 @@ serve(async (req) => {
       if (!grabError && grab?.deals) {
         dealInfo = grab.deals;
         cashbackPct = grab.deals.cashback_pct || cashbackPct;
+        // Only link if grab is still ACTIVE
+        linkedGrabId = grab.status === 'ACTIVE' ? grab.id : null;
       }
     } else if (dealId) {
       const { data: deal, error: dealError } = await supabase
@@ -96,6 +101,19 @@ serve(async (req) => {
       if (!dealError && deal) {
         dealInfo = deal;
         cashbackPct = deal.cashback_pct || cashbackPct;
+        
+        // Check if user has an existing ACTIVE grab for this deal
+        if (userId) {
+          const { data: existingGrab } = await supabase
+            .from('grabs')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('deal_id', dealId)
+            .eq('status', 'ACTIVE')
+            .maybeSingle();
+          
+          linkedGrabId = existingGrab?.id || null;
+        }
       }
     }
 
@@ -114,6 +132,7 @@ serve(async (req) => {
         local_credits_used: localCreditsUsed,
         network_credits_used: networkCreditsUsed,
         deal_id: dealId || (dealInfo?.id),
+        grab_id: linkedGrabId,
         status: 'pending',
         expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString() // 5 minutes from now
       })
