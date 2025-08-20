@@ -4,17 +4,19 @@ import { CreditCard, Pin } from 'lucide-react';
 
 interface PaymentMethodBadgeProps {
   payoutMethod?: string;
+  pspEnabled?: boolean;
   hasCashback?: boolean;
   className?: string;
 }
 
 export const PaymentMethodBadge: React.FC<PaymentMethodBadgeProps> = ({ 
   payoutMethod, 
+  pspEnabled = false,
   hasCashback = false,
   className = ""
 }) => {
   // Determine if it supports in-app payment (PSP)
-  const supportsInAppPayment = payoutMethod !== 'manual';
+  const supportsInAppPayment = pspEnabled || payoutMethod !== 'manual';
 
   if (supportsInAppPayment) {
     return (

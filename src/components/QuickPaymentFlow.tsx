@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { QrCode, CreditCard, Gift, Zap } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { QrCode, CreditCard, Gift, Zap, Smartphone, DollarSign } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { getUserId } from '@/utils/userIdManager';
@@ -15,6 +16,7 @@ interface QuickPaymentFlowProps {
   grabData: any;
   localCredits: number;
   networkCredits: number;
+  merchantData?: any;
   onComplete: (result: any) => void;
 }
 
@@ -22,6 +24,7 @@ export default function QuickPaymentFlow({
   grabData,
   localCredits,
   networkCredits,
+  merchantData,
   onComplete
 }: QuickPaymentFlowProps) {
   const { toast } = useToast();
@@ -29,6 +32,7 @@ export default function QuickPaymentFlow({
   const [useCredits, setUseCredits] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentResult, setPaymentResult] = useState<any>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'psp' | 'code'>('psp');
 
   const totalCredits = localCredits + networkCredits;
   const amount = parseFloat(billAmount) || 0;
@@ -39,11 +43,24 @@ export default function QuickPaymentFlow({
   const finalAmount = Math.max(0, amountAfterDiscount - creditsToUse);
   const totalSavings = directDiscount + creditsToUse;
   
+  // Calculate PSP fees if applicable
+  const isPspEnabled = merchantData?.psp_enabled || false;
+  const feeFixed = merchantData?.psp_fee_fixed_cents || 30;
+  const feePct = merchantData?.psp_fee_pct || 2.9;
+  const feeAmount = paymentMethod === 'psp' ? Math.round(feeFixed + (finalAmount * feePct / 100)) / 100 : 0;
+  const feeMode = merchantData?.psp_fee_mode || 'pass';
+  
+  // Adjust final amount based on fee mode for PSP
+  let finalAmountWithFees = finalAmount;
+  if (paymentMethod === 'psp' && feeMode === 'pass') {
+    finalAmountWithFees = finalAmount + feeAmount;
+  }
+  
   // Calculate cashback earnings
   const cashbackPct = grabData?.deals?.cashback_pct || 0;
   const cashbackEarned = (finalAmount * cashbackPct) / 100;
 
-  const generateQRCode = async () => {
+  const handlePayment = async () => {
     if (!billAmount || amount <= 0) {
       toast({
         title: "Enter Bill Amount",
@@ -62,48 +79,81 @@ export default function QuickPaymentFlow({
       const localCreditsUsed = Math.floor(Math.min(creditsToUse * 100, localCredits * 100));
       const networkCreditsUsed = Math.floor(creditsToUse * 100) - localCreditsUsed;
       
-      // Create pending transaction via edge function
-      const { data, error } = await supabase.functions.invoke('createPendingTransaction', {
-        body: {
-          merchantId: grabData?.merchant_id,
-          originalAmount: amount,
-          grabId: grabData?.id,
-          dealId: grabData?.deal_id,
-          anonymousUserId,
-          localCreditsUsed,
-          networkCreditsUsed
-        }
-      });
+      if (paymentMethod === 'psp') {
+        // PSP payment flow
+        const { data, error } = await supabase.functions.invoke('create-payment', {
+          body: {
+            merchantId: grabData?.merchant_id || merchantData?.id,
+            originalAmount: amount,
+            grabId: grabData?.id,
+            dealId: grabData?.deal_id,
+            anonymousUserId,
+            localCreditsUsed,
+            networkCreditsUsed
+          }
+        });
 
-      if (error) throw error;
-      
-      const result = {
-        billAmount: amount,
-        directDiscount,
-        creditsUsed: creditsToUse,
-        finalAmount,
-        totalSavings,
-        paymentCode: data.paymentCode,
-        expiresAt: data.expiresAt,
-        merchantName: data.merchantName,
-        dealTitle: grabData?.deals?.title,
-        hasCreditsApplied: creditsToUse > 0,
-        isFullyCovered: finalAmount === 0
-      };
-      
-      setPaymentResult(result);
-      onComplete(result);
-      
-      toast({
-        title: "Payment Code Generated!",
-        description: "Show this code to the cashier for validation"
-      });
+        if (error) throw error;
+        
+        // Open Stripe checkout in new tab
+        window.open(data.url, '_blank');
+        
+        toast({
+          title: "Redirecting to Payment",
+          description: "Complete your payment in the new tab"
+        });
+        
+        onComplete({
+          paymentMethod: 'psp',
+          sessionId: data.sessionId,
+          pendingTransactionId: data.pendingTransactionId
+        });
+        
+      } else {
+        // Payment code flow
+        const { data, error } = await supabase.functions.invoke('createPendingTransaction', {
+          body: {
+            merchantId: grabData?.merchant_id || merchantData?.id,
+            originalAmount: amount,
+            grabId: grabData?.id,
+            dealId: grabData?.deal_id,
+            anonymousUserId,
+            localCreditsUsed,
+            networkCreditsUsed
+          }
+        });
+
+        if (error) throw error;
+        
+        const result = {
+          billAmount: amount,
+          directDiscount,
+          creditsUsed: creditsToUse,
+          finalAmount,
+          totalSavings,
+          paymentCode: data.paymentCode,
+          expiresAt: data.expiresAt,
+          merchantName: data.merchantName,
+          dealTitle: grabData?.deals?.title,
+          hasCreditsApplied: creditsToUse > 0,
+          isFullyCovered: finalAmount === 0,
+          paymentMethod: 'code'
+        };
+        
+        setPaymentResult(result);
+        onComplete(result);
+        
+        toast({
+          title: "Payment Code Generated!",
+          description: "Show this code to the cashier for validation"
+        });
+      }
       
     } catch (error) {
-      console.error('Error creating transaction:', error);
+      console.error('Error processing payment:', error);
       toast({
         title: "Error",
-        description: "Failed to generate payment code",
+        description: paymentMethod === 'psp' ? "Failed to create payment session" : "Failed to generate payment code",
         variant: "destructive"
       });
     } finally {
@@ -116,7 +166,7 @@ export default function QuickPaymentFlow({
   };
 
   // Show payment code inline after generation
-  if (paymentResult) {
+  if (paymentResult && paymentResult.paymentMethod === 'code') {
     return (
       <MerchantPaymentCode
         paymentResult={paymentResult}
@@ -129,11 +179,27 @@ export default function QuickPaymentFlow({
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <QrCode className="h-5 w-5" />
-          Get Payment Code
+          <CreditCard className="h-5 w-5" />
+          Choose Payment Method
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        
+        {/* Payment Method Selection */}
+        {isPspEnabled && (
+          <Tabs value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as 'psp' | 'code')}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="psp" className="flex items-center gap-2">
+                <Smartphone className="h-4 w-4" />
+                Pay In-App
+              </TabsTrigger>
+              <TabsTrigger value="code" className="flex items-center gap-2">
+                <QrCode className="h-4 w-4" />
+                Payment Code
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        )}
         {/* Deal Info */}
         <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
           <h3 className="font-medium text-blue-800 dark:text-blue-200 text-sm">
@@ -212,7 +278,11 @@ export default function QuickPaymentFlow({
         {/* Savings Breakdown */}
         {amount > 0 && (
           <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-            <h4 className="text-sm font-medium">Your Savings</h4>
+            <h4 className="text-sm font-medium">Payment Summary</h4>
+            <div className="flex justify-between text-sm">
+              <span>Bill Amount:</span>
+              <span>₹{amount.toFixed(2)}</span>
+            </div>
             {directDiscount > 0 && (
               <div className="flex justify-between text-sm">
                 <span>Deal Discount:</span>
@@ -225,10 +295,16 @@ export default function QuickPaymentFlow({
                 <span className="text-green-600">-₹{creditsToUse.toFixed(2)}</span>
               </div>
             )}
+            {paymentMethod === 'psp' && feeAmount > 0 && feeMode === 'pass' && (
+              <div className="flex justify-between text-sm">
+                <span>Payment Fee:</span>
+                <span className="text-orange-600">+₹{feeAmount.toFixed(2)}</span>
+              </div>
+            )}
             <div className="flex justify-between text-sm font-medium border-t pt-2">
               <span>You Pay:</span>
-              <span className={finalAmount === 0 ? "text-green-600" : ""}>
-                {finalAmount === 0 ? "FREE!" : `₹${finalAmount.toFixed(2)}`}
+              <span className={finalAmountWithFees === 0 ? "text-green-600" : ""}>
+                {finalAmountWithFees === 0 ? "FREE!" : `₹${finalAmountWithFees.toFixed(2)}`}
               </span>
             </div>
           </div>
@@ -259,25 +335,39 @@ export default function QuickPaymentFlow({
           </div>
         )}
 
-        {/* Generate QR Button */}
+        {/* Payment Action Button */}
         <Button 
-          onClick={generateQRCode}
+          onClick={handlePayment}
           disabled={isProcessing || !billAmount || amount <= 0}
           className="w-full"
           size="lg"
         >
           {isProcessing ? (
-            "Generating..."
-          ) : finalAmount === 0 ? (
-            <>
-              <QrCode className="w-4 h-4 mr-2" />
-              Get FREE Purchase Code
-            </>
+            "Processing..."
+          ) : paymentMethod === 'psp' ? (
+            finalAmountWithFees === 0 ? (
+              <>
+                <Smartphone className="w-4 h-4 mr-2" />
+                Confirm FREE Purchase
+              </>
+            ) : (
+              <>
+                <Smartphone className="w-4 h-4 mr-2" />
+                Pay ₹{finalAmountWithFees.toFixed(2)} Now
+              </>
+            )
           ) : (
-            <>
-              <QrCode className="w-4 h-4 mr-2" />
-              Get Payment Code
-            </>
+            finalAmount === 0 ? (
+              <>
+                <QrCode className="w-4 h-4 mr-2" />
+                Get FREE Purchase Code
+              </>
+            ) : (
+              <>
+                <QrCode className="w-4 h-4 mr-2" />
+                Get Payment Code
+              </>
+            )
           )}
         </Button>
 
@@ -287,14 +377,30 @@ export default function QuickPaymentFlow({
           <ol className="space-y-1">
             <li>1. Enter your purchase amount above</li>
             <li>2. Choose to use credits (optional)</li>
-            <li>3. Show the generated code to cashier</li>
-            <li>4. {finalAmount === 0 ? "Enjoy your free purchase!" : "Pay cashier the remaining amount"}</li>
+            {paymentMethod === 'psp' ? (
+              <>
+                <li>3. Complete payment securely via Stripe</li>
+                <li>4. Credits and cashback applied automatically</li>
+                <li>5. No merchant validation needed!</li>
+              </>
+            ) : (
+              <>
+                <li>3. Show the generated code to cashier</li>
+                <li>4. {finalAmount === 0 ? "Enjoy your free purchase!" : "Pay cashier the remaining amount"}</li>
+              </>
+            )}
             {cashbackEarned > 0 && (
               <li className="font-medium text-purple-700 dark:text-purple-300">
-                5. Earn ₹{cashbackEarned.toFixed(2)} credits for next time! 🎁
+                {paymentMethod === 'psp' ? '6' : '5'}. Earn ₹{cashbackEarned.toFixed(2)} credits for next time! 🎁
               </li>
             )}
           </ol>
+          
+          {paymentMethod === 'psp' && feeAmount > 0 && feeMode === 'pass' && (
+            <p className="mt-2 text-orange-600 dark:text-orange-400 font-medium">
+              Note: ₹{feeAmount.toFixed(2)} payment processing fee included
+            </p>
+          )}
         </div>
       </CardContent>
     </Card>

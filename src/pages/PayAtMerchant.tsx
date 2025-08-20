@@ -13,6 +13,7 @@ export default function PayAtMerchant() {
   const grabId = searchParams.get("grabId");
   
   const [grabData, setGrabData] = useState<any>(null);
+  const [merchantData, setMerchantData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -35,6 +36,19 @@ export default function PayAtMerchant() {
       if (error) throw error;
 
       setGrabData(data.data);
+      
+      // Fetch merchant data for PSP capabilities
+      if (data.data?.merchant_id) {
+        const { data: merchant, error: merchantError } = await supabase
+          .from('merchants')
+          .select('*')
+          .eq('id', data.data.merchant_id)
+          .single();
+          
+        if (!merchantError && merchant) {
+          setMerchantData(merchant);
+        }
+      }
     } catch (error) {
       console.error('Error fetching grab data:', error);
       toast({
@@ -98,6 +112,7 @@ export default function PayAtMerchant() {
         
         <QuickPaymentFlow
           grabData={grabData}
+          merchantData={merchantData}
           localCredits={850}    // Demo credits
           networkCredits={725}
           onComplete={handlePaymentComplete}
