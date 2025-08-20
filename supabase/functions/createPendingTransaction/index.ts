@@ -121,7 +121,10 @@ serve(async (req) => {
     const totalCreditsUsed = localCreditsUsed + networkCreditsUsed;
     const finalAmount = Math.max(0, originalAmount - totalCreditsUsed);
 
-    // Create pending transaction - the set_payment_code trigger will generate the 6-digit code
+    // Generate dummy 6-digit PIN code
+    const dummyPin = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Create pending transaction with dummy PIN and 3-minute expiration
     const { data: transaction, error: transactionError } = await supabase
       .from('pending_transactions')
       .insert({
@@ -134,7 +137,8 @@ serve(async (req) => {
         deal_id: dealId || (dealInfo?.id),
         grab_id: linkedGrabId,
         status: 'pending',
-        expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString() // 5 minutes from now
+        payment_code: dummyPin,
+        expires_at: new Date(Date.now() + 3 * 60 * 1000).toISOString() // 3 minutes from now
       })
       .select('id, payment_code, expires_at')
       .maybeSingle();
