@@ -174,19 +174,14 @@ serve(async (req) => {
       });
     }
 
-    // Increment redemptions count for the deal
-    if (dealData) {
-      const { error: redemptionError } = await supabaseClient
-        .from('deals')
-        .update({
-          redemptions: (dealData.redemptions || 0) + 1
-        })
-        .eq('id', grab.deal_id);
+    // Increment redemptions count atomically
+    const { error: redemptionError } = await supabaseClient.rpc('increment_deal_redemptions', {
+      deal_id_param: grab.deal_id
+    });
 
-      if (redemptionError) {
-        console.error('Error updating deal redemptions:', redemptionError);
-        // Don't fail the operation for this error
-      }
+    if (redemptionError) {
+      console.error('Error updating deal redemptions:', redemptionError);
+      // Don't fail the operation for this error
     }
 
     console.log('Successfully marked grab as used:', grab.id);

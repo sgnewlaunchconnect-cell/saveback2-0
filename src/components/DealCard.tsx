@@ -151,7 +151,7 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
                   e.stopPropagation();
                   navigate(`/merchants/${deal.merchant_id}`);
                 }}
-                className="text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer text-left truncate"
+                className="text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer text-left truncate underline"
               >
                 {deal.merchants.name}
               </button>
@@ -203,12 +203,19 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
               </span>
             </div>
             <div className="flex items-center gap-3">
-              {/* Grab count for social proof */}
-              {deal.grabs > 0 && (
-                <div className="text-xs text-muted-foreground bg-primary/10 rounded-full px-2 py-1">
-                  {deal.grabs} grabbed
-                </div>
-              )}
+              {/* First N customers messaging and grab/redeem counts */}
+              <div className="text-xs text-muted-foreground">
+                {deal.stock && deal.stock <= 50 && (
+                  <span className="text-primary font-medium">
+                    First {deal.stock} customers enjoy {getTotalSavings()}%
+                  </span>
+                )}
+                {(deal.grabs > 0 || (deal.redemptions && deal.redemptions > 0)) && (
+                  <span className="ml-2">
+                    {deal.grabs || 0} grabbed • {deal.redemptions || 0} redeemed
+                  </span>
+                )}
+              </div>
               {/* Stock remaining */}
               {getRemainingStock() !== null && getRemainingStock() > 0 && getRemainingStock() <= 10 && (
                 <div className="text-xs text-orange-600 font-medium bg-orange-100 rounded-full px-2 py-1">

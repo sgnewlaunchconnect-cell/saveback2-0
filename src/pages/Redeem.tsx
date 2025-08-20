@@ -24,6 +24,7 @@ interface GrabData {
     discount_pct: number;
     cashback_pct: number;
     merchants: {
+      id: string;
       name: string;
       address: string;
     };
@@ -125,7 +126,15 @@ export default function Redeem() {
               </h3>
               <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
                 <MapPin className="h-3 w-3" />
-                {grab.deals.merchants.name}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/merchants/${grab.deals.merchants.id}`);
+                  }}
+                  className="text-muted-foreground hover:text-primary transition-colors cursor-pointer underline"
+                >
+                  {grab.deals.merchants.name}
+                </button>
               </div>
               <DealBadge 
                 discountPct={grab.deals.discount_pct}

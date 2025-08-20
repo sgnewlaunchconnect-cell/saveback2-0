@@ -127,6 +127,7 @@ serve(async (req) => {
           discount_pct: deal?.discount_pct || 0,
           cashback_pct: deal?.cashback_pct || 0,
           merchants: {
+            id: grab.merchant_id,
             name: merchant?.name || 'Unknown Merchant',
             address: merchant?.address || ''
           }
