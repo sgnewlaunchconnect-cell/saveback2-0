@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Copy, CheckCircle, CreditCard, Gift, Clock, QrCode } from 'lucide-react';
+import { CheckCircle, CreditCard, Gift, Clock, QrCode } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 
@@ -51,13 +51,6 @@ export default function MerchantPaymentCode({
   const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
   const isExpired = timeLeft === 0 && paymentResult.expiresAt;
 
-  const copyCode = () => {
-    navigator.clipboard.writeText(paymentResult.paymentCode);
-    toast({
-      title: "Code Copied!",
-      description: "Payment code copied to clipboard",
-    });
-  };
 
   return (
     <div className="space-y-4">
@@ -102,10 +95,9 @@ export default function MerchantPaymentCode({
               </div>
             )}
             
-            <Button variant="outline" size="sm" onClick={copyCode} disabled={!!isExpired}>
-              <Copy className="w-4 h-4 mr-2" />
-              Copy Code
-            </Button>
+            <div className="mt-2">
+              <p className="text-xs text-muted-foreground">Payment PIN Code</p>
+            </div>
           </div>
 
           {/* Payment Summary */}
