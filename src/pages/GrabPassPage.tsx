@@ -400,7 +400,7 @@ export default function GrabPassPage() {
                         <AlertDialogDescription>
                           This deal offers {grabData?.deals?.cashback_pct}% cashback, but redeeming with PIN only applies the discount. No cashback will be earned.
                           <br /><br />
-                          Choose "Log Purchase (Earn Cashback)" instead to earn full rewards.
+                          Choose "Get Payment Code" instead to earn full rewards.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -422,14 +422,14 @@ export default function GrabPassPage() {
                   </Button>
                 )}
                 
-                {/* Smart Payment - Make credit usage more prominent */}
+                {/* Get Payment Code - Apply credits and pay cashier */}
                 <Button 
                   onClick={handleUseCreditsAndPay} 
                   variant="default" 
                   className="w-full" 
                   size="sm"
                 >
-                  💳 Smart Payment (Credits + Cashback)
+                  💳 Get Payment Code (Use credits)
                 </Button>
               </>
             )}
@@ -460,10 +460,10 @@ export default function GrabPassPage() {
               <h4 className="font-medium text-sm mb-2">Choose Your Redemption:</h4>
               <ol className="text-xs text-muted-foreground space-y-1">
                 <li>• <strong>Redeem with PIN:</strong> Quick discount only, no cashback</li>
-                <li>• <strong>Smart Payment:</strong> Apply credits, pay remainder, earn cashback</li>
+                <li>• <strong>Get Payment Code:</strong> Apply credits, pay cashier, earn cashback</li>
               </ol>
               <p className="text-xs text-blue-600 mt-2">
-                💡 <strong>Best choice:</strong> Smart Payment maximizes your savings and rewards!
+                💡 <strong>Best choice:</strong> Get Payment Code maximizes your savings and rewards!
               </p>
             </div>
           )}

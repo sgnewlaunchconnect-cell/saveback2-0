@@ -77,9 +77,9 @@ export default function QuickPaymentFlow({
         creditsUsed: creditsToUse,
         finalAmount,
         totalSavings,
-        paymentCode: data.paymentCode,
-        expiresAt: data.expiresAt,
-        merchantName: grabData?.deals?.merchants?.name,
+        paymentCode: data.data.paymentCode,
+        expiresAt: data.data.expiresAt,
+        merchantName: data.data.merchantName,
         dealTitle: grabData?.deals?.title,
         hasCreditsApplied: creditsToUse > 0,
         isFullyCovered: finalAmount === 0
@@ -108,8 +108,8 @@ export default function QuickPaymentFlow({
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Zap className="h-5 w-5" />
-          Quick Payment
+          <QrCode className="h-5 w-5" />
+          Get Payment Code
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -221,7 +221,7 @@ export default function QuickPaymentFlow({
           ) : (
             <>
               <QrCode className="w-4 h-4 mr-2" />
-              Pay ₹{finalAmount.toFixed(2)} + Get Code
+              Get Payment Code
             </>
           )}
         </Button>
@@ -233,7 +233,7 @@ export default function QuickPaymentFlow({
             <li>1. Enter your purchase amount above</li>
             <li>2. Choose to use credits (optional)</li>
             <li>3. Show the generated code to cashier</li>
-            <li>4. {finalAmount === 0 ? "Enjoy your free purchase!" : "Pay the remaining amount"}</li>
+            <li>4. {finalAmount === 0 ? "Enjoy your free purchase!" : "Pay cashier the remaining amount"}</li>
           </ol>
         </div>
       </CardContent>
