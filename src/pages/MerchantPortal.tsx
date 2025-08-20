@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Store, BarChart3, Settings, ShieldCheck, Package } from "lucide-react";
+import { Plus, Store, BarChart3, Settings, ShieldCheck, Package, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import DealManagement from "@/components/DealManagement";
@@ -13,6 +13,7 @@ import MerchantAnalytics from "@/components/MerchantAnalytics";
 import MerchantSettings from "@/components/MerchantSettings";
 import ProductManagement from "@/components/ProductManagement";
 import ReelsManager from "@/components/ReelsManager";
+import GrabManagement from "@/components/GrabManagement";
 
 interface MerchantInfo {
   id: string;
@@ -107,10 +108,14 @@ export default function MerchantPortal() {
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="deals" className="flex items-center gap-2">
               <Store className="h-4 w-4" />
               Deals
+            </TabsTrigger>
+            <TabsTrigger value="grabs" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Grabs
             </TabsTrigger>
             <TabsTrigger value="listings" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
@@ -166,6 +171,10 @@ export default function MerchantPortal() {
 
           <TabsContent value="deals" className="space-y-4">
             <DealManagement merchantId={merchantId!} />
+          </TabsContent>
+
+          <TabsContent value="grabs" className="space-y-4">
+            <GrabManagement merchantId={merchantId!} />
           </TabsContent>
 
           <TabsContent value="validation" className="space-y-4">
