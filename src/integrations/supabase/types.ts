@@ -428,8 +428,14 @@ export type Database = {
           payout_account_info: Json | null
           payout_method: string | null
           phone: string | null
+          psp_enabled: boolean | null
+          psp_fee_fixed_cents: number | null
+          psp_fee_mode: string | null
+          psp_fee_pct: number | null
+          psp_provider: string | null
           qr_public_url: string | null
           static_qr_id: string | null
+          stripe_account_id: string | null
           whatsapp: string | null
         }
         Insert: {
@@ -453,8 +459,14 @@ export type Database = {
           payout_account_info?: Json | null
           payout_method?: string | null
           phone?: string | null
+          psp_enabled?: boolean | null
+          psp_fee_fixed_cents?: number | null
+          psp_fee_mode?: string | null
+          psp_fee_pct?: number | null
+          psp_provider?: string | null
           qr_public_url?: string | null
           static_qr_id?: string | null
+          stripe_account_id?: string | null
           whatsapp?: string | null
         }
         Update: {
@@ -478,8 +490,14 @@ export type Database = {
           payout_account_info?: Json | null
           payout_method?: string | null
           phone?: string | null
+          psp_enabled?: boolean | null
+          psp_fee_fixed_cents?: number | null
+          psp_fee_mode?: string | null
+          psp_fee_pct?: number | null
+          psp_provider?: string | null
           qr_public_url?: string | null
           static_qr_id?: string | null
+          stripe_account_id?: string | null
           whatsapp?: string | null
         }
         Relationships: []
