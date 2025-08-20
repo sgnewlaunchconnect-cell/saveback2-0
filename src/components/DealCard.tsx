@@ -152,6 +152,7 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
                   navigate(`/merchants/${deal.merchant_id}`);
                 }}
                 className="text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer text-left truncate underline"
+                style={{ cursor: 'pointer' }}
               >
                 {deal.merchants.name}
               </button>
@@ -247,7 +248,8 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
               onClick={handleGrabDeal}
               variant={isSoldOut() ? "secondary" : "cta"}
               size="sm"
-              className="flex-shrink-0"
+              className="flex-shrink-0 cursor-pointer"
+              style={{ cursor: 'pointer' }}
               disabled={isSoldOut()}
             >
               {isSoldOut() ? "Sold Out" : "Grab Deal"}

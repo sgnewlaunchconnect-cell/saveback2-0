@@ -47,6 +47,34 @@ const Index = () => {
 
   useEffect(() => {
     fetchDeals();
+    
+    // Set up real-time updates for deal grabs
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'deals'
+        },
+        (payload) => {
+          console.log('Deal updated:', payload);
+          // Update the specific deal in our state
+          setDeals(currentDeals => 
+            currentDeals.map(deal => 
+              deal.id === payload.new.id 
+                ? { ...deal, grabs: payload.new.grabs, redemptions: payload.new.redemptions }
+                : deal
+            )
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchDeals = async () => {

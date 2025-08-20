@@ -147,6 +147,7 @@ export default function Redeem() {
                     navigate(`/merchants/${grab.deals.merchants.id}`);
                   }}
                   className="text-muted-foreground hover:text-primary transition-colors cursor-pointer underline"
+                  style={{ cursor: 'pointer' }}
                 >
                   {grab.deals.merchants.name}
                 </button>
@@ -198,10 +199,10 @@ export default function Redeem() {
                 handleUseNow(grab.id, e);
               }}
               variant="cta"
-              className="w-full relative z-10 pointer-events-auto"
+              className="w-full relative z-10 pointer-events-auto cursor-pointer"
               size="sm"
               type="button"
-              style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10 }}
+              style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10, cursor: 'pointer' }}
             >
               {grab.deals.discount_pct > 0 && grab.deals.cashback_pct === 0 
                 ? "View Instructions" 
