@@ -32,7 +32,10 @@ export default function QuickPaymentFlow({
   const [useCredits, setUseCredits] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentResult, setPaymentResult] = useState<any>(null);
-  const [paymentMethod, setPaymentMethod] = useState<'psp' | 'code'>('psp');
+  
+  // Default to PSP if enabled, otherwise payment code
+  const isPspEnabled = merchantData?.psp_enabled || false;
+  const [paymentMethod, setPaymentMethod] = useState<'psp' | 'code'>(isPspEnabled ? 'psp' : 'code');
 
   const totalCredits = localCredits + networkCredits;
   const amount = parseFloat(billAmount) || 0;
@@ -44,15 +47,14 @@ export default function QuickPaymentFlow({
   const totalSavings = directDiscount + creditsToUse;
   
   // Calculate PSP fees if applicable
-  const isPspEnabled = merchantData?.psp_enabled || false;
   const feeFixed = merchantData?.psp_fee_fixed_cents || 30;
   const feePct = merchantData?.psp_fee_pct || 2.9;
-  const feeAmount = paymentMethod === 'psp' ? Math.round(feeFixed + (finalAmount * feePct / 100)) / 100 : 0;
+  const feeAmount = paymentMethod === 'psp' && isPspEnabled ? Math.round(feeFixed + (finalAmount * feePct / 100)) / 100 : 0;
   const feeMode = merchantData?.psp_fee_mode || 'pass';
   
   // Adjust final amount based on fee mode for PSP
   let finalAmountWithFees = finalAmount;
-  if (paymentMethod === 'psp' && feeMode === 'pass') {
+  if (paymentMethod === 'psp' && isPspEnabled && feeMode === 'pass') {
     finalAmountWithFees = finalAmount + feeAmount;
   }
   
