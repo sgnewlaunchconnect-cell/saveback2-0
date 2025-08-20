@@ -39,6 +39,7 @@ export default function PayAtMerchant() {
       
       // Fetch merchant data for PSP capabilities
       if (data.data?.merchant_id) {
+        console.log('Fetching merchant data for:', data.data.merchant_id);
         const { data: merchant, error: merchantError } = await supabase
           .from('merchants')
           .select('*')
@@ -46,7 +47,10 @@ export default function PayAtMerchant() {
           .single();
           
         if (!merchantError && merchant) {
+          console.log('Merchant PSP enabled:', merchant.psp_enabled);
           setMerchantData(merchant);
+        } else {
+          console.error('Error fetching merchant:', merchantError);
         }
       }
     } catch (error) {

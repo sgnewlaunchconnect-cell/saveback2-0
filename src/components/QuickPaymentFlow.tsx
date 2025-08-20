@@ -83,6 +83,19 @@ export default function QuickPaymentFlow({
       
       if (paymentMethod === 'psp') {
         // PSP payment flow
+        console.log('Attempting PSP payment for merchant:', grabData?.merchant_id || merchantData?.id);
+        console.log('Merchant PSP enabled:', isPspEnabled);
+        
+        if (!isPspEnabled) {
+          toast({
+            title: "PSP Not Available",
+            description: "This merchant doesn't support in-app payments. Please use payment code instead.",
+            variant: "destructive"
+          });
+          setPaymentMethod('code');
+          setIsProcessing(false);
+          return;
+        }
         const { data, error } = await supabase.functions.invoke('create-payment', {
           body: {
             merchantId: grabData?.merchant_id || merchantData?.id,
