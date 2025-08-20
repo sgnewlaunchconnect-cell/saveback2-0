@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, ArrowLeft } from "lucide-react";
+import ProofOfPaymentQR from "@/components/ProofOfPaymentQR";
 
 export default function PaymentSuccess() {
   const [searchParams] = useSearchParams();
@@ -61,21 +62,24 @@ export default function PaymentSuccess() {
   }
 
   if (!sessionId || !paymentData) {
+    // Show dummy data for demo
+    const dummyData = {
+      paymentIntentId: 'pi_3RyDGaLSqIZh0Qqt1oLmwsYN',
+      merchantName: 'Coffee Corner Café',
+      amount: 86696, // ₹866.96 in paisa
+      timestamp: new Date().toLocaleString()
+    };
+
     return (
       <div className="min-h-screen bg-background p-4">
         <div className="max-w-md mx-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-center text-destructive">Payment Error</CardTitle>
-            </CardHeader>
-            <CardContent className="text-center space-y-4">
-              <p>Unable to verify payment. Please contact support.</p>
-              <Button onClick={() => navigate('/')} variant="outline">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Home
-              </Button>
-            </CardContent>
-          </Card>
+          <ProofOfPaymentQR
+            paymentIntentId={dummyData.paymentIntentId}
+            merchantName={dummyData.merchantName}
+            amount={dummyData.amount}
+            timestamp={dummyData.timestamp}
+            onContinue={() => navigate('/')}
+          />
         </div>
       </div>
     );
