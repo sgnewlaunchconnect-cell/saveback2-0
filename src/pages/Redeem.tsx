@@ -118,7 +118,9 @@ export default function Redeem() {
   };
 
   const handleUseNow = (grabId: string, e: React.MouseEvent) => {
+    console.log('Button clicked for grab:', grabId);
     e.stopPropagation();
+    e.preventDefault();
     navigate(`/pay-at-merchant?grabId=${grabId}`);
   };
 
@@ -191,10 +193,14 @@ export default function Redeem() {
 
           {showUseButton && !isUsed && !isExpired && (
             <Button 
-              onClick={(e) => handleUseNow(grab.id, e)}
+              onClick={(e) => {
+                console.log('Direct button click triggered');
+                handleUseNow(grab.id, e);
+              }}
               variant="cta"
               className="w-full"
               size="sm"
+              type="button"
             >
               {grab.deals.discount_pct > 0 && grab.deals.cashback_pct === 0 
                 ? "View Instructions" 
