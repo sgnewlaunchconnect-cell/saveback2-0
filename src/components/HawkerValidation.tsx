@@ -3,9 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, XCircle, Camera, Scan } from "lucide-react";
+import { CheckCircle, XCircle, Camera, Scan, Radio, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 export default function HawkerValidation() {
   const [validationCode, setValidationCode] = useState("");
@@ -22,6 +24,8 @@ export default function HawkerValidation() {
     discountPct?: number;
     message?: string;
   } | null>(null);
+  const [liveTransactions, setLiveTransactions] = useState<any[]>([]);
+  const [isListening, setIsListening] = useState(false);
 
   // Auto-fill code from URL params if provided
   useEffect(() => {
@@ -36,7 +40,61 @@ export default function HawkerValidation() {
     if (modeParam === 'payment' || modeParam === 'grab') {
       setValidationMode(modeParam);
     }
+
+    // Start listening for real-time updates
+    startLiveUpdates();
+    
+    return () => {
+      stopLiveUpdates();
+    };
   }, []);
+
+  const startLiveUpdates = () => {
+    setIsListening(true);
+    
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'pending_transactions',
+          filter: 'status=eq.validated'
+        },
+        (payload) => {
+          const transaction = payload.new;
+          setLiveTransactions(prev => [transaction, ...prev.slice(0, 4)]); // Keep last 5
+          toast.success(`Payment validated: ₹${(transaction.original_amount / 100).toFixed(2)}`);
+        }
+      )
+      .subscribe();
+
+    // Load recent validated transactions
+    loadRecentTransactions();
+  };
+
+  const stopLiveUpdates = () => {
+    setIsListening(false);
+    supabase.removeAllChannels();
+  };
+
+  const loadRecentTransactions = async () => {
+    try {
+      const { data } = await supabase
+        .from('pending_transactions')
+        .select('*')
+        .eq('status', 'validated')
+        .order('updated_at', { ascending: false })
+        .limit(5);
+      
+      if (data) {
+        setLiveTransactions(data);
+      }
+    } catch (error) {
+      console.error('Error loading recent transactions:', error);
+    }
+  };
 
   const handleValidation = async () => {
     if (validationCode.length !== 6) {
@@ -229,12 +287,58 @@ export default function HawkerValidation() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div className="space-y-6">
+      {/* Live Updates Section */}
+      <Card className="border-green-200 dark:border-green-800">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <Radio className={`w-4 h-4 ${isListening ? 'text-green-500 animate-pulse' : 'text-muted-foreground'}`} />
+            Live Payment Updates
+            <Badge variant={isListening ? "default" : "secondary"} className="text-xs">
+              {isListening ? "Live" : "Offline"}
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {liveTransactions.length > 0 ? (
+            <>
+              {liveTransactions.map((transaction, index) => (
+                <div key={transaction.id} className="flex items-center justify-between p-2 bg-muted/50 rounded text-sm">
+                  <div>
+                    <span className="font-medium">₹{(transaction.original_amount / 100).toFixed(2)}</span>
+                    <span className="text-muted-foreground ml-2">
+                      {new Date(transaction.updated_at).toLocaleTimeString()}
+                    </span>
+                  </div>
+                  <Badge variant="outline" className="text-xs">Validated</Badge>
+                </div>
+              ))}
+              <Button 
+                onClick={loadRecentTransactions} 
+                variant="ghost" 
+                size="sm" 
+                className="w-full text-xs"
+              >
+                <RefreshCw className="w-3 h-3 mr-1" />
+                Refresh
+              </Button>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              Waiting for new payments...
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Separator />
+
+      {/* Manual Validation Section */}
+      <Card className="w-full max-w-md mx-auto">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Scan className="w-5 h-5" />
-            Hawker Validation
+            Manual Validation
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">

@@ -132,10 +132,18 @@ export default function VerifyPayment() {
     <div className="container mx-auto px-4 py-8">
       <Card className="max-w-md mx-auto">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-center justify-center">
-            <CreditCard className="w-5 h-5" />
-            Payment Verification
-          </CardTitle>
+          <div className="text-center space-y-2">
+            <Badge variant="outline" className="text-xs">
+              Merchant Verification
+            </Badge>
+            <CardTitle className="flex items-center gap-2 justify-center">
+              <CreditCard className="w-5 h-5" />
+              Payment Verification
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Payment already auto-validated. This page is for proof only.
+            </p>
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Status Header */}
