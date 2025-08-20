@@ -78,20 +78,20 @@ const Index = () => {
   // Filter deals based on search and filters
   const filteredDeals = deals.filter(deal => {
     const matchesSearch = searchTerm === '' || 
-      deal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      deal.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      deal.merchants.name.toLowerCase().includes(searchTerm.toLowerCase());
+      deal.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      deal.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      deal.merchants?.name?.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesRewardType = selectedRewardType === 'all' ||
-      (selectedRewardType === 'discount' && deal.discount_pct > 0) ||
-      (selectedRewardType === 'cashback' && deal.cashback_pct > 0);
+      (selectedRewardType === 'discount' && (deal.discount_pct || 0) > 0) ||
+      (selectedRewardType === 'cashback' && (deal.cashback_pct || 0) > 0);
 
     const matchesCategory = selectedCategory === 'all' ||
-      deal.merchants.category === selectedCategory;
+      deal.merchants?.category === selectedCategory;
 
     const matchesPaymentType = selectedPaymentType === 'all' ||
-      (selectedPaymentType === 'in-app' && deal.merchants.payout_method !== 'manual') ||
-      (selectedPaymentType === 'pin-only' && deal.merchants.payout_method === 'manual');
+      (selectedPaymentType === 'in-app' && deal.merchants?.payout_method !== 'manual') ||
+      (selectedPaymentType === 'pin-only' && deal.merchants?.payout_method === 'manual');
 
     return matchesSearch && matchesRewardType && matchesCategory && matchesPaymentType;
   });
@@ -99,29 +99,29 @@ const Index = () => {
   // Get trending deals (sort by grabs desc, views desc, then end_at asc)
   const trendingDeals = [...filteredDeals]
     .sort((a, b) => {
-      if (b.grabs !== a.grabs) return b.grabs - a.grabs;
-      if (b.views !== a.views) return b.views - a.views;
+      if ((b.grabs || 0) !== (a.grabs || 0)) return (b.grabs || 0) - (a.grabs || 0);
+      if ((b.views || 0) !== (a.views || 0)) return (b.views || 0) - (a.views || 0);
       return new Date(a.end_at).getTime() - new Date(b.end_at).getTime();
     })
     .slice(0, 6);
 
   // Get direct discount deals
   const directDiscountDeals = filteredDeals
-    .filter(deal => deal.discount_pct > 0)
+    .filter(deal => (deal.discount_pct || 0) > 0)
     .slice(0, 6);
 
   // Get credit reward deals
   const creditRewardDeals = filteredDeals
-    .filter(deal => deal.cashback_pct > 0)
+    .filter(deal => (deal.cashback_pct || 0) > 0)
     .slice(0, 6);
 
   // Get in-app payment deals
   const inAppPaymentDeals = filteredDeals
-    .filter(deal => deal.merchants.payout_method !== 'manual')
+    .filter(deal => deal.merchants?.payout_method !== 'manual')
     .slice(0, 6);
 
   // Get unique categories
-  const categories = ['all', ...new Set(deals.map(deal => deal.merchants.category || 'other'))];
+  const categories = ['all', ...new Set(deals.map(deal => deal.merchants?.category || 'other'))];
 
   const DealSection = ({ title, deals, icon }: { title: string; deals: Deal[]; icon: React.ReactNode }) => (
     <div className="space-y-3 animate-fade-in">
@@ -273,7 +273,7 @@ const Index = () => {
         {selectedRewardType === 'discount' && (
           <DealSection 
             title="Direct Discount Deals" 
-            deals={filteredDeals.filter(deal => deal.discount_pct > 0)} 
+            deals={filteredDeals.filter(deal => (deal.discount_pct || 0) > 0)} 
             icon={<Tag className="h-5 w-5 text-destructive" />} 
           />
         )}
@@ -281,7 +281,7 @@ const Index = () => {
         {selectedRewardType === 'cashback' && (
           <DealSection 
             title="Credit Reward Deals" 
-            deals={filteredDeals.filter(deal => deal.cashback_pct > 0)} 
+            deals={filteredDeals.filter(deal => (deal.cashback_pct || 0) > 0)} 
             icon={<Coins className="h-5 w-5 text-secondary-foreground" />} 
           />
         )}

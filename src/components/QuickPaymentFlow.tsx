@@ -33,7 +33,7 @@ export default function QuickPaymentFlow({
   const directDiscount = (amount * (grabData?.deals?.discount_pct || 0)) / 100;
   const amountAfterDiscount = amount - directDiscount;
   
-  const creditsToUse = useCredits ? Math.min(amountAfterDiscount, totalCredits) : 0;
+  const creditsToUse = useCredits ? Math.min(Math.floor(amountAfterDiscount * 100), Math.floor(totalCredits * 100)) / 100 : 0;
   const finalAmount = Math.max(0, amountAfterDiscount - creditsToUse);
   const totalSavings = directDiscount + creditsToUse;
 
@@ -53,8 +53,8 @@ export default function QuickPaymentFlow({
       const anonymousUserId = getUserId();
       
       // Calculate credit split (prioritize local credits first)
-      const localCreditsUsed = Math.min(creditsToUse, localCredits);
-      const networkCreditsUsed = creditsToUse - localCreditsUsed;
+      const localCreditsUsed = Math.floor(Math.min(creditsToUse * 100, localCredits * 100));
+      const networkCreditsUsed = Math.floor(creditsToUse * 100) - localCreditsUsed;
       
       // Create pending transaction via edge function
       const { data, error } = await supabase.functions.invoke('createPendingTransaction', {
@@ -77,9 +77,9 @@ export default function QuickPaymentFlow({
         creditsUsed: creditsToUse,
         finalAmount,
         totalSavings,
-        paymentCode: data.data.paymentCode,
-        expiresAt: data.data.expiresAt,
-        merchantName: data.data.merchantName,
+        paymentCode: data.paymentCode,
+        expiresAt: data.expiresAt,
+        merchantName: data.merchantName,
         dealTitle: grabData?.deals?.title,
         hasCreditsApplied: creditsToUse > 0,
         isFullyCovered: finalAmount === 0
