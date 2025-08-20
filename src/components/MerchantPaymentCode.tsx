@@ -74,7 +74,7 @@ export default function MerchantPaymentCode({
           <div className={`text-center p-6 rounded-lg border-2 border-dashed ${
             isExpired ? 'bg-red-50 dark:bg-red-950/20 border-red-300' : 'bg-gray-50 dark:bg-gray-900'
           }`}>
-            <p className="text-sm text-muted-foreground mb-3">For cashier to scan:</p>
+            <p className="text-sm text-muted-foreground mb-3">For cashier to scan (after payment):</p>
             
             {!isExpired && (
               <div className="bg-white p-4 rounded-lg inline-block mb-3">
@@ -170,21 +170,21 @@ export default function MerchantPaymentCode({
           ) : (
             <div className="space-y-2 text-sm text-muted-foreground">
               <div className="flex items-start gap-2">
-                <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">1</span>
-                <span>Cashier scans QR code to validate your payment</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">2</span>
+                <span className="bg-green-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">✓</span>
                 <span>
                   {paymentResult.isFullyCovered 
-                    ? "No payment needed - purchase is FREE!" 
-                    : `Pay ₹${paymentResult.finalAmount.toFixed(2)} using the merchant's payment system`
+                    ? "You have paid nothing - purchase is FREE!" 
+                    : `You have paid ₹${paymentResult.finalAmount.toFixed(2)} to the merchant`
                   }
                 </span>
               </div>
               <div className="flex items-start gap-2">
+                <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">2</span>
+                <span>Ask the cashier to scan the QR code or enter the 6-digit code to validate</span>
+              </div>
+              <div className="flex items-start gap-2">
                 <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">3</span>
-                <span>Cashback credits are applied automatically to your account</span>
+                <span>Credits and cashback are applied automatically to your account</span>
               </div>
             </div>
           )}

@@ -34,6 +34,7 @@ export default function QuickPaymentFlow({
   const [useCredits, setUseCredits] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentResult, setPaymentResult] = useState<any>(null);
+  const [confirmPaid, setConfirmPaid] = useState(false);
   const [stripePayment, setStripePayment] = useState<{
     clientSecret: string;
     paymentIntentId: string;
@@ -276,10 +277,48 @@ export default function QuickPaymentFlow({
               <TabsTrigger value="code" className="flex items-center gap-2">
                 <QrCode className="h-4 w-4" />
                 Payment Code
+                <Badge variant="outline" className="text-xs ml-1">Pay first</Badge>
               </TabsTrigger>
             </TabsList>
           </Tabs>
         )}
+
+        {/* Step Header for Payment Code Flow */}
+        {paymentMethod === 'code' && (
+          <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-orange-600 text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
+                  <span className="text-sm font-medium text-orange-800 dark:text-orange-200">Pay Merchant</span>
+                </div>
+                <div className="w-8 border-t border-orange-300"></div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-orange-200 dark:bg-orange-800 text-orange-700 dark:text-orange-200 rounded-full flex items-center justify-center text-sm font-bold">2</div>
+                  <span className="text-sm text-orange-700 dark:text-orange-300">Show QR Code</span>
+                </div>
+              </div>
+            </div>
+            <p className="text-sm text-orange-700 dark:text-orange-300">
+              First pay at the counter, then generate and show QR code to get your credits
+            </p>
+          </div>
+        )}
+        {/* Amount to Pay Now for Payment Code */}
+        {paymentMethod === 'code' && amount > 0 && (
+          <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+            <h3 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
+              💰 Amount to Pay at Counter
+            </h3>
+            <div className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">
+              {finalAmount === 0 ? "FREE!" : `₹${finalAmount.toFixed(2)}`}
+            </div>
+            <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+              {finalAmount === 0 ? "Your purchase is fully covered by credits!" : "Pay this amount using cash/UPI/card at the counter"}
+            </p>
+          </div>
+        )}
+
         {/* Deal Info */}
         <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
           <h3 className="font-medium text-blue-800 dark:text-blue-200 text-sm">
@@ -415,10 +454,31 @@ export default function QuickPaymentFlow({
           </div>
         )}
 
+        {/* Payment Confirmation for Code Flow */}
+        {paymentMethod === 'code' && finalAmount > 0 && (
+          <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <div className="flex items-center space-x-3">
+              <input
+                type="checkbox"
+                id="confirm-paid"
+                checked={confirmPaid}
+                onChange={(e) => setConfirmPaid(e.target.checked)}
+                className="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500"
+              />
+              <label htmlFor="confirm-paid" className="text-sm font-medium text-red-800 dark:text-red-200">
+                I have paid ₹{finalAmount.toFixed(2)} to the merchant
+              </label>
+            </div>
+            <p className="text-xs text-red-600 dark:text-red-400 mt-2 ml-7">
+              Confirm payment before generating the validation code
+            </p>
+          </div>
+        )}
+
         {/* Payment Action Button */}
         <Button 
           onClick={handlePayment}
-          disabled={isProcessing || !billAmount || amount <= 0}
+          disabled={isProcessing || !billAmount || amount <= 0 || (paymentMethod === 'code' && finalAmount > 0 && !confirmPaid)}
           className="w-full"
           size="lg"
         >
@@ -465,8 +525,10 @@ export default function QuickPaymentFlow({
               </>
             ) : (
               <>
-                <li>3. Show the generated code to cashier</li>
-                <li>4. {finalAmount === 0 ? "Enjoy your free purchase!" : "Pay cashier the remaining amount"}</li>
+                <li>3. Pay the merchant using cash/UPI/card: ₹{finalAmount.toFixed(2)}</li>
+                <li>4. Confirm payment and generate validation code</li>
+                <li>5. Show QR code to cashier for credit validation</li>
+                <li>6. Credits and cashback applied automatically!</li>
               </>
             )}
             {cashbackEarned > 0 && (
