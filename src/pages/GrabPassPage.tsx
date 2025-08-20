@@ -429,7 +429,7 @@ export default function GrabPassPage() {
                   className="w-full" 
                   size="sm"
                 >
-                  💳 Smart Payment (Use Credits + Earn Cashback)
+                  💳 Smart Payment (Credits + Cashback)
                 </Button>
               </>
             )}

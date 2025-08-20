@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { QrCode, CreditCard, Gift, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { getUserId } from '@/utils/userIdManager';
 
 interface QuickPaymentFlowProps {
   grabData: any;
@@ -48,14 +50,35 @@ export default function QuickPaymentFlow({
     setIsProcessing(true);
     
     try {
-      // Create a consolidated payment code that includes all savings
+      const anonymousUserId = getUserId();
+      
+      // Calculate credit split (prioritize local credits first)
+      const localCreditsUsed = Math.min(creditsToUse, localCredits);
+      const networkCreditsUsed = creditsToUse - localCreditsUsed;
+      
+      // Create pending transaction via edge function
+      const { data, error } = await supabase.functions.invoke('createPendingTransaction', {
+        body: {
+          merchantId: grabData?.merchant_id,
+          originalAmount: amount,
+          grabId: grabData?.id,
+          dealId: grabData?.deal_id,
+          anonymousUserId,
+          localCreditsUsed,
+          networkCreditsUsed
+        }
+      });
+
+      if (error) throw error;
+      
       const result = {
         billAmount: amount,
         directDiscount,
         creditsUsed: creditsToUse,
         finalAmount,
         totalSavings,
-        paymentCode: Math.random().toString().slice(2, 8), // Demo code
+        paymentCode: data.paymentCode,
+        expiresAt: data.expiresAt,
         merchantName: grabData?.deals?.merchants?.name,
         dealTitle: grabData?.deals?.title,
         hasCreditsApplied: creditsToUse > 0,
@@ -64,7 +87,13 @@ export default function QuickPaymentFlow({
       
       onComplete(result);
       
+      toast({
+        title: "Payment Code Generated!",
+        description: "Show this code to the cashier"
+      });
+      
     } catch (error) {
+      console.error('Error creating transaction:', error);
       toast({
         title: "Error",
         description: "Failed to generate payment code",

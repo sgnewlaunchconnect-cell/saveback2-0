@@ -1,13 +1,14 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Copy, CheckCircle, CreditCard, Gift } from 'lucide-react';
+import { Copy, CheckCircle, CreditCard, Gift, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface MerchantPaymentCodeProps {
   paymentResult: {
     paymentCode: string;
+    expiresAt?: string;
     billAmount: number;
     directDiscount: number;
     creditsUsed: number;
@@ -26,6 +27,28 @@ export default function MerchantPaymentCode({
   onBack
 }: MerchantPaymentCodeProps) {
   const { toast } = useToast();
+  const [timeLeft, setTimeLeft] = useState(0);
+
+  useEffect(() => {
+    if (paymentResult.expiresAt) {
+      const interval = setInterval(() => {
+        const now = new Date().getTime();
+        const expiry = new Date(paymentResult.expiresAt!).getTime();
+        const remaining = Math.max(0, expiry - now);
+        setTimeLeft(remaining);
+        
+        if (remaining === 0) {
+          clearInterval(interval);
+        }
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [paymentResult.expiresAt]);
+
+  const minutes = Math.floor(timeLeft / (1000 * 60));
+  const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+  const isExpired = timeLeft === 0 && paymentResult.expiresAt;
 
   const copyCode = () => {
     navigator.clipboard.writeText(paymentResult.paymentCode);
@@ -47,12 +70,26 @@ export default function MerchantPaymentCode({
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Large Payment Code */}
-          <div className="text-center p-6 bg-gray-50 dark:bg-gray-900 rounded-lg border-2 border-dashed">
+          <div className={`text-center p-6 rounded-lg border-2 border-dashed ${
+            isExpired ? 'bg-red-50 dark:bg-red-950/20 border-red-300' : 'bg-gray-50 dark:bg-gray-900'
+          }`}>
             <p className="text-sm text-muted-foreground mb-2">Show this code to cashier</p>
-            <div className="text-4xl font-mono font-bold tracking-wider text-primary mb-2">
+            <div className={`text-4xl font-mono font-bold tracking-wider mb-2 ${
+              isExpired ? 'text-red-500' : 'text-primary'
+            }`}>
               {paymentResult.paymentCode}
             </div>
-            <Button variant="outline" size="sm" onClick={copyCode}>
+            
+            {paymentResult.expiresAt && (
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Clock className="w-4 h-4 text-muted-foreground" />
+                <span className={`text-sm font-mono ${isExpired ? 'text-red-500' : ''}`}>
+                  {isExpired ? 'EXPIRED' : `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`}
+                </span>
+              </div>
+            )}
+            
+            <Button variant="outline" size="sm" onClick={copyCode} disabled={!!isExpired}>
               <Copy className="w-4 h-4 mr-2" />
               Copy Code
             </Button>
@@ -104,28 +141,44 @@ export default function MerchantPaymentCode({
       </Card>
 
       {/* Instructions for Customer */}
-      <Card>
+      <Card className={isExpired ? "border-red-200 bg-red-50 dark:bg-red-950/20" : ""}>
         <CardContent className="p-4">
-          <h3 className="font-medium text-sm mb-3">Next Steps:</h3>
-          <div className="space-y-2 text-sm text-muted-foreground">
-            <div className="flex items-start gap-2">
-              <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">1</span>
-              <span>Show this code to the cashier</span>
+          <h3 className="font-medium text-sm mb-3">
+            {isExpired ? "Code Expired" : "Next Steps:"}
+          </h3>
+          
+          {isExpired ? (
+            <div className="text-sm text-red-600 dark:text-red-400 space-y-2">
+              <p>This payment code has expired. Please generate a new one to complete your purchase.</p>
+              <Button onClick={onBack} variant="outline" size="sm" className="w-full mt-3">
+                Generate New Code
+              </Button>
             </div>
-            <div className="flex items-start gap-2">
-              <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">2</span>
-              <span>
-                {paymentResult.isFullyCovered 
-                  ? "Enjoy your free purchase!" 
-                  : `Pay ₹${paymentResult.finalAmount.toFixed(2)} using any method`
-                }
-              </span>
+          ) : (
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <div className="flex items-start gap-2">
+                <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">1</span>
+                <span>Go to the cashier and show this code</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">2</span>
+                <span>
+                  {paymentResult.isFullyCovered 
+                    ? "Enjoy your free purchase!" 
+                    : `Pay ₹${paymentResult.finalAmount.toFixed(2)} using cash/card`
+                  }
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">3</span>
+                <span>Cashier will scan their QR and enter your code to validate</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">4</span>
+                <span>You'll automatically earn cashback credits for next time!</span>
+              </div>
             </div>
-            <div className="flex items-start gap-2">
-              <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">3</span>
-              <span>Wait for cashier to validate and get your receipt</span>
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 
