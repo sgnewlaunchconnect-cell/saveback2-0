@@ -24,7 +24,7 @@ export default function Navigation() {
     { path: '/', label: 'Deals', icon: Tag },
     { path: '/redeem', label: 'Redeem', icon: Gift },
     { path: '/wallet', label: 'Wallet', icon: Wallet },
-    { path: '/hawker/validate', label: 'Validate (Hawker)', icon: Tag },
+    { path: '/merchant/550e8400-e29b-41d4-a716-446655440003', label: 'Merchant', icon: Store },
     { path: '/profile', label: 'Profile', icon: User },
   ];
 
