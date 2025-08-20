@@ -8,7 +8,7 @@ import { Plus, Store, BarChart3, Settings, ShieldCheck, Package } from "lucide-r
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import DealManagement from "@/components/DealManagement";
-import HawkerValidation from "@/components/HawkerValidation";
+import MerchantValidation from "@/components/MerchantValidation";
 import MerchantAnalytics from "@/components/MerchantAnalytics";
 import MerchantSettings from "@/components/MerchantSettings";
 import ProductManagement from "@/components/ProductManagement";
@@ -169,17 +169,7 @@ export default function MerchantPortal() {
           </TabsContent>
 
           <TabsContent value="validation" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Customer Payment Validation</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Validate customer payment codes to release credits
-                </p>
-              </CardHeader>
-              <CardContent>
-                <HawkerValidation />
-              </CardContent>
-            </Card>
+            <MerchantValidation merchantId={merchantId!} />
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-4">
