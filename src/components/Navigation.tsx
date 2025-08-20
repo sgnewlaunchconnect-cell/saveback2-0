@@ -24,8 +24,6 @@ export default function Navigation() {
     { path: '/', label: 'Deals', icon: Tag },
     { path: '/redeem', label: 'Redeem', icon: Gift },
     { path: '/wallet', label: 'Wallet', icon: Wallet },
-    { path: '/merchant/demo', label: 'Merchant Demo', icon: Store },
-    { path: '/merchant/dashboard', label: 'Merchant Dashboard', icon: Store },
     { path: '/hawker/validate', label: 'Validate (Hawker)', icon: Tag },
     { path: '/profile', label: 'Profile', icon: User },
   ];

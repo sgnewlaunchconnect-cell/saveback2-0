@@ -7,16 +7,10 @@ import Navigation from "./components/Navigation";
 import Index from "./pages/Index";
 import DealDetail from "./pages/DealDetail";
 import GrabPass from "./pages/GrabPass";
-import MerchantValidation from "./pages/MerchantValidation";
 import Profile from "./pages/Profile";
-import MerchantDashboard from "./pages/MerchantDashboard";
 import MerchantPortal from "./pages/MerchantPortal";
-import MerchantDemo from "./pages/MerchantDemo";
-import DemoScenarios from "./pages/DemoScenarios";
 import WalletPage from "./pages/WalletPage";
 import PayAtMerchant from "./pages/PayAtMerchant";
-import PaymentSuccess from "./pages/PaymentSuccess";
-import PaymentCanceled from "./pages/PaymentCanceled";
 import VerifyPayment from "./pages/VerifyPayment";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -39,19 +33,12 @@ const App = () => (
           <Route path="/deals" element={<Index />} />
           <Route path="/deals/:id" element={<DealDetail />} />
           <Route path="/redeem" element={<Redeem />} />
-          <Route path="/demo-scenarios" element={<DemoScenarios />} />
           <Route path="/grab-pass/:grabId" element={<GrabPass />} />
-          <Route path="/merchant/validate" element={<Navigate to="/hawker/validate" replace />} />
-          <Route path="/merchant/dashboard" element={<MerchantDashboard />} />
           <Route path="/merchants/:merchantId" element={<MerchantPage />} />
           <Route path="/merchant/:merchantId" element={<MerchantPortal />} />
-          <Route path="/merchant/demo" element={<MerchantDemo />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/wallet" element={<WalletPage />} />
-          <Route path="/pay" element={<PayAtMerchant />} />
           <Route path="/pay-at-merchant" element={<PayAtMerchant />} />
-          <Route path="/payment-success" element={<PaymentSuccess />} />
-          <Route path="/payment-canceled" element={<PaymentCanceled />} />
           <Route path="/verify-payment" element={<VerifyPayment />} />
           <Route path="/hawker/validate" element={<HawkerValidation />} />
           <Route path="/customer/validate" element={<CustomerValidation />} />
