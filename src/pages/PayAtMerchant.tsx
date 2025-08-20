@@ -44,7 +44,7 @@ export default function PayAtMerchant() {
           .from('merchants')
           .select('*')
           .eq('id', data.data.merchant_id)
-          .single();
+          .maybeSingle();
           
         if (!merchantError && merchant) {
           console.log('Merchant PSP enabled:', merchant.psp_enabled);
