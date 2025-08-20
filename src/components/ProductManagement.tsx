@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Edit, Trash2, Package, DollarSign } from "lucide-react";
+import { Plus, Edit, Trash2, Package, DollarSign, Upload, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -44,6 +44,9 @@ export default function ProductManagement({ merchantId }: ProductManagementProps
     is_available: true,
     stock_count: ""
   });
+
+  const [uploadedImage, setUploadedImage] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     loadProducts();
@@ -82,18 +85,59 @@ export default function ProductManagement({ merchantId }: ProductManagementProps
       stock_count: ""
     });
     setEditingProduct(null);
+    setUploadedImage(null);
+  };
+
+  const handleImageUpload = async (file: File): Promise<string | null> => {
+    try {
+      setUploading(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${merchantId}/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(fileName);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload image",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
+      let imageUrl = formData.image_url;
+
+      // Upload new image if one was selected
+      if (uploadedImage) {
+        const uploadedUrl = await handleImageUpload(uploadedImage);
+        if (uploadedUrl) {
+          imageUrl = uploadedUrl;
+        }
+      }
+
       const productData = {
         merchant_id: merchantId,
         name: formData.name,
         description: formData.description || null,
         price: parseFloat(formData.price),
-        image_url: formData.image_url || null,
+        image_url: imageUrl || null,
         category: formData.category || null,
         is_available: formData.is_available,
         stock_count: formData.stock_count ? parseInt(formData.stock_count) : null
@@ -146,7 +190,41 @@ export default function ProductManagement({ merchantId }: ProductManagementProps
       is_available: product.is_available,
       stock_count: product.stock_count?.toString() || ""
     });
+    setUploadedImage(null);
     setIsDialogOpen(true);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({
+          title: "Error",
+          description: "File size must be less than 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Error",
+          description: "Please select an image file",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setUploadedImage(file);
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setFormData({ ...formData, image_url: previewUrl });
+    }
+  };
+
+  const removeUploadedImage = () => {
+    setUploadedImage(null);
+    setFormData({ ...formData, image_url: "" });
   };
 
   const handleDelete = async (productId: string) => {
@@ -266,13 +344,38 @@ export default function ProductManagement({ merchantId }: ProductManagementProps
               </div>
 
               <div>
-                <Label htmlFor="image_url">Image URL</Label>
-                <Input
-                  id="image_url"
-                  type="url"
-                  value={formData.image_url}
-                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                />
+                <Label htmlFor="image_upload">Product Image</Label>
+                <div className="space-y-2">
+                  <Input
+                    id="image_upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="cursor-pointer"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Upload an image (max 5MB, JPG/PNG)
+                  </p>
+                  
+                  {formData.image_url && (
+                    <div className="relative">
+                      <img
+                        src={formData.image_url}
+                        alt="Product preview"
+                        className="w-full h-32 object-cover rounded-md border"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-1 right-1"
+                        onClick={removeUploadedImage}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center space-x-2">
@@ -285,8 +388,8 @@ export default function ProductManagement({ merchantId }: ProductManagementProps
               </div>
 
               <div className="flex gap-2">
-                <Button type="submit" className="flex-1">
-                  {editingProduct ? "Update Product" : "Create Product"}
+                <Button type="submit" className="flex-1" disabled={uploading}>
+                  {uploading ? "Uploading..." : editingProduct ? "Update Product" : "Create Product"}
                 </Button>
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancel
@@ -313,34 +416,43 @@ export default function ProductManagement({ merchantId }: ProductManagementProps
             <Card key={product.id}>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h4 className="font-medium">{product.name}</h4>
-                      <Badge variant={product.is_available ? "default" : "secondary"}>
-                        {product.is_available ? "Available" : "Unavailable"}
-                      </Badge>
-                      {product.category && (
-                        <Badge variant="outline">{product.category}</Badge>
-                      )}
-                    </div>
-                    
-                    {product.description && (
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {product.description}
-                      </p>
+                  <div className="flex gap-4">
+                    {product.image_url && (
+                      <img
+                        src={product.image_url}
+                        alt={product.name}
+                        className="w-16 h-16 object-cover rounded-md border"
+                      />
                     )}
-                    
-                    <div className="flex items-center gap-4 text-sm">
-                      <div className="flex items-center gap-1">
-                        <DollarSign className="h-4 w-4" />
-                        <span className="font-medium">${product.price}</span>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h4 className="font-medium">{product.name}</h4>
+                        <Badge variant={product.is_available ? "default" : "secondary"}>
+                          {product.is_available ? "Available" : "Unavailable"}
+                        </Badge>
+                        {product.category && (
+                          <Badge variant="outline">{product.category}</Badge>
+                        )}
                       </div>
-                      {product.stock_count !== null && (
-                        <div className="flex items-center gap-1">
-                          <Package className="h-4 w-4" />
-                          <span>Stock: {product.stock_count}</span>
-                        </div>
+                      
+                      {product.description && (
+                        <p className="text-sm text-muted-foreground mb-2">
+                          {product.description}
+                        </p>
                       )}
+                      
+                      <div className="flex items-center gap-4 text-sm">
+                        <div className="flex items-center gap-1">
+                          <DollarSign className="h-4 w-4" />
+                          <span className="font-medium">${product.price}</span>
+                        </div>
+                        {product.stock_count !== null && (
+                          <div className="flex items-center gap-1">
+                            <Package className="h-4 w-4" />
+                            <span>Stock: {product.stock_count}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                   
