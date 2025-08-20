@@ -145,23 +145,14 @@ export default function GrabManagement({ merchantId }: GrabManagementProps) {
     }
 
     try {
-      // Send notification to all users who have grabbed from this merchant
+      // Get unique user IDs who have grabbed from this merchant
       const userIds = Array.from(new Set(
         grabs
           .filter(grab => grab.user_id && grab.user_id !== '550e8400-e29b-41d4-a716-446655440000')
           .map(grab => grab.user_id!)
       ));
 
-      // Create notifications for each user
-      const notifications = userIds.map(userId => ({
-        user_id: userId,
-        title: notificationTitle,
-        message: notificationMessage,
-        type: 'MERCHANT_ANNOUNCEMENT',
-        merchant_id: merchantId
-      }));
-
-      if (notifications.length === 0) {
+      if (userIds.length === 0) {
         toast({
           title: "No Recipients",
           description: "No registered users found to notify",
@@ -170,10 +161,21 @@ export default function GrabManagement({ merchantId }: GrabManagementProps) {
         return;
       }
 
-      // Here you would send to a notifications table or push service
+      // Send push notifications using the edge function
+      const { data, error } = await supabase.functions.invoke('sendPushNotification', {
+        body: {
+          title: notificationTitle,
+          message: notificationMessage,
+          userIds: userIds,
+          merchantId: merchantId
+        }
+      });
+
+      if (error) throw error;
+
       toast({
-        title: "Notifications Sent",
-        description: `Sent to ${notifications.length} users`,
+        title: "Notifications Sent ✓",
+        description: `Successfully sent to ${data?.data?.recipients || userIds.length} users`,
       });
 
       // Clear form
