@@ -174,6 +174,21 @@ serve(async (req) => {
       });
     }
 
+    // Increment redemptions count for the deal
+    if (dealData) {
+      const { error: redemptionError } = await supabaseClient
+        .from('deals')
+        .update({
+          redemptions: (dealData.redemptions || 0) + 1
+        })
+        .eq('id', grab.deal_id);
+
+      if (redemptionError) {
+        console.error('Error updating deal redemptions:', redemptionError);
+        // Don't fail the operation for this error
+      }
+    }
+
     console.log('Successfully marked grab as used:', grab.id);
 
     // Award tier points if the grab has an associated user_id

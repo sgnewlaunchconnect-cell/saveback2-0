@@ -22,6 +22,8 @@ interface Deal {
   end_at: string;
   views: number;
   grabs: number;
+  stock?: number;
+  redemptions?: number;
   merchant_id: string;
   merchants: {
     id: string;
@@ -54,7 +56,7 @@ const Index = () => {
         .from('deals')
         .select(`
           id, title, description, discount_pct, cashback_pct, reward_mode, 
-          end_at, views, grabs, merchant_id,
+          end_at, views, grabs, stock, redemptions, merchant_id,
           merchants(id, name, address, category, logo_url, payout_method)
         `)
         .eq('is_active', true)

@@ -18,6 +18,8 @@ interface DealDetail {
   cashback_pct: number;
   end_at: string;
   start_at: string;
+  stock?: number;
+  redemptions?: number;
   merchant_id: string;
   merchants: {
     name: string;
@@ -128,6 +130,12 @@ const DealDetail = () => {
     return new Date(endAt) <= new Date();
   };
 
+  const isSoldOut = () => {
+    if (!deal?.stock || deal.stock <= 0) return false;
+    const redemptions = deal.redemptions || 0;
+    return redemptions >= deal.stock;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background p-4">
@@ -233,9 +241,11 @@ const DealDetail = () => {
           variant="cta"
           className="w-full h-12 text-lg font-semibold"
           onClick={handleGrab}
-          disabled={grabbing || isExpired(deal.end_at)}
+          disabled={grabbing || isExpired(deal.end_at) || isSoldOut()}
         >
-          {grabbing ? 'Grabbing...' : isExpired(deal.end_at) ? 'Deal Expired' : 'Grab This Deal'}
+          {grabbing ? 'Grabbing...' : 
+           isSoldOut() ? 'Sold Out' :
+           isExpired(deal.end_at) ? 'Deal Expired' : 'Grab This Deal'}
         </Button>
 
         <div className="mt-4 text-center">

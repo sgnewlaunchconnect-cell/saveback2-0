@@ -95,6 +95,14 @@ serve(async (req) => {
       throw new Error('Deal has expired');
     }
 
+    // Check stock availability (only if stock is limited)
+    if (deal.stock && deal.stock > 0) {
+      const currentRedemptions = deal.redemptions || 0;
+      if (currentRedemptions >= deal.stock) {
+        throw new Error('Deal is sold out');
+      }
+    }
+
     // Check for existing active grab
     let existingGrabQuery = supabaseClient
       .from('grabs')

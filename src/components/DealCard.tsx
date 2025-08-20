@@ -1,7 +1,8 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MapPin, Clock, Store } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { MapPin, Clock, Store, TrendingUp, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,6 +19,8 @@ interface Deal {
   end_at: string;
   merchant_id: string;
   grabs?: number;
+  stock?: number;
+  redemptions?: number;
   merchants: {
     id: string;
     name: string;
@@ -98,6 +101,23 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
     return discount + cashback;
   };
 
+  const isHotDeal = () => {
+    const grabs = deal.grabs || 0;
+    return grabs >= 10; // Hot if 10+ grabs
+  };
+
+  const isSoldOut = () => {
+    if (!deal.stock || deal.stock <= 0) return false;
+    const redemptions = deal.redemptions || 0;
+    return redemptions >= deal.stock;
+  };
+
+  const getRemainingStock = () => {
+    if (!deal.stock || deal.stock <= 0) return null;
+    const redemptions = deal.redemptions || 0;
+    return Math.max(0, deal.stock - redemptions);
+  };
+
   return (
     <Card 
       className={`group cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-[1.02] ${
@@ -144,6 +164,24 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
                   payoutMethod={deal.merchants.payout_method}
                   hasCashback={!!deal.cashback_pct && deal.cashback_pct > 0}
                 />
+                {/* Urgency badges */}
+                {isHotDeal() && (
+                  <Badge variant="destructive" className="text-xs px-1.5 py-0.5">
+                    <TrendingUp className="h-3 w-3 mr-1" />
+                    Hot
+                  </Badge>
+                )}
+                {isExpiringSoon(deal.end_at) && (
+                  <Badge variant="outline" className="text-xs px-1.5 py-0.5 border-orange-300 text-orange-700">
+                    <Zap className="h-3 w-3 mr-1" />
+                    Ending Soon
+                  </Badge>
+                )}
+                {isSoldOut() && (
+                  <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
+                    Sold Out
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
@@ -171,6 +209,12 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
                   {deal.grabs} grabbed
                 </div>
               )}
+              {/* Stock remaining */}
+              {getRemainingStock() !== null && getRemainingStock() > 0 && getRemainingStock() <= 10 && (
+                <div className="text-xs text-orange-600 font-medium bg-orange-100 rounded-full px-2 py-1">
+                  Only {getRemainingStock()} left
+                </div>
+              )}
               {getTotalSavings() > 0 && (
                 <div className="text-xs text-primary font-medium">
                   Save up to {getTotalSavings()}%
@@ -194,11 +238,12 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
             
             <Button 
               onClick={handleGrabDeal}
-              variant="cta"
+              variant={isSoldOut() ? "secondary" : "cta"}
               size="sm"
               className="flex-shrink-0"
+              disabled={isSoldOut()}
             >
-              Grab Deal
+              {isSoldOut() ? "Sold Out" : "Grab Deal"}
             </Button>
           </div>
         </div>
