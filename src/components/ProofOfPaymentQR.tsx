@@ -1,9 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, QrCode, Download, Copy, ExternalLink } from "lucide-react";
+import { CheckCircle, QrCode } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
-import { toast } from "sonner";
 
 interface ProofOfPaymentQRProps {
   paymentIntentId: string;
@@ -23,25 +22,6 @@ export default function ProofOfPaymentQR({
   // Create verification URL
   const verificationUrl = `${window.location.origin}/verify-payment?paymentId=${paymentIntentId}`;
 
-  const downloadQR = () => {
-    const canvas = document.querySelector('canvas');
-    if (canvas) {
-      const url = canvas.toDataURL();
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `payment-proof-${paymentIntentId}.png`;
-      a.click();
-    }
-  };
-
-  const copyVerificationLink = () => {
-    navigator.clipboard.writeText(verificationUrl);
-    toast.success("Verification link copied to clipboard!");
-  };
-
-  const openVerificationPage = () => {
-    window.open(verificationUrl, '_blank');
-  };
 
   return (
     <div className="space-y-6">
@@ -85,38 +65,6 @@ export default function ProofOfPaymentQR({
             <Badge variant="secondary" className="text-xs">
               Auto-validated • No scanning required
             </Badge>
-          </div>
-
-          <div className="flex gap-2 flex-wrap justify-center">
-            <Button 
-              onClick={downloadQR}
-              variant="outline" 
-              size="sm"
-              className="gap-2"
-            >
-              <Download className="w-4 h-4" />
-              Download QR
-            </Button>
-            
-            <Button 
-              onClick={copyVerificationLink}
-              variant="outline" 
-              size="sm"
-              className="gap-2"
-            >
-              <Copy className="w-4 h-4" />
-              Copy Link
-            </Button>
-            
-            <Button 
-              onClick={openVerificationPage}
-              variant="outline" 
-              size="sm"
-              className="gap-2"
-            >
-              <ExternalLink className="w-4 h-4" />
-              Open Page
-            </Button>
           </div>
         </CardContent>
       </Card>
