@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { getUserId } from '@/utils/userIdManager';
 import MerchantPaymentCode from './MerchantPaymentCode';
+import StripePaymentForm from './StripePaymentForm';
 
 interface QuickPaymentFlowProps {
   grabData: any;
@@ -32,6 +33,12 @@ export default function QuickPaymentFlow({
   const [useCredits, setUseCredits] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentResult, setPaymentResult] = useState<any>(null);
+  const [stripePayment, setStripePayment] = useState<{
+    clientSecret: string;
+    paymentIntentId: string;
+    pendingTransactionId: string;
+    amount: number;
+  } | null>(null);
   
   // Default to PSP if enabled, otherwise payment code
   const isPspEnabled = merchantData?.psp_enabled || false;
@@ -110,19 +117,17 @@ export default function QuickPaymentFlow({
 
         if (error) throw error;
         
-        // Open Stripe checkout in new tab
-        window.open(data.url, '_blank');
-        
-        toast({
-          title: "Redirecting to Payment",
-          description: "Complete your payment in the new tab"
-        });
-        
-        onComplete({
-          paymentMethod: 'psp',
-          sessionId: data.sessionId,
-          pendingTransactionId: data.pendingTransactionId
-        });
+        if (data.clientSecret) {
+          // Set up in-app payment
+          setStripePayment({
+            clientSecret: data.clientSecret,
+            paymentIntentId: data.paymentIntentId,
+            pendingTransactionId: data.pendingTransactionId,
+            amount: Math.round(finalAmountWithFees * 100) // Convert to paise
+          });
+        } else {
+          throw new Error("Failed to create payment session");
+        }
         
       } else {
         // Payment code flow
@@ -178,7 +183,43 @@ export default function QuickPaymentFlow({
 
   const handleBackToEdit = () => {
     setPaymentResult(null);
+    setStripePayment(null);
   };
+
+  const handleStripeSuccess = (result: any) => {
+    setStripePayment(null);
+    setPaymentResult(result);
+    onComplete(result);
+  };
+
+  const handleStripeError = (error: string) => {
+    setStripePayment(null);
+    toast({
+      title: "Payment Failed",
+      description: error,
+      variant: "destructive"
+    });
+  };
+
+  // Show Stripe payment form
+  if (stripePayment) {
+    return (
+      <div className="space-y-4">
+        <Button variant="outline" onClick={handleBackToEdit} className="mb-4">
+          ← Back to Payment Options
+        </Button>
+        <StripePaymentForm
+          clientSecret={stripePayment.clientSecret}
+          paymentIntentId={stripePayment.paymentIntentId}
+          pendingTransactionId={stripePayment.pendingTransactionId}
+          amount={stripePayment.amount}
+          merchantName={grabData?.deals?.merchant_name || merchantData?.name || "Merchant"}
+          onSuccess={handleStripeSuccess}
+          onError={handleStripeError}
+        />
+      </div>
+    );
+  }
 
   // Show payment code inline after generation
   if (paymentResult && paymentResult.paymentMethod === 'code') {

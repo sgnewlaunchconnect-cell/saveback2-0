@@ -16,30 +16,30 @@ serve(async (req) => {
   try {
     console.log("=== Verify Payment Request ===");
     
-    const { sessionId } = await req.json();
+    const { paymentIntentId } = await req.json();
     
-    if (!sessionId) {
-      throw new Error("Missing sessionId");
+    if (!paymentIntentId) {
+      throw new Error("Missing paymentIntentId");
     }
 
-    console.log("Verifying session:", sessionId);
+    console.log("Verifying PaymentIntent:", paymentIntentId);
 
     // Initialize Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2023-10-16",
     });
 
-    // Retrieve the checkout session
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    // Retrieve the payment intent
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
     
-    console.log("Session status:", session.payment_status, "Amount:", session.amount_total);
+    console.log("PaymentIntent status:", paymentIntent.status, "Amount:", paymentIntent.amount);
 
-    if (session.payment_status !== 'paid') {
+    if (paymentIntent.status !== 'succeeded') {
       throw new Error("Payment not completed");
     }
 
     // Get pending transaction ID from metadata
-    const pendingTransactionId = session.metadata?.pending_transaction_id;
+    const pendingTransactionId = paymentIntent.metadata?.pending_transaction_id;
     if (!pendingTransactionId) {
       throw new Error("No pending transaction ID found in session metadata");
     }

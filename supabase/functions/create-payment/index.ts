@@ -119,24 +119,13 @@ serve(async (req) => {
       apiVersion: "2023-10-16",
     });
 
-    // Create Stripe Checkout session
-    const session = await stripe.checkout.sessions.create({
-      line_items: [
-        {
-          price_data: {
-            currency: "inr",
-            product_data: { 
-              name: `Payment to ${merchant.name}`,
-              description: dealId ? "Deal purchase with credits applied" : "Bill payment with credits applied"
-            },
-            unit_amount: totalAmount, // Amount in paise (INR cents)
-          },
-          quantity: 1,
-        },
-      ],
-      mode: "payment",
-      success_url: `${req.headers.get("origin")}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get("origin")}/payment-canceled`,
+    // Create PaymentIntent for in-app payment
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: totalAmount,
+      currency: "inr",
+      automatic_payment_methods: {
+        enabled: true,
+      },
       metadata: {
         pending_transaction_id: pendingTransaction.id,
         merchant_id: merchantId,
@@ -145,11 +134,11 @@ serve(async (req) => {
       }
     });
 
-    console.log("Created Stripe session:", session.id);
+    console.log("Created PaymentIntent:", paymentIntent.id);
 
     return new Response(JSON.stringify({ 
-      url: session.url,
-      sessionId: session.id,
+      clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id,
       pendingTransactionId: pendingTransaction.id
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
