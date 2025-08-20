@@ -198,9 +198,10 @@ export default function Redeem() {
                 handleUseNow(grab.id, e);
               }}
               variant="cta"
-              className="w-full"
+              className="w-full relative z-10 pointer-events-auto"
               size="sm"
               type="button"
+              style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10 }}
             >
               {grab.deals.discount_pct > 0 && grab.deals.cashback_pct === 0 
                 ? "View Instructions" 
