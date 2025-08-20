@@ -105,14 +105,14 @@ const Index = () => {
     })
     .slice(0, 6);
 
-  // Get direct discount deals
+  // Get direct discount deals (only discount, no cashback)
   const directDiscountDeals = filteredDeals
-    .filter(deal => (deal.discount_pct || 0) > 0)
+    .filter(deal => (deal.discount_pct || 0) > 0 && (deal.cashback_pct || 0) === 0)
     .slice(0, 6);
 
-  // Get credit reward deals
+  // Get credit reward deals (only cashback, no discount)
   const creditRewardDeals = filteredDeals
-    .filter(deal => (deal.cashback_pct || 0) > 0)
+    .filter(deal => (deal.cashback_pct || 0) > 0 && (deal.discount_pct || 0) === 0)
     .slice(0, 6);
 
   // Get in-app payment deals
