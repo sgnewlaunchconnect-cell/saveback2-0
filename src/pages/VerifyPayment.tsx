@@ -26,19 +26,26 @@ export default function VerifyPayment() {
   const paymentId = searchParams.get('paymentId');
 
   useEffect(() => {
-    if (!paymentId) {
-      setError("No payment ID provided");
-      setLoading(false);
-      return;
-    }
-
     verifyPayment();
   }, [paymentId]);
 
   const verifyPayment = async () => {
     try {
-      setLoading(true);
-      
+      // If no paymentId, show dummy data for demo
+      if (!paymentId || paymentId === 'demo') {
+        setPaymentDetails({
+          paymentIntentId: 'pi_3RyDGaLSqIZh0Qqt1oLmwsYN',
+          amount: 86696, // ₹866.96 in paisa
+          currency: 'inr',
+          status: 'succeeded',
+          created: Date.now() / 1000 - 3600, // 1 hour ago
+          merchantName: 'Coffee Corner',
+          description: 'Payment for grab pass deal'
+        });
+        setLoading(false);
+        return;
+      }
+
       const { data, error: verifyError } = await supabase.functions.invoke('verify-payment', {
         body: { paymentIntentId: paymentId }
       });
@@ -100,9 +107,21 @@ export default function VerifyPayment() {
             <X className="w-16 h-16 text-destructive mx-auto mb-4" />
             <h2 className="text-xl font-bold text-destructive mb-2">Verification Failed</h2>
             <p className="text-muted-foreground mb-4">{error}</p>
-            <Button onClick={() => navigate('/')} variant="outline">
-              Return Home
-            </Button>
+            <div className="space-y-2">
+              <Button onClick={() => navigate('/')} variant="outline">
+                Return Home
+              </Button>
+              <Button 
+                onClick={() => {
+                  setError(null);
+                  verifyPayment();
+                }} 
+                variant="default"
+                size="sm"
+              >
+                Try Demo
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
