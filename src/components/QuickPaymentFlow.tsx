@@ -152,14 +152,19 @@ export default function QuickPaymentFlow({
           creditsUsed: creditsToUse,
           finalAmount,
           totalSavings,
-          paymentCode: data.paymentCode,
-          expiresAt: data.expiresAt,
-          merchantName: data.merchantName,
+          paymentCode: data.data.paymentCode,
+          expiresAt: data.data.expiresAt,
+          merchantName: data.data.merchantName,
           dealTitle: grabData?.deals?.title,
           hasCreditsApplied: creditsToUse > 0,
           isFullyCovered: finalAmount === 0,
           paymentMethod: 'code'
         };
+        
+        console.log('Payment code generated for validation:', {
+          paymentCode: data.data.paymentCode,
+          fullResponse: data.data
+        });
         
         setPaymentResult(result);
         onComplete(result);
