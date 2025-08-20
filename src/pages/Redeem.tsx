@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Clock, QrCode, MapPin, RefreshCw, CheckCircle, XCircle } from "lucide-react";
+import { Clock, QrCode, MapPin, RefreshCw, CheckCircle, XCircle, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getUserId } from "@/utils/userIdManager";
@@ -38,6 +39,7 @@ export default function Redeem() {
   const [historyGrabs, setHistoryGrabs] = useState<GrabData[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("active");
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     fetchGrabs();
@@ -101,6 +103,18 @@ export default function Redeem() {
     if (days > 0) return `${days} days left`;
     if (hours > 0) return `${hours} hours left`;
     return 'Ending soon';
+  };
+
+  const filterGrabs = (grabs: GrabData[]) => {
+    if (!searchTerm.trim()) return grabs;
+    
+    const lowercaseSearch = searchTerm.toLowerCase();
+    return grabs.filter(grab => 
+      grab.deals.title.toLowerCase().includes(lowercaseSearch) ||
+      grab.deals.merchants.name.toLowerCase().includes(lowercaseSearch) ||
+      grab.deals.description?.toLowerCase().includes(lowercaseSearch) ||
+      grab.pin.includes(searchTerm)
+    );
   };
 
   const handleUseNow = (grabId: string, e: React.MouseEvent) => {
@@ -219,63 +233,123 @@ export default function Redeem() {
           </Button>
         </div>
 
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Input
+            placeholder="Search deals, merchants, or PIN..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 pr-4"
+          />
+        </div>
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="active" className="relative">
               Active
-              {activeGrabs.length > 0 && (
+              {filterGrabs(activeGrabs).length > 0 && (
                 <Badge variant="secondary" className="ml-2 h-5 text-xs">
-                  {activeGrabs.length}
+                  {filterGrabs(activeGrabs).length}
                 </Badge>
               )}
             </TabsTrigger>
             <TabsTrigger value="history" className="relative">
               History
-              {historyGrabs.length > 0 && (
+              {filterGrabs(historyGrabs).length > 0 && (
                 <Badge variant="outline" className="ml-2 h-5 text-xs">
-                  {historyGrabs.length}
+                  {filterGrabs(historyGrabs).length}
                 </Badge>
               )}
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="active" className="mt-4">
-            {activeGrabs.length === 0 ? (
-              <Card>
-                <CardContent className="pt-6 text-center">
-                  <QrCode className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No Active Grab Passes</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Start grabbing deals to see your active passes here!
-                  </p>
-                  <Button onClick={() => navigate('/deals')} className="w-full">
-                    Browse Deals
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-4">
-                {activeGrabs.map((grab) => renderGrabCard(grab, true))}
-              </div>
-            )}
+            {(() => {
+              const filteredActiveGrabs = filterGrabs(activeGrabs);
+              
+              if (activeGrabs.length === 0) {
+                return (
+                  <Card>
+                    <CardContent className="pt-6 text-center">
+                      <QrCode className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">No Active Grab Passes</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Start grabbing deals to see your active passes here!
+                      </p>
+                      <Button onClick={() => navigate('/deals')} className="w-full">
+                        Browse Deals
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              }
+              
+              if (filteredActiveGrabs.length === 0 && searchTerm) {
+                return (
+                  <Card>
+                    <CardContent className="pt-6 text-center">
+                      <Search className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">No Results Found</h3>
+                      <p className="text-muted-foreground mb-4">
+                        No active grab passes match "{searchTerm}"
+                      </p>
+                      <Button variant="outline" onClick={() => setSearchTerm("")}>
+                        Clear Search
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              }
+              
+              return (
+                <div className="space-y-4">
+                  {filteredActiveGrabs.map((grab) => renderGrabCard(grab, true))}
+                </div>
+              );
+            })()}
           </TabsContent>
 
           <TabsContent value="history" className="mt-4">
-            {historyGrabs.length === 0 ? (
-              <Card>
-                <CardContent className="pt-6 text-center">
-                  <Clock className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No History Yet</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Your used and expired grab passes will appear here.
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-4">
-                {historyGrabs.map((grab) => renderGrabCard(grab, false))}
-              </div>
-            )}
+            {(() => {
+              const filteredHistoryGrabs = filterGrabs(historyGrabs);
+              
+              if (historyGrabs.length === 0) {
+                return (
+                  <Card>
+                    <CardContent className="pt-6 text-center">
+                      <Clock className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">No History Yet</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Your used and expired grab passes will appear here.
+                      </p>
+                    </CardContent>
+                  </Card>
+                );
+              }
+              
+              if (filteredHistoryGrabs.length === 0 && searchTerm) {
+                return (
+                  <Card>
+                    <CardContent className="pt-6 text-center">
+                      <Search className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">No Results Found</h3>
+                      <p className="text-muted-foreground mb-4">
+                        No history grab passes match "{searchTerm}"
+                      </p>
+                      <Button variant="outline" onClick={() => setSearchTerm("")}>
+                        Clear Search
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              }
+              
+              return (
+                <div className="space-y-4">
+                  {filteredHistoryGrabs.map((grab) => renderGrabCard(grab, false))}
+                </div>
+              );
+            })()}
           </TabsContent>
         </Tabs>
 
