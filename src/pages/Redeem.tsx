@@ -129,8 +129,7 @@ export default function Redeem() {
     return (
       <Card 
         key={grab.id} 
-        className="cursor-pointer hover:shadow-md transition-all duration-300 border-l-4 border-l-primary/20"
-        onClick={() => navigate(`/pay-at-merchant?grabId=${grab.id}`)}
+        className="hover:shadow-md transition-all duration-300 border-l-4 border-l-primary/20"
       >
         <CardContent className="p-4">
           <div className="flex justify-between items-start mb-3">
