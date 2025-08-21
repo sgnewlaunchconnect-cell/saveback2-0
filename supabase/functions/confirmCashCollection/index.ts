@@ -18,9 +18,20 @@ serve(async (req) => {
     const { paymentCode, merchantId } = await req.json();
     console.log('confirmCashCollection called with:', { paymentCode, merchantId });
 
-    if (!paymentCode || !merchantId) {
+    // Check if this is demo mode
+    const isDemoMode = merchantId === null;
+    console.log('Demo mode:', isDemoMode);
+
+    if (!paymentCode) {
       return new Response(
-        JSON.stringify({ error: 'Payment code and merchant ID are required' }),
+        JSON.stringify({ error: 'Payment code is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!isDemoMode && !merchantId) {
+      return new Response(
+        JSON.stringify({ error: 'Merchant ID is required for non-demo transactions' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -30,20 +41,25 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Get the authorized transaction
-    const { data: transaction, error: fetchError } = await supabase
+    // Get the validated transaction
+    let query = supabase
       .from('pending_transactions')
       .select('*')
       .eq('payment_code', paymentCode)
-      .eq('merchant_id', merchantId)
-      .eq('status', 'authorized')
-      .single();
+      .eq('status', 'validated'); // Changed from 'authorized' to 'validated'
+
+    // Only add merchant filter if not in demo mode
+    if (!isDemoMode) {
+      query = query.eq('merchant_id', merchantId);
+    }
+
+    const { data: transaction, error: fetchError } = await query.single();
 
     if (fetchError || !transaction) {
-      console.error('Transaction not found or not authorized:', fetchError);
+      console.error('Transaction not found or not validated:', fetchError);
       return new Response(
         JSON.stringify({ 
-          error: 'Transaction not found or not in authorized state',
+          error: 'Transaction not found or not in validated state',
           success: false 
         }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
