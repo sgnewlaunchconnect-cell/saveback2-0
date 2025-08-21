@@ -97,8 +97,8 @@ const DealDetail = () => {
         description: "Deal reserved successfully. Check 'Redeem' tab to use it."
       });
 
-      // Navigate to redeem page to show grabbed deal
-      navigate(`/redeem`);
+      // Navigate to redeem page with the new grab ID
+      navigate(`/redeem?grabId=${data.grabId}`);
     } catch (error) {
       console.error('Error grabbing deal:', error);
       toast({

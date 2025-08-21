@@ -1,5 +1,3 @@
-
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -8,9 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Demo secret for HMAC signing - in production this should be a real secret
-const DEMO_SECRET = 'demo-grab-token-secret-key-12345';
-
+// Generate HMAC signature for QR token
 async function generateHMAC(data: string, secret: string): Promise<string> {
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
@@ -27,6 +23,7 @@ async function generateHMAC(data: string, secret: string): Promise<string> {
     .join('');
 }
 
+// Generate 6-digit PIN
 function generatePIN(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
@@ -38,72 +35,69 @@ serve(async (req) => {
   }
 
   try {
-    // Use service role for anonymous operations
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
     const { dealId, anonymousUserId } = await req.json();
+    console.log('createGrab called with:', { dealId, anonymousUserId });
 
-    if (!dealId) {
-      throw new Error('Deal ID is required');
-    }
-
-    if (!anonymousUserId) {
-      throw new Error('Anonymous user ID is required');
-    }
-
-    // Try to get authenticated user if auth header is present
+    // Get authenticated user if Authorization header is present
     let userId = null;
     const authHeader = req.headers.get('Authorization');
-    
     if (authHeader) {
-      try {
-        const { data: { user } } = await supabaseClient.auth.getUser(
-          authHeader.replace('Bearer ', '')
-        );
-        if (user) {
-          userId = user.id;
-        }
-      } catch (authError) {
-        // Ignore auth errors, continue with anonymous user
-        console.log('Auth failed, using anonymous user:', authError);
+      const token = authHeader.replace('Bearer ', '');
+      const { data: user, error: authError } = await supabaseClient.auth.getUser(token);
+      if (authError) {
+        console.error('Auth error:', authError);
+      } else {
+        userId = user.user?.id;
+        console.log('Authenticated user:', userId);
       }
     }
+
+    // Use demo user ID for anonymous users
+    const userIdForQuery = userId || '550e8400-e29b-41d4-a716-446655440000';
 
     // Validate deal exists and is active
     const { data: deal, error: dealError } = await supabaseClient
       .from('deals')
-      .select(`
-        *,
-        merchants (
-          id,
-          name
-        )
-      `)
+      .select('*')
       .eq('id', dealId)
       .eq('is_active', true)
       .single();
 
     if (dealError || !deal) {
-      throw new Error('Deal not found or inactive');
+      console.error('Deal not found or inactive:', dealError);
+      return new Response(JSON.stringify({ error: 'Deal not found or inactive' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    // Check if deal is expired
-    if (deal.end_at && new Date(deal.end_at) < new Date()) {
-      throw new Error('Deal has expired');
+    // Check if deal has expired
+    if (deal.end_at && new Date(deal.end_at) <= new Date()) {
+      console.log('Deal has expired:', deal.end_at);
+      return new Response(JSON.stringify({ error: 'Deal has expired' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    // Check stock availability (only if stock is limited)
+    // Check stock availability
     if (deal.stock && deal.stock > 0) {
-      const currentRedemptions = deal.redemptions || 0;
-      if (currentRedemptions >= deal.stock) {
-        throw new Error('Deal is sold out');
+      const redemptions = deal.redemptions || 0;
+      if (redemptions >= deal.stock) {
+        console.log('Deal is sold out. Stock:', deal.stock, 'Redemptions:', redemptions);
+        return new Response(JSON.stringify({ error: 'Deal is sold out' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
     }
 
-    // Check for existing active grab
+    // Check for existing active grab for this user and deal
     let existingGrabQuery = supabaseClient
       .from('grabs')
       .select('*')
@@ -112,116 +106,82 @@ serve(async (req) => {
       .gt('expires_at', new Date().toISOString());
 
     if (userId) {
-      // For authenticated users, check by user_id
       existingGrabQuery = existingGrabQuery.eq('user_id', userId);
     } else {
-      // For anonymous users, check by anon_user_id
-      existingGrabQuery = existingGrabQuery.eq('anon_user_id', anonymousUserId);
+      existingGrabQuery = existingGrabQuery
+        .eq('user_id', userIdForQuery)
+        .eq('anon_user_id', anonymousUserId || '');
     }
 
-    const { data: existingGrab } = await existingGrabQuery.single();
+    const { data: existingGrab, error: existingError } = await existingGrabQuery.single();
 
-    if (existingGrab) {
-      // Return existing grab instead of creating new one
-      const expiresAt = new Date(existingGrab.expires_at);
-      const countdown = Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / 1000));
-      
-      return new Response(JSON.stringify({
-        success: true,
-        grab: {
-          id: existingGrab.id,
-          qrToken: existingGrab.qr_token,
-          pin: existingGrab.pin,
-          expiresAt: existingGrab.expires_at,
-          countdown,
-          deal: {
-            title: deal.title,
-            merchant: deal.merchants?.name
-          }
-        }
+    if (existingGrab && !existingError) {
+      console.log('User already has an active grab for this deal:', existingGrab.id);
+      return new Response(JSON.stringify({ 
+        grabId: existingGrab.id,
+        message: 'You already have an active grab for this deal',
+        grab: existingGrab
       }), {
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Generate PIN and create grab token data
+    // Generate PIN and expiry
     const pin = generatePIN();
-    
-    // Set expiry to earlier of deal end time or 24 hours from now
-    const dealEndTime = deal.end_at ? new Date(deal.end_at) : null;
-    const maxGrabTime = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
-    const expiresAt = dealEndTime && dealEndTime < maxGrabTime ? dealEndTime : maxGrabTime;
-    
-    // Create token data for HMAC
-    const tokenData = JSON.stringify({
-      dealId: deal.id,
-      userId: userId || anonymousUserId,
-      merchantId: deal.merchant_id,
-      pin,
-      expiresAt: expiresAt.toISOString()
-    });
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
 
-    // Generate HMAC-signed token
-    const signature = await generateHMAC(tokenData, DEMO_SECRET);
-    const qrToken = `${btoa(tokenData)}.${signature}`;
+    // Generate QR token with HMAC signature
+    const qrData = `${dealId}:${userIdForQuery}:${Date.now()}`;
+    const secret = Deno.env.get('QR_SECRET') || 'fallback-secret-key';
+    const signature = await generateHMAC(qrData, secret);
+    const qrToken = `${qrData}:${signature}`;
 
-    // Create grab record with proper user handling
-    const grabData: any = {
-      deal_id: deal.id,
-      merchant_id: deal.merchant_id,
-      pin,
-      qr_token: qrToken,
-      expires_at: expiresAt.toISOString(),
-      status: 'ACTIVE'
-    };
-
-    if (userId) {
-      grabData.user_id = userId;
-    } else {
-      grabData.anon_user_id = anonymousUserId;
-    }
-
-    const { data: grab, error: grabError } = await supabaseClient
+    // Create grab record
+    const { data: newGrab, error: createError } = await supabaseClient
       .from('grabs')
-      .insert(grabData)
+      .insert({
+        deal_id: dealId,
+        merchant_id: deal.merchant_id,
+        user_id: userIdForQuery,
+        anon_user_id: anonymousUserId,
+        pin: pin,
+        qr_token: qrToken,
+        expires_at: expiresAt.toISOString(),
+        status: 'ACTIVE'
+      })
       .select()
       .single();
 
-    if (grabError) {
-      console.error('Error creating grab:', grabError);
-      throw new Error('Failed to create grab');
+    if (createError) {
+      console.error('Error creating grab:', createError);
+      return new Response(JSON.stringify({ error: 'Failed to create grab' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    // Update deal grabs count
+    // Update deal grab count
     await supabaseClient
       .from('deals')
       .update({ grabs: (deal.grabs || 0) + 1 })
       .eq('id', dealId);
 
-    // Return grab data
-    return new Response(JSON.stringify({
+    console.log('Successfully created grab:', newGrab.id, 'for anonymous user:', anonymousUserId, 'deal:', dealId);
+
+    return new Response(JSON.stringify({ 
       success: true,
-      grab: {
-        id: grab.id,
-        qrToken,
-        pin,
-        expiresAt: expiresAt.toISOString(),
-        countdown: Math.floor((expiresAt.getTime() - Date.now()) / 1000),
-        deal: {
-          title: deal.title,
-          merchant: deal.merchants?.name
-        }
-      }
+      grabId: newGrab.id,
+      grab: newGrab
     }), {
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error in createGrab function:', error);
-    return new Response(JSON.stringify({ 
-      error: error.message || 'Internal server error' 
-    }), {
-      status: 400,
+    console.error('Unexpected error in createGrab:', error);
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

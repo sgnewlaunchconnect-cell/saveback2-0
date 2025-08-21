@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,15 +35,63 @@ interface GrabData {
 export default function Redeem() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   const [activeGrabs, setActiveGrabs] = useState<GrabData[]>([]);
   const [historyGrabs, setHistoryGrabs] = useState<GrabData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [polling, setPolling] = useState(false);
   const [activeTab, setActiveTab] = useState("active");
   const [searchTerm, setSearchTerm] = useState("");
+  const [highlightedGrabId, setHighlightedGrabId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchGrabs();
-  }, []);
+    const targetGrabId = searchParams.get('grabId');
+    if (targetGrabId) {
+      fetchGrabsWithPolling(targetGrabId);
+    } else {
+      fetchGrabs();
+    }
+    
+    // Set up realtime updates for grabs
+    const anonymousUserId = getUserId();
+    const channel = supabase
+      .channel('grab-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'grabs',
+          filter: `anon_user_id=eq.${anonymousUserId}`
+        },
+        (payload) => {
+          console.log('New grab created:', payload);
+          // Add new grab to active list if not expired
+          const newGrab = payload.new;
+          if (new Date(newGrab.expires_at) > new Date()) {
+            fetchGrabs(); // Refresh to get full data with joins
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public', 
+          table: 'grabs',
+          filter: `anon_user_id=eq.${anonymousUserId}`
+        },
+        (payload) => {
+          console.log('Grab updated:', payload);
+          fetchGrabs(); // Refresh on updates
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [searchParams]);
 
   const fetchGrabs = async () => {
     setLoading(true);
@@ -90,6 +138,70 @@ export default function Redeem() {
     }
   };
 
+  const fetchGrabsWithPolling = async (targetGrabId: string) => {
+    setLoading(true);
+    setPolling(true);
+    
+    let attempts = 0;
+    const maxAttempts = 6; // 3 seconds total
+    
+    const pollForGrab = async (): Promise<boolean> => {
+      try {
+        const anonymousUserId = getUserId();
+        
+        const { data: activeData, error } = await supabase.functions.invoke('getGrabs', {
+          body: { anonymousUserId, includeHistory: false }
+        });
+
+        if (error) throw error;
+
+        if (activeData?.success) {
+          const grabs = activeData.data || [];
+          setActiveGrabs(grabs);
+          
+          // Check if target grab is found
+          const foundGrab = grabs.find((grab: GrabData) => grab.id === targetGrabId);
+          if (foundGrab) {
+            setHighlightedGrabId(targetGrabId);
+            // Clear highlight after 3 seconds
+            setTimeout(() => setHighlightedGrabId(null), 3000);
+            return true;
+          }
+        }
+        
+        return false;
+      } catch (error) {
+        console.error('Error polling for grab:', error);
+        return false;
+      }
+    };
+
+    // Try to find the grab immediately
+    const found = await pollForGrab();
+    if (found) {
+      setLoading(false);
+      setPolling(false);
+      await fetchGrabs(); // Also fetch history
+      return;
+    }
+
+    // Poll for up to 3 seconds
+    const pollInterval = setInterval(async () => {
+      attempts++;
+      
+      const found = await pollForGrab();
+      if (found || attempts >= maxAttempts) {
+        clearInterval(pollInterval);
+        setLoading(false);
+        setPolling(false);
+        if (!found) {
+          // Still fetch all grabs even if target not found
+          await fetchGrabs();
+        }
+      }
+    }, 500);
+  };
+
   const getTimeLeft = (expiresAt: string) => {
     const now = new Date();
     const expiry = new Date(expiresAt);
@@ -127,11 +239,16 @@ export default function Redeem() {
   const renderGrabCard = (grab: GrabData, showUseButton = false) => {
     const isExpired = new Date(grab.expires_at) <= new Date();
     const isUsed = grab.status === 'USED';
+    const isHighlighted = highlightedGrabId === grab.id;
     
     return (
       <Card 
         key={grab.id} 
-        className="hover:shadow-md transition-all duration-300 border-l-4 border-l-primary/20"
+        className={`hover:shadow-md transition-all duration-300 border-l-4 ${
+          isHighlighted 
+            ? 'border-l-primary bg-primary/5 shadow-lg' 
+            : 'border-l-primary/20'
+        }`}
       >
         <CardContent className="p-4">
           <div className="flex justify-between items-start mb-3">
@@ -239,6 +356,12 @@ export default function Redeem() {
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
+
+        {polling && (
+          <div className="mb-4 p-3 bg-primary/10 border border-primary/20 rounded-lg">
+            <p className="text-sm text-primary font-medium">Syncing your pass...</p>
+          </div>
+        )}
 
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />

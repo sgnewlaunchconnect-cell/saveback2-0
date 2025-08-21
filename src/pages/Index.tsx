@@ -48,9 +48,25 @@ const Index = () => {
   useEffect(() => {
     fetchDeals();
     
-    // Set up real-time updates for deal grabs
+    // Set up real-time updates for deals
     const channel = supabase
-      .channel('schema-db-changes')
+      .channel('deals-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'deals'
+        },
+        (payload) => {
+          console.log('New deal created:', payload);
+          // Add new deal if it's active and not expired
+          const newDeal = payload.new;
+          if (newDeal.is_active && (!newDeal.end_at || new Date(newDeal.end_at) > new Date())) {
+            fetchDeals(); // Refresh to get complete data with merchant joins
+          }
+        }
+      )
       .on(
         'postgres_changes',
         {
@@ -88,8 +104,8 @@ const Index = () => {
           merchants(id, name, address, category, logo_url, payout_method)
         `)
         .eq('is_active', true)
-        .gt('end_at', now)
-        .order('end_at', { ascending: true });
+        .or(`end_at.is.null,end_at.gt.${now}`) // Include deals with null end_at OR future end_at
+        .order('created_at', { ascending: false }); // Show newest deals first
 
       if (error) throw error;
       setDeals(data || []);

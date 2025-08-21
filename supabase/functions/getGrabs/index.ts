@@ -21,6 +21,8 @@ serve(async (req) => {
     );
 
     const { anonymousUserId, includeHistory = false } = await req.json();
+    
+    console.log('getGrabs called with:', { anonymousUserId, includeHistory });
 
     let userId = null;
     const authHeader = req.headers.get('Authorization');
@@ -133,6 +135,12 @@ serve(async (req) => {
           }
         }
       };
+    });
+
+    console.log('getGrabs returning:', {
+      anonymousUserId,
+      activeCount: enrichedGrabs.filter(g => g.status === 'ACTIVE' && new Date(g.expires_at) > new Date()).length,
+      totalCount: enrichedGrabs.length
     });
 
     return new Response(JSON.stringify({
