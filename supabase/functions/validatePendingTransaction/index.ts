@@ -293,8 +293,16 @@ serve(async (req) => {
 
     } catch (error) {
       console.error('Error during transaction processing:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       return new Response(
-        JSON.stringify({ error: 'Failed to process transaction' }),
+        JSON.stringify({ 
+          error: 'Failed to process transaction',
+          details: error.message 
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
