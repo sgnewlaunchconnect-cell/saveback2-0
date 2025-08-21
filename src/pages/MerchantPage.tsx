@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   MapPin, Phone, Star, Heart, Users, ShoppingCart, 
-  Clock, TrendingUp, Eye, MessageCircle, Plus
+  Clock, TrendingUp, Eye, MessageCircle, Plus, QrCode
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -262,14 +262,16 @@ export default function MerchantPage() {
             <div className="flex items-center gap-3">
               <Button 
                 onClick={() => navigate(`/pay-at-merchant?merchantId=${merchantId}`)}
+                variant="cta"
+                size="lg"
                 className="flex items-center gap-2"
               >
-                <ShoppingCart className="w-4 h-4" />
-                Pay at this merchant
+                <QrCode className="w-5 h-5" />
+                Pay at Merchant
               </Button>
               <Button 
                 onClick={handleFollow}
-                variant={isFollowing ? "secondary" : "default"}
+                variant="outline"
                 className="flex items-center gap-2"
               >
                 <Heart className={`w-4 h-4 ${isFollowing ? 'fill-current' : ''}`} />
@@ -509,6 +511,19 @@ export default function MerchantPage() {
             </Card>
           </TabsContent>
         </Tabs>
+      </div>
+
+      {/* Mobile Sticky CTA */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-sm border-t md:hidden">
+        <Button 
+          onClick={() => navigate(`/pay-at-merchant?merchantId=${merchantId}`)}
+          variant="cta"
+          size="lg"
+          className="w-full flex items-center justify-center gap-2"
+        >
+          <QrCode className="w-5 h-5" />
+          Pay at Merchant
+        </Button>
       </div>
     </div>
   );

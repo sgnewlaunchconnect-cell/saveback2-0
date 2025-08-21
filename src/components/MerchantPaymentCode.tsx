@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, CreditCard, Gift, Clock, QrCode, Loader2, Eye, AlertCircle, Play, CheckCheck, Copy, Download } from 'lucide-react';
+import { CheckCircle, CreditCard, Gift, Clock, QrCode, Loader2, Eye, AlertCircle, Play, CheckCheck, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 import { supabase } from '@/integrations/supabase/client';
@@ -83,15 +83,15 @@ export default function MerchantPaymentCode({
         // Update status message
         switch (status) {
           case 'pending':
-            setStatusMessage('Waiting for cashier to scan...');
+            setStatusMessage('Waiting for merchant to scan…');
             break;
           case 'validated':
             setStatusMessage(paymentResult.finalAmount === 0 
-              ? 'Verified - Transaction Complete!' 
-              : `Verified - Please pay ₹${paymentResult.finalAmount.toFixed(2)} in cash`);
+              ? 'Verified — Transaction complete!' 
+              : `Verified — Please pay ₹${paymentResult.finalAmount.toFixed(2)} to the cashier.`);
             break;
           case 'completed':
-            setStatusMessage('Payment confirmed! Transaction complete.');
+            setStatusMessage('Payment confirmed — Transaction complete.');
             setIsPolling(false);
             toast({
               title: "Payment Confirmed!",
@@ -153,43 +153,6 @@ export default function MerchantPaymentCode({
     }
   };
 
-  // Download QR code as PNG
-  const downloadQRCode = () => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const qrSize = 300;
-    
-    canvas.width = qrSize + 40;
-    canvas.height = qrSize + 80;
-    
-    // White background
-    ctx!.fillStyle = '#ffffff';
-    ctx!.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Create QR code SVG
-    const qrData = `${window.location.origin}/hawker/validate?mode=payment&code=${paymentResult.paymentCode}`;
-    const qrSvg = `<svg width="${qrSize}" height="${qrSize}" xmlns="http://www.w3.org/2000/svg">
-      <rect width="${qrSize}" height="${qrSize}" fill="white"/>
-      <!-- QR code would be generated here -->
-    </svg>`;
-    
-    // Add text
-    ctx!.fillStyle = '#000000';
-    ctx!.font = '14px Arial';
-    ctx!.textAlign = 'center';
-    ctx!.fillText(`Code: ${paymentResult.paymentCode}`, canvas.width / 2, canvas.height - 20);
-    
-    // Download
-    const link = document.createElement('a');
-    link.download = `payment-qr-${paymentResult.paymentCode}.png`;
-    link.href = canvas.toDataURL();
-    link.click();
-    
-    toast({
-      title: "QR Downloaded!",
-      description: "QR code saved to your device",
-    });
-  };
 
   // Calculate countdown progress for ring animation
   const totalTime = paymentResult.expiresAt 
@@ -285,20 +248,20 @@ export default function MerchantPaymentCode({
               {isCompleted ? 'Completed' :
                isVoided ? 'Cancelled' :
                isExpired ? 'Expired' :
-               isValidated ? 'Verified' :
-               'Pending'}
-            </span>
-          </Badge>
-          <span 
-            className="text-sm text-muted-foreground"
-            aria-live="polite"
-          >
-            {isCompleted ? 'Payment confirmed' :
-             isVoided ? 'Transaction cancelled' :
-             isExpired ? 'Code expired' :
-             isValidated ? (paymentResult.finalAmount === 0 ? 'Free purchase' : 'Pay in cash') :
-             'Waiting for cashier to scan...'}
-          </span>
+             isValidated ? 'Verified' :
+             'Pending'}
+           </span>
+         </Badge>
+         <span 
+           className="text-sm text-muted-foreground"
+           aria-live="polite"
+         >
+           {isCompleted ? 'Payment confirmed' :
+            isVoided ? 'Transaction cancelled' :
+            isExpired ? 'Code expired' :
+            isValidated ? (paymentResult.finalAmount === 0 ? 'Free purchase' : 'Pay in cash') :
+            'Waiting for merchant to scan…'}
+         </span>
         </div>
         
         {paymentResult.expiresAt && !isExpired && !isCompleted && (
@@ -354,7 +317,7 @@ export default function MerchantPaymentCode({
           <div className="space-y-6">
             {/* QR Code with Countdown Ring */}
             <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-4">For cashier to scan</p>
+              <p className="text-sm text-muted-foreground mb-4">Ask the merchant to scan this code. They will validate and then confirm cash collection.</p>
               
               {!isExpired && (
                 <div className="relative inline-block">
@@ -433,31 +396,33 @@ export default function MerchantPaymentCode({
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex gap-2">
-              <Button
-                onClick={downloadQRCode}
-                variant="outline"
-                size="sm"
-                disabled={isExpired ? true : false}
-                className="flex-1"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Download QR
-              </Button>
-              
-              {isDemoMode && transactionStatus === 'pending' && (
-                <Button 
-                  onClick={simulateScan}
-                  variant="outline" 
-                  size="sm"
-                  className="flex-1 border-purple-300 text-purple-700 hover:bg-purple-100"
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  Demo: Scan
-                </Button>
-              )}
-            </div>
+            {/* Demo Mode Actions */}
+            {isDemoMode && (
+              <div className="flex gap-2">
+                {transactionStatus === 'pending' && (
+                  <Button 
+                    onClick={simulateScan}
+                    variant="outline" 
+                    size="sm"
+                    className="flex-1 border-purple-300 text-purple-700 hover:bg-purple-100"
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    Demo: Scan
+                  </Button>
+                )}
+                {transactionStatus === 'validated' && (
+                  <Button 
+                    onClick={simulateConfirm}
+                    variant="outline" 
+                    size="sm"
+                    className="flex-1 border-purple-300 text-purple-700 hover:bg-purple-100"
+                  >
+                    <CheckCheck className="w-4 h-4 mr-2" />
+                    Demo: Confirm
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

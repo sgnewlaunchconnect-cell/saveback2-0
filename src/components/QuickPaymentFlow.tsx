@@ -473,13 +473,15 @@ export default function QuickPaymentFlow({
               </>
             ) : (
               <>
-                <li>3. Show the generated code to cashier</li>
-                <li>4. {finalAmount === 0 ? "Enjoy your free purchase!" : "Pay cashier the remaining amount"}</li>
+                <li>3. Show this code to the merchant to scan</li>
+                <li>4. Merchant validates the purchase</li>
+                <li>5. Merchant confirms cash collection</li>
+                <li>6. You pay the remaining amount (or enjoy your free purchase)</li>
               </>
             )}
             {cashbackEarned > 0 && (
               <li className="font-medium text-purple-700 dark:text-purple-300">
-                {paymentMethod === 'psp' ? '6' : '5'}. Earn ₹{cashbackEarned.toFixed(2)} credits for next time! 🎁
+                {paymentMethod === 'psp' ? '6' : '7'}. Earn ₹{cashbackEarned.toFixed(2)} credits for next time! 🎁
               </li>
             )}
           </ol>
