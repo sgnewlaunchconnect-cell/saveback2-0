@@ -39,6 +39,9 @@ export default function DealForm({ initialData, onSubmit }: DealFormProps) {
       end_at: formData.end_at ? new Date(formData.end_at).toISOString() : null,
     };
     
+    // Remove images field as it's not supported in the database
+    delete submitData.images;
+    
     onSubmit(submitData);
   };
 
@@ -99,11 +102,39 @@ export default function DealForm({ initialData, onSubmit }: DealFormProps) {
             <SelectContent>
               <SelectItem value="CASHBACK">Cashback</SelectItem>
               <SelectItem value="DISCOUNT">Discount</SelectItem>
+              <SelectItem value="BOTH">Both Cashback & Discount</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        {formData.reward_mode === 'CASHBACK' ? (
+        {formData.reward_mode === 'BOTH' ? (
+          <>
+            <div>
+              <Label htmlFor="cashback_pct">Cashback Percentage</Label>
+              <Input
+                id="cashback_pct"
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={formData.cashback_pct}
+                onChange={(e) => updateField('cashback_pct', parseFloat(e.target.value))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="discount_pct">Discount Percentage</Label>
+              <Input
+                id="discount_pct"
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={formData.discount_pct}
+                onChange={(e) => updateField('discount_pct', parseFloat(e.target.value))}
+              />
+            </div>
+          </>
+        ) : formData.reward_mode === 'CASHBACK' ? (
           <div>
             <Label htmlFor="cashback_pct">Cashback Percentage</Label>
             <Input

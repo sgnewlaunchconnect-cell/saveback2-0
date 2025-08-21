@@ -254,9 +254,11 @@ export default function DealManagement({ merchantId }: DealManagementProps) {
                   <div>
                     <p className="text-sm font-medium">Reward</p>
                     <p className="text-lg">
-                      {deal.reward_mode === 'CASHBACK' 
-                        ? `${deal.cashback_pct}% Cashback`
-                        : `${deal.discount_pct}% Discount`
+                      {deal.reward_mode === 'BOTH' 
+                        ? `${deal.cashback_pct}% Cashback + ${deal.discount_pct}% Discount`
+                        : deal.reward_mode === 'CASHBACK' 
+                          ? `${deal.cashback_pct}% Cashback`
+                          : `${deal.discount_pct}% Discount`
                       }
                     </p>
                   </div>

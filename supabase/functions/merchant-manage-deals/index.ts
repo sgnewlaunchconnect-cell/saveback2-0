@@ -36,10 +36,24 @@ serve(async (req) => {
 
     switch (action) {
       case 'create':
+        // Sanitize dealData to only include fields that exist in the database
+        const sanitizedDealData = {
+          title: dealData.title,
+          description: dealData.description,
+          reward_mode: dealData.reward_mode,
+          cashback_pct: dealData.cashback_pct,
+          discount_pct: dealData.discount_pct,
+          stock: dealData.stock,
+          is_active: dealData.is_active,
+          start_at: dealData.start_at,
+          end_at: dealData.end_at,
+          visibility: dealData.visibility || 'PUBLIC'
+        }
+        
         const { data: newDeal, error: createError } = await supabaseClient
           .from('deals')
           .insert({
-            ...dealData,
+            ...sanitizedDealData,
             merchant_id: merchantId
           })
           .select()
@@ -50,9 +64,23 @@ serve(async (req) => {
         break
 
       case 'update':
+        // Sanitize dealData for updates too
+        const sanitizedUpdateData = {
+          title: dealData.title,
+          description: dealData.description,
+          reward_mode: dealData.reward_mode,
+          cashback_pct: dealData.cashback_pct,
+          discount_pct: dealData.discount_pct,
+          stock: dealData.stock,
+          is_active: dealData.is_active,
+          start_at: dealData.start_at,
+          end_at: dealData.end_at,
+          visibility: dealData.visibility
+        }
+        
         const { data: updatedDeal, error: updateError } = await supabaseClient
           .from('deals')
-          .update(dealData)
+          .update(sanitizedUpdateData)
           .eq('id', dealId)
           .eq('merchant_id', merchantId)
           .select()
