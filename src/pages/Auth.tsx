@@ -23,12 +23,19 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      console.log('Attempting sign in with:', { email, password: '***' });
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      console.log('Sign in response:', { data, error });
+
+      if (error) {
+        console.error('Sign in error:', error);
+        throw error;
+      }
 
       toast({
         title: "Welcome back!",
@@ -37,9 +44,10 @@ export default function Auth() {
       
       navigate("/deals");
     } catch (error: any) {
+      console.error('Sign in catch block:', error);
       toast({
         title: "Sign in failed",
-        description: error.message,
+        description: error.message || "Invalid email or password",
         variant: "destructive",
       });
     } finally {
@@ -97,6 +105,12 @@ export default function Auth() {
           <p className="text-muted-foreground">
             Sign in to your account or create a new one
           </p>
+          <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
+            <strong>Test Credentials:</strong><br/>
+            Admin: admin@test.com / testpass123<br/>
+            Merchant: merchant@test.com / testpass123<br/>
+            User: user@test.com / testpass123
+          </div>
         </div>
 
         <Tabs defaultValue="signin" className="w-full">
