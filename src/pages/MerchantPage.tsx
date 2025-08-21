@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getUserId } from "@/utils/userIdManager";
 import PaymentMethodBadge from "@/components/PaymentMethodBadge";
+import ReviewForm from "@/components/ReviewForm";
 
 interface Merchant {
   id: string;
@@ -412,44 +413,60 @@ export default function MerchantPage() {
 
           <TabsContent value="reviews" className="space-y-4">
             {reviews.length > 0 ? (
-              reviews.map((review) => (
-                <Card key={review.id}>
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-sm font-medium">
-                          {review.users?.display_name?.charAt(0) || 'U'}
+              <>
+                {reviews.map((review) => (
+                  <Card key={review.id}>
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-sm font-medium">
+                            {review.users?.display_name?.charAt(0) || 'U'}
+                          </div>
+                          <div>
+                            <p className="font-medium">{review.users?.display_name || 'User'}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {new Date(review.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium">{review.users?.display_name || 'User'}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(review.created_at).toLocaleDateString()}
-                          </p>
+                        <div className="flex items-center gap-1">
+                          {[...Array(5)].map((_, i) => (
+                            <Star 
+                              key={i} 
+                              className={`w-4 h-4 ${i < review.rating ? 'text-yellow-500 fill-current' : 'text-muted-foreground'}`} 
+                            />
+                          ))}
                         </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star 
-                            key={i} 
-                            className={`w-4 h-4 ${i < review.rating ? 'text-yellow-500 fill-current' : 'text-muted-foreground'}`} 
-                          />
-                        ))}
-                      </div>
-                    </div>
-                    {review.comment && (
-                      <p className="text-muted-foreground">{review.comment}</p>
-                    )}
+                      {review.comment && (
+                        <p className="text-muted-foreground">{review.comment}</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+                
+                {/* Add Review Form */}
+                <ReviewForm 
+                  merchantId={merchantId!} 
+                  onReviewSubmitted={fetchMerchantData}
+                />
+              </>
+            ) : (
+              <div className="space-y-4">
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <MessageCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium mb-2">No Reviews Yet</h3>
+                    <p className="text-muted-foreground">Be the first to leave a review for this merchant.</p>
                   </CardContent>
                 </Card>
-              ))
-            ) : (
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <MessageCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No Reviews Yet</h3>
-                  <p className="text-muted-foreground">Be the first to leave a review for this merchant.</p>
-                </CardContent>
-              </Card>
+                
+                {/* Add Review Form */}
+                <ReviewForm 
+                  merchantId={merchantId!} 
+                  onReviewSubmitted={fetchMerchantData}
+                />
+              </div>
             )}
           </TabsContent>
 
