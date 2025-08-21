@@ -301,9 +301,9 @@ serve(async (req) => {
         }
       }
 
-      // For cash payments, mark as authorized and wait for confirmation
+      // For cash payments, mark as validated and wait for confirmation
       // For PSP payments, mark as validated (completed)
-      const newStatus = isCashPayment ? 'authorized' : 'validated';
+      const newStatus = 'validated'; // Use 'validated' instead of 'authorized'
       const updateData: any = { 
         status: newStatus,
         updated_at: new Date().toISOString()
@@ -311,6 +311,8 @@ serve(async (req) => {
       
       if (isCashPayment) {
         updateData.authorized_at = new Date().toISOString();
+      } else {
+        updateData.captured_at = new Date().toISOString();
       }
 
       const { error: updateError } = await supabase
@@ -462,7 +464,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: true,
-          message: isDemoMode ? 'Demo transaction authorized' : (isCashPayment ? 'Transaction authorized - awaiting cash collection' : 'Transaction validated successfully'),
+          message: isDemoMode ? 'Demo transaction validated' : (isCashPayment ? 'Transaction validated - awaiting cash collection' : 'Transaction validated successfully'),
           data: {
             transactionId: transaction.id,
             merchantName: transaction.merchants?.name,

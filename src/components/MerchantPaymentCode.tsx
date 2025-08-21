@@ -31,7 +31,7 @@ export default function MerchantPaymentCode({
 }: MerchantPaymentCodeProps) {
   const { toast } = useToast();
   const [timeLeft, setTimeLeft] = useState(0);
-  const [transactionStatus, setTransactionStatus] = useState<'pending' | 'authorized' | 'completed' | 'voided' | 'expired'>('pending');
+  const [transactionStatus, setTransactionStatus] = useState<'pending' | 'validated' | 'completed' | 'voided' | 'expired'>('pending');
   const [isPolling, setIsPolling] = useState(true);
   const [statusMessage, setStatusMessage] = useState('Waiting for cashier to scan...');
   
@@ -85,7 +85,7 @@ export default function MerchantPaymentCode({
           case 'pending':
             setStatusMessage('Waiting for cashier to scan...');
             break;
-          case 'authorized':
+          case 'validated':
             setStatusMessage(paymentResult.finalAmount === 0 
               ? 'Verified - Transaction Complete!' 
               : `Verified - Please pay ₹${paymentResult.finalAmount.toFixed(2)} in cash`);
@@ -134,7 +134,7 @@ export default function MerchantPaymentCode({
   const isExpired = transactionStatus === 'expired' || (timeLeft === 0 && paymentResult.expiresAt);
   const isCompleted = transactionStatus === 'completed';
   const isVoided = transactionStatus === 'voided';
-  const isAuthorized = transactionStatus === 'authorized';
+  const isValidated = transactionStatus === 'validated';
 
   // Demo functions
   const simulateScan = async () => {
@@ -165,7 +165,7 @@ export default function MerchantPaymentCode({
   };
 
   const simulateConfirm = async () => {
-    if (!isDemoMode || transactionStatus !== 'authorized') return;
+    if (!isDemoMode || transactionStatus !== 'validated') return;
     
     try {
       const { data, error } = await supabase.functions.invoke('confirmCashCollection', {
@@ -199,7 +199,7 @@ export default function MerchantPaymentCode({
         isCompleted ? 'border-green-200 bg-green-50 dark:bg-green-950/20' :
         isVoided ? 'border-red-200 bg-red-50 dark:bg-red-950/20' :
         isExpired ? 'border-orange-200 bg-orange-50 dark:bg-orange-950/20' :
-        isAuthorized ? 'border-blue-200 bg-blue-50 dark:bg-blue-950/20' :
+        isValidated ? 'border-blue-200 bg-blue-50 dark:bg-blue-950/20' :
         'border-gray-200'
       }`}>
         <CardContent className="p-4">
@@ -210,12 +210,12 @@ export default function MerchantPaymentCode({
             {isCompleted && <CheckCircle className="h-4 w-4 text-green-600" />}
             {isVoided && <AlertCircle className="h-4 w-4 text-red-600" />}
             {isExpired && <Clock className="h-4 w-4 text-orange-600" />}
-            {isAuthorized && <Eye className="h-4 w-4 text-blue-600" />}
+            {isValidated && <Eye className="h-4 w-4 text-blue-600" />}
             <span className={`text-sm font-medium ${
               isCompleted ? 'text-green-700 dark:text-green-300' :
               isVoided ? 'text-red-700 dark:text-red-300' :
               isExpired ? 'text-orange-700 dark:text-orange-300' :
-              isAuthorized ? 'text-blue-700 dark:text-blue-300' :
+              isValidated ? 'text-blue-700 dark:text-blue-300' :
               'text-gray-700 dark:text-gray-300'
             }`}>
               {statusMessage}
@@ -234,8 +234,8 @@ export default function MerchantPaymentCode({
               </button>
             )}
             
-            {/* Demo: Confirm Payment button when authorized */}
-            {isDemoMode && isAuthorized && (
+            {/* Demo: Confirm Payment button when validated */}
+            {isDemoMode && isValidated && (
               <Button 
                 onClick={simulateConfirm}
                 variant="outline" 
@@ -299,35 +299,35 @@ export default function MerchantPaymentCode({
           {/* Amount Display - Prominent */}
           <div className={`p-4 rounded-lg border-2 mb-4 ${
             isCompleted ? 'bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200 dark:border-green-800' :
-            isAuthorized ? 'bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 border-blue-200 dark:border-blue-800' :
+            isValidated ? 'bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 border-blue-200 dark:border-blue-800' :
             'bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-950/20 dark:to-slate-950/20 border-gray-200 dark:border-gray-800'
           }`}>
             <div className="text-center">
               <div className={`text-sm font-medium mb-1 ${
                 isCompleted ? 'text-green-700 dark:text-green-300' :
-                isAuthorized && paymentResult.finalAmount > 0 ? 'text-blue-700 dark:text-blue-300' :
+                isValidated && paymentResult.finalAmount > 0 ? 'text-blue-700 dark:text-blue-300' :
                 'text-gray-700 dark:text-gray-300'
               }`}>
                 {isCompleted ? 'PAYMENT COMPLETED' :
-                 isAuthorized && paymentResult.finalAmount === 0 ? 'FREE PURCHASE' :
-                 isAuthorized ? 'CASH COLLECTION' : 
+                 isValidated && paymentResult.finalAmount === 0 ? 'FREE PURCHASE' :
+                 isValidated ? 'CASH COLLECTION' : 
                  'MERCHANT COLLECTS'}
               </div>
               <div className={`text-3xl font-bold ${
                 isCompleted ? 'text-green-600 dark:text-green-400' :
-                isAuthorized && paymentResult.finalAmount > 0 ? 'text-blue-600 dark:text-blue-400' :
-                isAuthorized && paymentResult.finalAmount === 0 ? 'text-green-600 dark:text-green-400' :
+                isValidated && paymentResult.finalAmount > 0 ? 'text-blue-600 dark:text-blue-400' :
+                isValidated && paymentResult.finalAmount === 0 ? 'text-green-600 dark:text-green-400' :
                 'text-gray-600 dark:text-gray-400'
               }`}>
                 {paymentResult.finalAmount === 0 ? 'FREE!' : `₹${paymentResult.finalAmount.toFixed(2)}`}
               </div>
               <div className={`text-xs mt-1 ${
                 isCompleted ? 'text-green-600 dark:text-green-400' :
-                isAuthorized ? 'text-blue-600 dark:text-blue-400' :
+                isValidated ? 'text-blue-600 dark:text-blue-400' :
                 'text-gray-600 dark:text-gray-400'
               }`}>
-                {isAuthorized && paymentResult.finalAmount === 0 ? 'Credits covered full amount' :
-                 isAuthorized ? 'Amount to collect in cash' :
+                {isValidated && paymentResult.finalAmount === 0 ? 'Credits covered full amount' :
+                 isValidated ? 'Amount to collect in cash' :
                  paymentResult.finalAmount === 0 ? 'Fully covered by credits' : 
                  'After credits & discounts'}
               </div>
