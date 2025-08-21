@@ -199,6 +199,10 @@ export default function MerchantPaymentCode({
 
       if (error) throw error;
 
+      // Immediately refresh status after confirmation
+      setTransactionStatus('completed');
+      setIsPolling(false);
+
       toast({
         title: isActualDemo ? "Demo: Payment Confirmed" : "Payment Confirmed",
         description: "Cash collection has been confirmed",

@@ -13,6 +13,7 @@ import { getUserId } from '@/utils/userIdManager';
 import MerchantPaymentCode from './MerchantPaymentCode';
 import StripePaymentForm from './StripePaymentForm';
 import ProofOfPaymentQR from './ProofOfPaymentQR';
+import PaymentSuccess from './PaymentSuccess';
 
 interface QuickPaymentFlowProps {
   grabData: any;
@@ -195,20 +196,63 @@ export default function QuickPaymentFlow({
     setStripePayment(null);
   };
 
-  const handleStripeSuccess = (result: any) => {
+  const handleStripeSuccess = async (result: any) => {
     setStripePayment(null);
     
-    // For Stripe payments, show proof of payment QR
-    const stripeResult = {
-      ...result,
-      paymentMethod: 'stripe',
-      showProofQR: true,
-      merchantName: merchantData?.name || 'Merchant',
-      timestamp: new Date().toLocaleString()
+    // Poll for transaction status to ensure it's completed
+    let retryCount = 0;
+    const maxRetries = 10; // 30 seconds max
+    
+    const pollForCompletion = async (): Promise<boolean> => {
+      try {
+        const { data, error } = await supabase.functions.invoke('checkPendingStatus', {
+          body: { paymentCode: result.paymentCode }
+        });
+        
+        if (!error && data?.data?.status === 'completed') {
+          return true;
+        }
+        
+        if (retryCount < maxRetries) {
+          retryCount++;
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          return pollForCompletion();
+        }
+        
+        return false;
+      } catch (error) {
+        console.error('Error polling status:', error);
+        return false;
+      }
     };
     
-    setPaymentResult(stripeResult);
-    onComplete(stripeResult);
+    const isCompleted = await pollForCompletion();
+    
+    if (isCompleted) {
+      // Show success screen for completed payment
+      const successResult = {
+        ...result,
+        paymentMethod: 'stripe',
+        showSuccess: true,
+        merchantName: merchantData?.name || 'Merchant',
+        timestamp: new Date().toLocaleString()
+      };
+      
+      setPaymentResult(successResult);
+      onComplete(successResult);
+    } else {
+      // Fallback to proof QR if verification times out
+      const stripeResult = {
+        ...result,
+        paymentMethod: 'stripe',
+        showProofQR: true,
+        merchantName: merchantData?.name || 'Merchant',
+        timestamp: new Date().toLocaleString()
+      };
+      
+      setPaymentResult(stripeResult);
+      onComplete(stripeResult);
+    }
   };
 
   const handleStripeError = (error: string) => {
@@ -248,6 +292,21 @@ export default function QuickPaymentFlow({
         onBack={handleBackToEdit}
         merchantData={merchantData}
         grabData={grabData}
+      />
+    );
+  }
+
+  // If we have Stripe payment result with success confirmation, show PaymentSuccess
+  if (paymentResult && paymentResult.paymentMethod === 'stripe' && paymentResult.showSuccess) {
+    return (
+      <PaymentSuccess
+        paymentCode={paymentResult.paymentCode}
+        totalSavings={totalSavings}
+        originalAmount={amount}
+        finalAmount={finalAmountWithFees}
+        creditsUsed={creditsToUse}
+        directDiscountAmount={directDiscount}
+        onContinue={handleBackToEdit}
       />
     );
   }

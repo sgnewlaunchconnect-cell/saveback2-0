@@ -43,7 +43,8 @@ serve(async (req) => {
         merchants (
           id,
           name,
-          default_cashback_pct
+          default_cashback_pct,
+          psp_enabled
         )
       `)
       .eq('payment_code', paymentCode);

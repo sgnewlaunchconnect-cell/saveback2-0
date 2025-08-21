@@ -70,7 +70,8 @@ serve(async (req) => {
       'validatePendingTransaction',
       { 
         body: { 
-          paymentCode: pendingTransaction.payment_code 
+          paymentCode: pendingTransaction.payment_code,
+          captureNow: true // PSP payments should be captured immediately
         }
       }
     );
