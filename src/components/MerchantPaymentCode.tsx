@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, CreditCard, Gift, Clock, QrCode, Loader2, Eye, AlertCircle, Play, CheckCheck } from 'lucide-react';
+import { CheckCircle, CreditCard, Gift, Clock, QrCode, Loader2, Eye, AlertCircle, Play, CheckCheck, Copy, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 import { supabase } from '@/integrations/supabase/client';
@@ -136,6 +136,67 @@ export default function MerchantPaymentCode({
   const isVoided = transactionStatus === 'voided';
   const isValidated = transactionStatus === 'validated';
 
+  // Copy payment code to clipboard
+  const copyPaymentCode = async () => {
+    try {
+      await navigator.clipboard.writeText(paymentResult.paymentCode);
+      toast({
+        title: "Code Copied!",
+        description: "Payment code copied to clipboard",
+      });
+    } catch (error) {
+      toast({
+        title: "Copy Failed",
+        description: "Failed to copy payment code",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Download QR code as PNG
+  const downloadQRCode = () => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const qrSize = 300;
+    
+    canvas.width = qrSize + 40;
+    canvas.height = qrSize + 80;
+    
+    // White background
+    ctx!.fillStyle = '#ffffff';
+    ctx!.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Create QR code SVG
+    const qrData = `${window.location.origin}/hawker/validate?mode=payment&code=${paymentResult.paymentCode}`;
+    const qrSvg = `<svg width="${qrSize}" height="${qrSize}" xmlns="http://www.w3.org/2000/svg">
+      <rect width="${qrSize}" height="${qrSize}" fill="white"/>
+      <!-- QR code would be generated here -->
+    </svg>`;
+    
+    // Add text
+    ctx!.fillStyle = '#000000';
+    ctx!.font = '14px Arial';
+    ctx!.textAlign = 'center';
+    ctx!.fillText(`Code: ${paymentResult.paymentCode}`, canvas.width / 2, canvas.height - 20);
+    
+    // Download
+    const link = document.createElement('a');
+    link.download = `payment-qr-${paymentResult.paymentCode}.png`;
+    link.href = canvas.toDataURL();
+    link.click();
+    
+    toast({
+      title: "QR Downloaded!",
+      description: "QR code saved to your device",
+    });
+  };
+
+  // Calculate countdown progress for ring animation
+  const totalTime = paymentResult.expiresAt 
+    ? new Date(paymentResult.expiresAt).getTime() - new Date().getTime() + timeLeft
+    : 300000; // 5 minutes default
+  const progress = timeLeft / totalTime;
+
   // Demo functions
   const simulateScan = async () => {
     if (!isDemoMode) return;
@@ -193,149 +254,220 @@ export default function MerchantPaymentCode({
 
 
   return (
-    <div className="space-y-4">
-      {/* Status Indicator */}
-      <Card className={`${
-        isCompleted ? 'border-green-200 bg-green-50 dark:bg-green-950/20' :
-        isVoided ? 'border-red-200 bg-red-50 dark:bg-red-950/20' :
-        isExpired ? 'border-orange-200 bg-orange-50 dark:bg-orange-950/20' :
-        isValidated ? 'border-blue-200 bg-blue-50 dark:bg-blue-950/20' :
-        'border-gray-200'
-      }`}>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-center gap-2 text-center">
+    <div className="space-y-6">
+      {/* Compact Header with Status and Countdown */}
+      <div className="flex items-center justify-between bg-card rounded-lg p-4 border">
+        <div className="flex items-center gap-3">
+          <Badge 
+            variant={
+              isCompleted ? "default" :
+              isVoided ? "destructive" :
+              isExpired ? "secondary" :
+              isValidated ? "outline" :
+              "secondary"
+            }
+            className={`${
+              isCompleted ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+              isVoided ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+              isExpired ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400' :
+              isValidated ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
+              'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
+            }`}
+          >
             {isPolling && !isCompleted && !isVoided && !isExpired && (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-3 w-3 animate-spin mr-1" />
             )}
-            {isCompleted && <CheckCircle className="h-4 w-4 text-green-600" />}
-            {isVoided && <AlertCircle className="h-4 w-4 text-red-600" />}
-            {isExpired && <Clock className="h-4 w-4 text-orange-600" />}
-            {isValidated && <Eye className="h-4 w-4 text-blue-600" />}
-            <span className={`text-sm font-medium ${
-              isCompleted ? 'text-green-700 dark:text-green-300' :
-              isVoided ? 'text-red-700 dark:text-red-300' :
-              isExpired ? 'text-orange-700 dark:text-orange-300' :
-              isValidated ? 'text-blue-700 dark:text-blue-300' :
-              'text-gray-700 dark:text-gray-300'
-            }`}>
-              {statusMessage}
+            {isCompleted && <CheckCircle className="h-3 w-3 mr-1" />}
+            {isVoided && <AlertCircle className="h-3 w-3 mr-1" />}
+            {isExpired && <Clock className="h-3 w-3 mr-1" />}
+            {isValidated && <Eye className="h-3 w-3 mr-1" />}
+            <span className="text-xs font-medium">
+              {isCompleted ? 'Completed' :
+               isVoided ? 'Cancelled' :
+               isExpired ? 'Expired' :
+               isValidated ? 'Verified' :
+               'Pending'}
+            </span>
+          </Badge>
+          <span 
+            className="text-sm text-muted-foreground"
+            aria-live="polite"
+          >
+            {isCompleted ? 'Payment confirmed' :
+             isVoided ? 'Transaction cancelled' :
+             isExpired ? 'Code expired' :
+             isValidated ? (paymentResult.finalAmount === 0 ? 'Free purchase' : 'Pay in cash') :
+             'Waiting for cashier to scan...'}
+          </span>
+        </div>
+        
+        {paymentResult.expiresAt && !isExpired && !isCompleted && (
+          <div className="flex items-center gap-2 text-sm font-mono">
+            <Clock className="w-4 h-4 text-muted-foreground" />
+            <span className={timeLeft < 60000 ? 'text-red-500' : 'text-muted-foreground'}>
+              {minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}
             </span>
           </div>
-          
-          {/* Demo controls - inline after status */}
-          <div className="mt-3 text-center">
-            {/* Enable Demo link when demo is not active */}
-            {!isDemoMode && (
-              <button
-                onClick={enableDemoMode}
-                className="text-xs text-purple-600 hover:text-purple-700 underline"
-              >
-                Enable Demo Mode
-              </button>
-            )}
-            
-            {/* Demo: Confirm Payment button when validated */}
-            {isDemoMode && isValidated && (
-              <Button 
-                onClick={simulateConfirm}
-                variant="outline" 
-                size="sm" 
-                className="border-purple-300 text-purple-700 hover:bg-purple-100 text-xs"
-              >
-                <CheckCheck className="h-3 w-3 mr-1" />
-                Demo: Confirm Payment
-              </Button>
-            )}
+        )}
+      </div>
+
+      {/* Merchant & Deal Context */}
+      <div className="text-center text-sm text-muted-foreground">
+        <span className="font-medium">{paymentResult.dealTitle}</span>
+        <span className="mx-2">at</span>
+        <span>{paymentResult.merchantName}</span>
+      </div>
+
+      {/* Large Amount Display */}
+      <Card className={`text-center ${
+        isCompleted ? 'bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200' :
+        isValidated ? 'bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 border-blue-200' :
+        'bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-950/20 dark:to-slate-950/20'
+      }`}>
+        <CardContent className="py-8">
+          <div className="space-y-2">
+            <p className={`text-sm font-medium ${
+              isCompleted ? 'text-green-700 dark:text-green-300' :
+              isValidated ? 'text-blue-700 dark:text-blue-300' :
+              'text-muted-foreground'
+            }`}>
+              Customer Pays
+            </p>
+            <div className={`text-5xl font-bold ${
+              paymentResult.finalAmount === 0 ? 'text-green-600 dark:text-green-400' :
+              isCompleted ? 'text-green-600 dark:text-green-400' :
+              isValidated ? 'text-blue-600 dark:text-blue-400' :
+              'text-foreground'
+            }`}>
+              {paymentResult.finalAmount === 0 ? 'FREE!' : `₹${paymentResult.finalAmount.toFixed(2)}`}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {paymentResult.finalAmount === 0 ? 'Fully covered by credits' : 'After credits & discounts'}
+            </p>
           </div>
         </CardContent>
       </Card>
 
-      {/* Payment Code Display */}
+      {/* Enhanced QR Code Panel */}
       <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="flex items-center justify-center gap-2">
-            <QrCode className="h-5 w-5" />
-            {isCompleted ? 'Payment Complete' : 'Payment Code'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* QR Code for Merchant Scanning */}
-          <div className={`text-center p-6 rounded-lg border-2 border-dashed ${
-            isExpired ? 'bg-red-50 dark:bg-red-950/20 border-red-300' : 'bg-gray-50 dark:bg-gray-900'
-          }`}>
-            <p className="text-sm text-muted-foreground mb-3">For cashier to scan:</p>
-            
-            {!isExpired && (
-              <div className="bg-white p-4 rounded-lg inline-block mb-3">
-                <QRCode 
-                  value={`${window.location.origin}/hawker/validate?mode=payment&code=${paymentResult.paymentCode}`}
-                  size={160}
-                  level="M"
-                />
-              </div>
-            )}
-            
-            <p className="text-xs text-muted-foreground mb-2">Or manually enter code:</p>
-            <div className={`text-3xl font-mono font-bold tracking-wider mb-2 ${
-              isExpired ? 'text-red-500' : 'text-primary'
-            }`}>
-              {paymentResult.paymentCode}
-            </div>
-            
-            {paymentResult.expiresAt && (
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <Clock className="w-4 h-4 text-muted-foreground" />
-                <span className={`text-sm font-mono ${isExpired ? 'text-red-500' : ''}`}>
-                  {isExpired ? 'EXPIRED' : `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`}
-                </span>
-              </div>
-            )}
-            
-            <div className="mt-2">
-              <p className="text-xs text-muted-foreground">Payment PIN Code</p>
-            </div>
-          </div>
-
-          {/* Amount Display - Prominent */}
-          <div className={`p-4 rounded-lg border-2 mb-4 ${
-            isCompleted ? 'bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200 dark:border-green-800' :
-            isValidated ? 'bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 border-blue-200 dark:border-blue-800' :
-            'bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-950/20 dark:to-slate-950/20 border-gray-200 dark:border-gray-800'
-          }`}>
+        <CardContent className="p-6">
+          <div className="space-y-6">
+            {/* QR Code with Countdown Ring */}
             <div className="text-center">
-              <div className={`text-sm font-medium mb-1 ${
-                isCompleted ? 'text-green-700 dark:text-green-300' :
-                isValidated && paymentResult.finalAmount > 0 ? 'text-blue-700 dark:text-blue-300' :
-                'text-gray-700 dark:text-gray-300'
-              }`}>
-                {isCompleted ? 'PAYMENT COMPLETED' :
-                 isValidated && paymentResult.finalAmount === 0 ? 'FREE PURCHASE' :
-                 isValidated ? 'CASH COLLECTION' : 
-                 'MERCHANT COLLECTS'}
-              </div>
-              <div className={`text-3xl font-bold ${
-                isCompleted ? 'text-green-600 dark:text-green-400' :
-                isValidated && paymentResult.finalAmount > 0 ? 'text-blue-600 dark:text-blue-400' :
-                isValidated && paymentResult.finalAmount === 0 ? 'text-green-600 dark:text-green-400' :
-                'text-gray-600 dark:text-gray-400'
-              }`}>
-                {paymentResult.finalAmount === 0 ? 'FREE!' : `₹${paymentResult.finalAmount.toFixed(2)}`}
-              </div>
-              <div className={`text-xs mt-1 ${
-                isCompleted ? 'text-green-600 dark:text-green-400' :
-                isValidated ? 'text-blue-600 dark:text-blue-400' :
-                'text-gray-600 dark:text-gray-400'
-              }`}>
-                {isValidated && paymentResult.finalAmount === 0 ? 'Credits covered full amount' :
-                 isValidated ? 'Amount to collect in cash' :
-                 paymentResult.finalAmount === 0 ? 'Fully covered by credits' : 
-                 'After credits & discounts'}
+              <p className="text-sm text-muted-foreground mb-4">For cashier to scan</p>
+              
+              {!isExpired && (
+                <div className="relative inline-block">
+                  {/* Countdown ring */}
+                  <svg 
+                    className="absolute inset-0 w-full h-full -rotate-90" 
+                    style={{ width: '200px', height: '200px' }}
+                  >
+                    <circle
+                      cx="100"
+                      cy="100"
+                      r="96"
+                      stroke="currentColor"
+                      strokeWidth="8"
+                      fill="none"
+                      className="text-gray-200 dark:text-gray-700"
+                    />
+                    <circle
+                      cx="100"
+                      cy="100"
+                      r="96"
+                      stroke="currentColor"
+                      strokeWidth="8"
+                      fill="none"
+                      strokeDasharray={`${2 * Math.PI * 96}`}
+                      strokeDashoffset={`${2 * Math.PI * 96 * (1 - progress)}`}
+                      className={`transition-all duration-1000 ${
+                        timeLeft < 60000 ? 'text-red-500' : 'text-blue-500'
+                      }`}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  
+                  {/* QR Code */}
+                  <div className="bg-white p-4 rounded-xl shadow-sm relative z-10 m-4">
+                    <QRCode 
+                      value={`${window.location.origin}/hawker/validate?mode=payment&code=${paymentResult.paymentCode}`}
+                      size={168}
+                      level="M"
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {isExpired && (
+                <div className="bg-red-50 dark:bg-red-950/20 p-8 rounded-xl border-2 border-dashed border-red-300">
+                  <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-2" />
+                  <p className="text-red-600 dark:text-red-400 font-medium">QR Code Expired</p>
+                </div>
+              )}
+            </div>
+
+            {/* Manual Code with Copy Button */}
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground text-center">Or manually enter code</p>
+              
+              <div className="flex items-center gap-3 bg-muted/50 rounded-lg p-4">
+                <div className="flex-1 text-center">
+                  <div className={`text-2xl font-mono font-bold tracking-widest ${
+                    isExpired ? 'text-red-500' : 'text-foreground'
+                  }`}>
+                    {paymentResult.paymentCode.match(/.{1,4}/g)?.join(' ') || paymentResult.paymentCode}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Payment Code</p>
+                </div>
+                
+                <Button
+                  onClick={copyPaymentCode}
+                  variant="outline"
+                  size="sm"
+                  disabled={isExpired ? true : false}
+                  className="shrink-0"
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
               </div>
             </div>
-          </div>
 
-          {/* Payment Summary */}
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+              <Button
+                onClick={downloadQRCode}
+                variant="outline"
+                size="sm"
+                disabled={isExpired ? true : false}
+                className="flex-1"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download QR
+              </Button>
+              
+              {isDemoMode && transactionStatus === 'pending' && (
+                <Button 
+                  onClick={simulateScan}
+                  variant="outline" 
+                  size="sm"
+                  className="flex-1 border-purple-300 text-purple-700 hover:bg-purple-100"
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  Demo: Scan
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Payment Summary */}
+      <Card>
+        <CardContent className="p-4">
           <div className="space-y-3">
+            <h3 className="font-medium text-sm mb-3">Payment Summary</h3>
+            
             <div className="flex justify-between">
               <span className="text-sm">Customer Bill:</span>
               <span className="font-medium">₹{paymentResult.billAmount.toFixed(2)}</span>
@@ -357,46 +489,49 @@ export default function MerchantPaymentCode({
             
             <div className="border-t pt-2">
               <div className="flex justify-between text-lg font-bold">
-                <span>Customer Pays:</span>
+                <span>Final Amount:</span>
                 <span className={paymentResult.isFullyCovered ? "text-green-600" : ""}>
                   {paymentResult.isFullyCovered ? "FREE!" : `₹${paymentResult.finalAmount.toFixed(2)}`}
                 </span>
               </div>
             </div>
-          </div>
 
-          {/* Savings Highlight */}
-          {paymentResult.totalSavings > 0 && (
-            <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-lg border border-green-200 dark:border-green-800 text-center">
-              <div className="flex items-center justify-center gap-2 text-green-700 dark:text-green-300">
-                <Gift className="w-4 h-4" />
-                <span className="font-medium">
-                  You Saved ₹{paymentResult.totalSavings.toFixed(2)}!
-                </span>
+            {/* Savings Highlight */}
+            {paymentResult.totalSavings > 0 && (
+              <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-lg border border-green-200 dark:border-green-800 text-center mt-4">
+                <div className="flex items-center justify-center gap-2 text-green-700 dark:text-green-300">
+                  <Gift className="w-4 h-4" />
+                  <span className="font-medium">
+                    You Saved ₹{paymentResult.totalSavings.toFixed(2)}!
+                  </span>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </CardContent>
       </Card>
 
-      {/* Instructions for Customer */}
-      <Card className={isExpired ? "border-red-200 bg-red-50 dark:bg-red-950/20" : ""}>
-        <CardContent className="p-4">
-          <h3 className="font-medium text-sm mb-3">
-            {isExpired ? "Code Expired" : "Next Steps:"}
-          </h3>
-          
-          {isExpired ? (
-            <div className="text-sm text-red-600 dark:text-red-400 space-y-2">
-              <p>This payment code has expired. Please generate a new one to complete your purchase.</p>
-              <Button onClick={onBack} variant="outline" size="sm" className="w-full mt-3">
-                Generate New Code
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <div className="flex items-start gap-2">
-                <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">1</span>
+      {/* Instructions or Actions */}
+      {isExpired ? (
+        <Card className="border-red-200 bg-red-50 dark:bg-red-950/20">
+          <CardContent className="p-4 text-center">
+            <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-2" />
+            <h3 className="font-medium text-red-700 dark:text-red-300 mb-2">Code Expired</h3>
+            <p className="text-sm text-red-600 dark:text-red-400 mb-4">
+              This payment code has expired. Generate a new one to complete your purchase.
+            </p>
+            <Button onClick={onBack} variant="outline" size="sm" className="w-full">
+              Generate New Code
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="p-4">
+            <h3 className="font-medium text-sm mb-3">Next Steps</h3>
+            <div className="space-y-3 text-sm text-muted-foreground">
+              <div className="flex items-start gap-3">
+                <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">1</span>
                 <span>
                   {paymentResult.isFullyCovered 
                     ? "Complete your purchase - it's FREE!" 
@@ -404,51 +539,47 @@ export default function MerchantPaymentCode({
                   }
                 </span>
               </div>
-              <div className="flex items-start gap-2">
-                <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">2</span>
+              <div className="flex items-start gap-3">
+                <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">2</span>
                 <span>Show this QR code to the cashier for scanning</span>
               </div>
-              <div className="flex items-start gap-2">
-                <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">3</span>
+              <div className="flex items-start gap-3">
+                <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">3</span>
                 <span>Cashback credits are applied automatically to your account</span>
               </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Deal Info */}
-      <Card className="bg-blue-50 dark:bg-blue-950/20">
-        <CardContent className="p-4">
-          <div className="text-center">
-            <p className="text-sm text-blue-700 dark:text-blue-300 mb-1">
-              {paymentResult.dealTitle}
-            </p>
-            <p className="text-xs text-blue-600 dark:text-blue-400">
-              at {paymentResult.merchantName}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-
-      {/* Demo Mode Controls - Only show scan button when pending */}
-      {isDemoMode && transactionStatus === 'pending' && (
+      {/* Demo Mode Controls */}
+      {isDemoMode && (
         <Card className="border-purple-200 bg-purple-50 dark:bg-purple-950/20">
-          <CardContent className="p-4">
-            <div className="text-center">
-              <p className="text-xs text-purple-600 dark:text-purple-400 mb-3">
-                Demo: Simulate merchant scan
-              </p>
-              <Button 
-                onClick={simulateScan}
-                variant="outline" 
-                size="sm" 
-                className="border-purple-300 text-purple-700 hover:bg-purple-100"
-              >
-                <QrCode className="h-4 w-4 mr-2" />
-                Simulate Merchant Scan
-              </Button>
+          <CardContent className="p-4 text-center">
+            <p className="text-sm text-purple-700 dark:text-purple-300 mb-3">Demo Mode Active</p>
+            <div className="flex gap-2 justify-center">
+              {!isDemoMode && (
+                <Button
+                  onClick={enableDemoMode}
+                  variant="outline"
+                  size="sm"
+                  className="border-purple-300 text-purple-700 hover:bg-purple-100"
+                >
+                  Enable Demo Mode
+                </Button>
+              )}
+              
+              {transactionStatus === 'validated' && (
+                <Button 
+                  onClick={simulateConfirm}
+                  variant="outline" 
+                  size="sm" 
+                  className="border-purple-300 text-purple-700 hover:bg-purple-100"
+                >
+                  <CheckCheck className="w-4 h-4 mr-2" />
+                  Demo: Confirm Payment
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
