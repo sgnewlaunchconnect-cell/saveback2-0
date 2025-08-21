@@ -142,6 +142,15 @@ export default function PayAtMerchant() {
     console.log('Payment code generated for validation:', paymentResult.paymentCode);
   };
 
+  // Set document title when merchant data is available
+  useEffect(() => {
+    if (merchantData?.name) {
+      document.title = `Pay at ${merchantData.name}`;
+    } else {
+      document.title = 'Pay at Merchant';
+    }
+  }, [merchantData]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -196,6 +205,31 @@ export default function PayAtMerchant() {
               <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
                 This is a simulation for testing purposes
               </p>
+            </CardContent>
+          </Card>
+        )}
+        
+        {/* Merchant Information */}
+        {merchantData && (
+          <Card className="mb-6 border-border bg-card">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                {merchantData.logo_url && (
+                  <img 
+                    src={merchantData.logo_url} 
+                    alt={`${merchantData.name} logo`}
+                    className="w-12 h-12 rounded-lg object-cover bg-muted"
+                  />
+                )}
+                <div className="flex-1">
+                  <h2 className="text-lg font-semibold text-foreground">
+                    {merchantData.name}
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    {merchantData.address || merchantData.category || 'Merchant'}
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         )}
