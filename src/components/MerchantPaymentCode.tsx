@@ -37,6 +37,13 @@ export default function MerchantPaymentCode({
   
   // Check if demo mode is enabled
   const isDemoMode = new URLSearchParams(window.location.search).get('demo') === '1';
+  
+  // Enable demo mode by adding ?demo=1 to current URL
+  const enableDemoMode = () => {
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set('demo', '1');
+    window.location.href = currentUrl.toString();
+  };
 
   // Timer effect
   useEffect(() => {
@@ -213,6 +220,32 @@ export default function MerchantPaymentCode({
             }`}>
               {statusMessage}
             </span>
+          </div>
+          
+          {/* Demo controls - inline after status */}
+          <div className="mt-3 text-center">
+            {/* Enable Demo link when demo is not active */}
+            {!isDemoMode && (
+              <button
+                onClick={enableDemoMode}
+                className="text-xs text-purple-600 hover:text-purple-700 underline"
+              >
+                Enable Demo Mode
+              </button>
+            )}
+            
+            {/* Demo: Confirm Payment button when authorized */}
+            {isDemoMode && isAuthorized && (
+              <Button 
+                onClick={simulateConfirm}
+                variant="outline" 
+                size="sm" 
+                className="border-purple-300 text-purple-700 hover:bg-purple-100 text-xs"
+              >
+                <CheckCheck className="h-3 w-3 mr-1" />
+                Demo: Confirm Payment
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -399,39 +432,22 @@ export default function MerchantPaymentCode({
       </Card>
 
 
-      {/* Demo Mode Controls */}
-      {isDemoMode && (
+      {/* Demo Mode Controls - Only show scan button when pending */}
+      {isDemoMode && transactionStatus === 'pending' && (
         <Card className="border-purple-200 bg-purple-50 dark:bg-purple-950/20">
-          <CardHeader>
-            <CardTitle className="text-sm text-purple-700 dark:text-purple-300 flex items-center gap-2">
-              <Play className="h-4 w-4" />
-              Demo Mode
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <p className="text-xs text-purple-600 dark:text-purple-400 mb-3">
-              Simulate merchant actions for testing:
-            </p>
-            <div className="space-y-2">
+          <CardContent className="p-4">
+            <div className="text-center">
+              <p className="text-xs text-purple-600 dark:text-purple-400 mb-3">
+                Demo: Simulate merchant scan
+              </p>
               <Button 
                 onClick={simulateScan}
-                disabled={transactionStatus !== 'pending'}
                 variant="outline" 
                 size="sm" 
-                className="w-full border-purple-300 text-purple-700 hover:bg-purple-100"
+                className="border-purple-300 text-purple-700 hover:bg-purple-100"
               >
                 <QrCode className="h-4 w-4 mr-2" />
                 Simulate Merchant Scan
-              </Button>
-              <Button 
-                onClick={simulateConfirm}
-                disabled={transactionStatus !== 'authorized'}
-                variant="outline" 
-                size="sm" 
-                className="w-full border-purple-300 text-purple-700 hover:bg-purple-100"
-              >
-                <CheckCheck className="h-4 w-4 mr-2" />
-                Simulate Cash Confirmation
               </Button>
             </div>
           </CardContent>
