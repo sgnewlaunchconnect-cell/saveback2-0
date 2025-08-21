@@ -16,8 +16,11 @@ serve(async (req) => {
 
   try {
     const { paymentCode, merchantId } = await req.json();
+    
+    // Check if this is demo mode
+    const isDemoMode = merchantId === null;
 
-    console.log('validatePendingTransaction called with:', { paymentCode, merchantId });
+    console.log('validatePendingTransaction called with:', { paymentCode, merchantId, isDemoMode });
 
     if (!paymentCode) {
       return new Response(
@@ -280,8 +283,8 @@ serve(async (req) => {
 
     // Start transaction to update everything atomically
     try {
-      // Process credit deductions if credits were used
-      if ((transaction.local_credits_used > 0 || transaction.network_credits_used > 0) && transaction.user_id) {
+      // Process credit deductions if credits were used (skip in demo mode)
+      if ((transaction.local_credits_used > 0 || transaction.network_credits_used > 0) && transaction.user_id && !isDemoMode) {
         // Use the existing credit processing function to deduct credits
         const { error: creditError } = await supabase.rpc('process_credit_payment', {
           p_user_id: transaction.user_id,
@@ -459,7 +462,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: true,
-          message: isCashPayment ? 'Transaction authorized - awaiting cash collection' : 'Transaction validated successfully',
+          message: isDemoMode ? 'Demo transaction authorized' : (isCashPayment ? 'Transaction authorized - awaiting cash collection' : 'Transaction validated successfully'),
           data: {
             transactionId: transaction.id,
             merchantName: transaction.merchants?.name,
