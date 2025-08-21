@@ -35,15 +35,11 @@ export default function MerchantPaymentCode({
   const [isPolling, setIsPolling] = useState(true);
   const [statusMessage, setStatusMessage] = useState('Waiting for cashier to scan...');
   
-  // Check if demo mode is enabled
-  const isDemoMode = new URLSearchParams(window.location.search).get('demo') === '1';
+  // Always enable merchant scan and validate functionality
+  const isDemoMode = true; // Enable for all payments now
   
-  // Enable demo mode by adding ?demo=1 to current URL
-  const enableDemoMode = () => {
-    const currentUrl = new URL(window.location.href);
-    currentUrl.searchParams.set('demo', '1');
-    window.location.href = currentUrl.toString();
-  };
+  // Check if actual demo mode is enabled
+  const isActualDemo = new URLSearchParams(window.location.search).get('demo') === '1';
 
   // Timer effect
   useEffect(() => {
@@ -160,56 +156,54 @@ export default function MerchantPaymentCode({
     : 300000; // 5 minutes default
   const progress = timeLeft / totalTime;
 
-  // Demo functions
+  // Merchant scan and validate functions
   const simulateScan = async () => {
-    if (!isDemoMode) return;
-    
     try {
       const { data, error } = await supabase.functions.invoke('validatePendingTransaction', {
         body: { 
           paymentCode: paymentResult.paymentCode,
-          merchantId: null // Allow any merchant in demo mode
+          merchantId: isActualDemo ? null : undefined // Allow any merchant only in actual demo mode
         }
       });
 
       if (error) throw error;
 
       toast({
-        title: "Demo: Merchant Scanned",
+        title: isActualDemo ? "Demo: Merchant Scanned" : "Merchant Scanned",
         description: "Transaction has been authorized by merchant",
       });
     } catch (error) {
-      console.error('Demo scan error:', error);
+      console.error('Scan error:', error);
       toast({
-        title: "Demo Error",
-        description: "Failed to simulate merchant scan",
+        title: isActualDemo ? "Demo Error" : "Scan Error",
+        description: "Failed to validate transaction",
         variant: "destructive"
       });
     }
   };
 
   const simulateConfirm = async () => {
-    if (!isDemoMode || transactionStatus !== 'validated') return;
+    if (transactionStatus !== 'validated') return;
     
     try {
       const { data, error } = await supabase.functions.invoke('confirmCashCollection', {
         body: { 
           paymentCode: paymentResult.paymentCode,
-          merchantId: null // Allow any merchant in demo mode
+          merchantId: isActualDemo ? null : undefined // Allow any merchant only in actual demo mode
         }
       });
 
       if (error) throw error;
 
       toast({
-        title: "Demo: Payment Confirmed",
+        title: isActualDemo ? "Demo: Payment Confirmed" : "Payment Confirmed",
         description: "Cash collection has been confirmed",
       });
     } catch (error) {
-      console.error('Demo confirm error:', error);
+      console.error('Confirm error:', error);
       toast({
-        title: "Demo Error",
-        description: "Failed to simulate payment confirmation",
+        title: isActualDemo ? "Demo Error" : "Confirmation Error",
+        description: "Failed to confirm payment",
         variant: "destructive"
       });
     }
@@ -396,33 +390,37 @@ export default function MerchantPaymentCode({
               </div>
             </div>
 
-            {/* Demo Mode Actions */}
-            {isDemoMode && (
-              <div className="flex gap-2">
-                {transactionStatus === 'pending' && (
-                  <Button 
-                    onClick={simulateScan}
-                    variant="outline" 
-                    size="sm"
-                    className="flex-1 border-purple-300 text-purple-700 hover:bg-purple-100"
-                  >
-                    <Play className="w-4 h-4 mr-2" />
-                    Demo: Scan
-                  </Button>
-                )}
-                {transactionStatus === 'validated' && (
-                  <Button 
-                    onClick={simulateConfirm}
-                    variant="outline" 
-                    size="sm"
-                    className="flex-1 border-purple-300 text-purple-700 hover:bg-purple-100"
-                  >
-                    <CheckCheck className="w-4 h-4 mr-2" />
-                    Demo: Confirm
-                  </Button>
-                )}
-              </div>
-            )}
+            {/* Merchant Actions */}
+            <div className="flex gap-2">
+              {transactionStatus === 'pending' && (
+                <Button 
+                  onClick={simulateScan}
+                  variant="outline" 
+                  size="sm"
+                  className={`flex-1 ${isActualDemo 
+                    ? 'border-purple-300 text-purple-700 hover:bg-purple-100' 
+                    : 'border-blue-300 text-blue-700 hover:bg-blue-100'
+                  }`}
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  {isActualDemo ? 'Demo: ' : ''}Merchant Scan
+                </Button>
+              )}
+              {transactionStatus === 'validated' && (
+                <Button 
+                  onClick={simulateConfirm}
+                  variant="outline" 
+                  size="sm"
+                  className={`flex-1 ${isActualDemo 
+                    ? 'border-purple-300 text-purple-700 hover:bg-purple-100' 
+                    : 'border-green-300 text-green-700 hover:bg-green-100'
+                  }`}
+                >
+                  <CheckCheck className="w-4 h-4 mr-2" />
+                  {isActualDemo ? 'Demo: ' : ''}Confirm Payment
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -517,35 +515,14 @@ export default function MerchantPaymentCode({
         </Card>
       )}
 
-      {/* Demo Mode Controls */}
-      {isDemoMode && (
+      {/* Demo Mode Controls - Only show if actual demo mode */}
+      {isActualDemo && (
         <Card className="border-purple-200 bg-purple-50 dark:bg-purple-950/20">
           <CardContent className="p-4 text-center">
             <p className="text-sm text-purple-700 dark:text-purple-300 mb-3">Demo Mode Active</p>
-            <div className="flex gap-2 justify-center">
-              {!isDemoMode && (
-                <Button
-                  onClick={enableDemoMode}
-                  variant="outline"
-                  size="sm"
-                  className="border-purple-300 text-purple-700 hover:bg-purple-100"
-                >
-                  Enable Demo Mode
-                </Button>
-              )}
-              
-              {transactionStatus === 'validated' && (
-                <Button 
-                  onClick={simulateConfirm}
-                  variant="outline" 
-                  size="sm" 
-                  className="border-purple-300 text-purple-700 hover:bg-purple-100"
-                >
-                  <CheckCheck className="w-4 h-4 mr-2" />
-                  Demo: Confirm Payment
-                </Button>
-              )}
-            </div>
+            <p className="text-xs text-purple-600 dark:text-purple-400">
+              Merchant scan and validate actions are available above.
+            </p>
           </CardContent>
         </Card>
       )}
