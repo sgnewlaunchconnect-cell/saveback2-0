@@ -14,6 +14,7 @@ export default function PayAtMerchant() {
   const { toast } = useToast();
   const grabId = searchParams.get("grabId");
   const staticQrId = searchParams.get("staticQrId");
+  const merchantId = searchParams.get("merchantId");
   const isDemoMode = searchParams.get("demo") === "1";
   
   const [grabData, setGrabData] = useState<any>(null);
@@ -25,10 +26,12 @@ export default function PayAtMerchant() {
       fetchGrabData();
     } else if (staticQrId) {
       fetchMerchantFromQr();
+    } else if (merchantId) {
+      fetchMerchantById();
     } else {
       setLoading(false);
     }
-  }, [grabId, staticQrId]);
+  }, [grabId, staticQrId, merchantId]);
 
   const fetchGrabData = async () => {
     setLoading(true);
@@ -103,6 +106,37 @@ export default function PayAtMerchant() {
     }
   };
 
+  const fetchMerchantById = async () => {
+    setLoading(true);
+    try {
+      // Find merchant by ID
+      const { data: merchant, error: merchantError } = await supabase
+        .from('merchants')
+        .select('*')
+        .eq('id', merchantId)
+        .eq('is_active', true)
+        .maybeSingle();
+        
+      if (merchantError || !merchant) {
+        throw new Error('Merchant not found or inactive');
+      }
+      
+      setMerchantData(merchant);
+      // For direct merchant payment, we don't have grab data - user will create payment directly
+      setGrabData(null);
+    } catch (error) {
+      console.error('Error fetching merchant by ID:', error);
+      toast({
+        title: "Error",
+        description: "Merchant not found or inactive",
+        variant: "destructive"
+      });
+      navigate('/deals');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handlePaymentComplete = async (paymentResult: any) => {
     // Payment code generated - merchant validation will handle the rest
     console.log('Payment code generated for validation:', paymentResult.paymentCode);
@@ -169,10 +203,10 @@ export default function PayAtMerchant() {
         <QuickPaymentFlow
           grabData={grabData}
           merchantData={merchantData}
-          localCredits={staticQrId ? 850 : 850}    // TODO: Load real user credits
-          networkCredits={staticQrId ? 725 : 725}  // TODO: Load real user credits
+          localCredits={850}    // TODO: Load real user credits
+          networkCredits={725}  // TODO: Load real user credits
           onComplete={handlePaymentComplete}
-          isStaticQr={!!staticQrId}
+          isStaticQr={!!(staticQrId || merchantId)}
         />
       </div>
     </div>

@@ -259,14 +259,23 @@ export default function MerchantPage() {
               </div>
             </div>
             
-            <Button 
-              onClick={handleFollow}
-              variant={isFollowing ? "secondary" : "default"}
-              className="flex items-center gap-2"
-            >
-              <Heart className={`w-4 h-4 ${isFollowing ? 'fill-current' : ''}`} />
-              {isFollowing ? 'Following' : 'Follow'}
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button 
+                onClick={() => navigate(`/pay-at-merchant?merchantId=${merchantId}`)}
+                className="flex items-center gap-2"
+              >
+                <ShoppingCart className="w-4 h-4" />
+                Pay at this merchant
+              </Button>
+              <Button 
+                onClick={handleFollow}
+                variant={isFollowing ? "secondary" : "default"}
+                className="flex items-center gap-2"
+              >
+                <Heart className={`w-4 h-4 ${isFollowing ? 'fill-current' : ''}`} />
+                {isFollowing ? 'Following' : 'Follow'}
+              </Button>
+            </div>
           </div>
         </div>
       </div>

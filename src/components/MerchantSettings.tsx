@@ -300,7 +300,7 @@ export default function MerchantSettings({ merchantInfo, onUpdate }: MerchantSet
                 variant="outline" 
                 className="w-full"
                 onClick={() => {
-                  const qrUrl = `${window.location.origin}/pay-at-merchant?staticQrId=${merchantInfo.id}`;
+                  const qrUrl = `${window.location.origin}/pay-at-merchant?merchantId=${merchantInfo.id}`;
                   const printContent = `
                     <div style="text-align: center; padding: 20px;">
                       <h1>${merchantInfo.name}</h1>
