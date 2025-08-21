@@ -488,6 +488,31 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
                       : "Redeem Deal"
                   }
                 </Button>
+
+                <Separator className="my-4" />
+
+                {/* Demo Buttons */}
+                <div className="space-y-2">
+                  <Label className="text-sm text-muted-foreground">Quick Demo</Label>
+                  <div className="grid gap-2">
+                    <Button
+                      onClick={() => setValidationCode(Math.floor(100000 + Math.random() * 900000).toString())}
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                    >
+                      Run Demo Payment (741743)
+                    </Button>
+                    <Button
+                      onClick={() => setValidationCode(Math.floor(100000 + Math.random() * 900000).toString())}
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                    >
+                      Run Demo Grab (Random PIN)
+                    </Button>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
