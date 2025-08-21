@@ -32,7 +32,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Find the pending transaction with properly joined related tables
+    // Find the pending transaction with properly joined related tables using the new foreign keys
     const { data: transaction, error: transactionError } = await supabase
       .from('pending_transactions')
       .select(`

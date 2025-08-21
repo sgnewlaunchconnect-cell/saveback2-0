@@ -646,10 +646,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "pending_transactions_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pending_transactions_grab_id_fkey"
             columns: ["grab_id"]
             isOneToOne: false
             referencedRelation: "grabs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_transactions_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
             referencedColumns: ["id"]
           },
         ]
