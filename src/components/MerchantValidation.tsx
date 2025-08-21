@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import { CheckCircle, XCircle, Camera, Scan, QrCode, Radio, RefreshCw, Clock, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,6 +49,7 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [authorizedTransactions, setAuthorizedTransactions] = useState<Transaction[]>([]);
   const [isListening, setIsListening] = useState(false);
+  const [oneTapMode, setOneTapMode] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -202,7 +204,8 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
         const { data, error } = await supabase.functions.invoke('validatePendingTransaction', {
           body: { 
             paymentCode: validationCode,
-            merchantId: merchantId
+            merchantId: merchantId,
+            captureNow: oneTapMode
           }
         });
 
@@ -210,22 +213,23 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
 
         if (data.success) {
           const isAwaitingConfirmation = data.data?.awaitingConfirmation;
+          const isCompleted = !isAwaitingConfirmation;
           
           setValidationResult({
             success: true,
             amount: data.data?.originalAmount || 0,
             customerName: "Anonymous Customer",
             merchantName: data.data?.merchantName || "Your Store",
-            message: isAwaitingConfirmation 
-              ? "Payment authorized - awaiting cash collection" 
-              : "Payment validated successfully!"
+            message: isCompleted 
+              ? "Payment completed successfully!" 
+              : "Payment authorized - awaiting cash collection"
           });
           
           toast({
-            title: isAwaitingConfirmation ? "Payment Authorized" : "Validation Successful",
-            description: isAwaitingConfirmation 
-              ? "Awaiting cash collection from customer" 
-              : "Payment has been processed",
+            title: isCompleted ? "Payment Completed!" : "Payment Authorized",
+            description: isCompleted 
+              ? "Transaction completed and credits awarded" 
+              : "Awaiting cash collection from customer",
           });
           
           // Reload transactions to show updated status
@@ -467,31 +471,53 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Mode Toggle */}
-              <div className="flex gap-2 p-1 bg-muted rounded-lg">
-                <Button
-                  variant={validationMode === 'payment' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => {
-                    setValidationMode('payment');
-                    setValidationCode('');
-                  }}
-                  className="flex-1"
-                >
-                  <DollarSign className="w-4 h-4 mr-1" />
-                  Payment Code
-                </Button>
-                <Button
-                  variant={validationMode === 'grab' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => {
-                    setValidationMode('grab');
-                    setValidationCode('');
-                  }}
-                  className="flex-1"
-                >
-                  <QrCode className="w-4 h-4 mr-1" />
-                  Deal PIN
-                </Button>
+              <div className="space-y-3">
+                {/* Mode Toggle */}
+                <div className="flex gap-2 p-1 bg-muted rounded-lg">
+                  <Button
+                    variant={validationMode === 'payment' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => {
+                      setValidationMode('payment');
+                      setValidationCode('');
+                    }}
+                    className="flex-1"
+                  >
+                    <DollarSign className="w-4 h-4 mr-1" />
+                    Payment Code
+                  </Button>
+                  <Button
+                    variant={validationMode === 'grab' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => {
+                      setValidationMode('grab');
+                      setValidationCode('');
+                    }}
+                    className="flex-1"
+                  >
+                    <QrCode className="w-4 h-4 mr-1" />
+                    Deal PIN
+                  </Button>
+                </div>
+
+                {/* One-Tap Mode Toggle */}
+                {validationMode === 'payment' && (
+                  <div className="flex items-center justify-between space-x-2 bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <div className="space-y-1">
+                      <Label htmlFor="one-tap-mode" className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                        One-Tap Complete
+                      </Label>
+                      <p className="text-xs text-blue-600 dark:text-blue-400">
+                        Complete cash payments in one step (scan & confirm together)
+                      </p>
+                    </div>
+                    <Switch
+                      id="one-tap-mode"
+                      checked={oneTapMode}
+                      onCheckedChange={setOneTapMode}
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="text-center space-y-2">
@@ -530,9 +556,9 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
                   size="lg"
                 >
                   {isValidating 
-                    ? "Validating..." 
+                    ? "Processing..." 
                     : validationMode === 'payment' 
-                      ? "Validate Payment" 
+                      ? (oneTapMode ? "Scan & Complete Payment" : "Validate Payment")
                       : "Redeem Deal"
                   }
                 </Button>

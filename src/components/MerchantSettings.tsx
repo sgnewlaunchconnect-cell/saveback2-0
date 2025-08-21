@@ -282,6 +282,49 @@ export default function MerchantSettings({ merchantInfo, onUpdate }: MerchantSet
           </CardContent>
         </Card>
 
+        {/* QR Code Management */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Static QR Code</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Generate a QR code for customers to scan and pay at your stall
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+              <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">Universal Pay & Earn QR</h4>
+              <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
+                Place this QR code at your stall. Customers can scan to pay and earn credits on any purchase.
+              </p>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => {
+                  const qrUrl = `${window.location.origin}/pay-at-merchant?staticQrId=${merchantInfo.id}`;
+                  const printContent = `
+                    <div style="text-align: center; padding: 20px;">
+                      <h1>${merchantInfo.name}</h1>
+                      <div style="margin: 20px 0;">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrUrl)}" alt="QR Code" />
+                      </div>
+                      <p><strong>Scan to Pay & Earn Credits!</strong></p>
+                      <p>Save money on every purchase</p>
+                    </div>
+                  `;
+                  const printWindow = window.open('', '_blank');
+                  if (printWindow) {
+                    printWindow.document.write(printContent);
+                    printWindow.document.close();
+                    printWindow.print();
+                  }
+                }}
+              >
+                🖨️ Print Stall QR Code
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="flex justify-end">
           <Button type="submit" disabled={saving}>
             {saving ? 'Saving...' : 'Save Settings'}

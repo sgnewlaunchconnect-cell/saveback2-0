@@ -13,6 +13,7 @@ export default function PayAtMerchant() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const grabId = searchParams.get("grabId");
+  const staticQrId = searchParams.get("staticQrId");
   const isDemoMode = searchParams.get("demo") === "1";
   
   const [grabData, setGrabData] = useState<any>(null);
@@ -22,10 +23,12 @@ export default function PayAtMerchant() {
   useEffect(() => {
     if (grabId) {
       fetchGrabData();
+    } else if (staticQrId) {
+      fetchMerchantFromQr();
     } else {
       setLoading(false);
     }
-  }, [grabId]);
+  }, [grabId, staticQrId]);
 
   const fetchGrabData = async () => {
     setLoading(true);
@@ -69,6 +72,37 @@ export default function PayAtMerchant() {
     }
   };
 
+  const fetchMerchantFromQr = async () => {
+    setLoading(true);
+    try {
+      // Find merchant by static QR ID
+      const { data: merchant, error: merchantError } = await supabase
+        .from('merchants')
+        .select('*')
+        .eq('static_qr_id', staticQrId)
+        .eq('is_active', true)
+        .maybeSingle();
+        
+      if (merchantError || !merchant) {
+        throw new Error('Merchant not found or inactive');
+      }
+      
+      setMerchantData(merchant);
+      // For static QR, we don't have grab data - user will create payment directly
+      setGrabData(null);
+    } catch (error) {
+      console.error('Error fetching merchant from QR:', error);
+      toast({
+        title: "Error",
+        description: "Invalid QR code or merchant not found",
+        variant: "destructive"
+      });
+      navigate('/deals');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handlePaymentComplete = async (paymentResult: any) => {
     // Payment code generated - merchant validation will handle the rest
     console.log('Payment code generated for validation:', paymentResult.paymentCode);
@@ -85,7 +119,7 @@ export default function PayAtMerchant() {
     );
   }
 
-  if (!grabData) {
+  if (!grabData && !merchantData) {
     return (
       <div className="min-h-screen bg-background p-4">
         <div className="max-w-md mx-auto">
@@ -98,7 +132,7 @@ export default function PayAtMerchant() {
             </Button>
           </div>
           <div className="text-center py-8">
-            <p className="text-muted-foreground">No deal information found</p>
+            <p className="text-muted-foreground">No merchant or deal information found</p>
           </div>
         </div>
       </div>
@@ -135,9 +169,10 @@ export default function PayAtMerchant() {
         <QuickPaymentFlow
           grabData={grabData}
           merchantData={merchantData}
-          localCredits={850}    // Demo credits
-          networkCredits={725}
+          localCredits={staticQrId ? 850 : 850}    // TODO: Load real user credits
+          networkCredits={staticQrId ? 725 : 725}  // TODO: Load real user credits
           onComplete={handlePaymentComplete}
+          isStaticQr={!!staticQrId}
         />
       </div>
     </div>

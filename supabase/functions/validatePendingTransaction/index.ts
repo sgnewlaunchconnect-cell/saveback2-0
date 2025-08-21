@@ -15,12 +15,12 @@ serve(async (req) => {
   }
 
   try {
-    const { paymentCode, merchantId } = await req.json();
+    const { paymentCode, merchantId, captureNow } = await req.json();
     
     // Check if this is demo mode
     const isDemoMode = merchantId === null;
 
-    console.log('validatePendingTransaction called with:', { paymentCode, merchantId, isDemoMode });
+    console.log('validatePendingTransaction called with:', { paymentCode, merchantId, isDemoMode, captureNow });
 
     if (!paymentCode) {
       return new Response(
@@ -303,7 +303,9 @@ serve(async (req) => {
 
       // For cash payments, mark as validated and wait for confirmation
       // For PSP payments, mark as validated (completed)
-      const newStatus = 'validated'; // Use 'validated' instead of 'authorized'
+      // If captureNow is true, complete cash payments immediately
+      const shouldCapture = !isCashPayment || captureNow;
+      const newStatus = shouldCapture ? 'completed' : 'validated';
       const updateData: any = { 
         status: newStatus,
         updated_at: new Date().toISOString()
@@ -311,6 +313,9 @@ serve(async (req) => {
       
       if (isCashPayment) {
         updateData.authorized_at = new Date().toISOString();
+        if (captureNow) {
+          updateData.captured_at = new Date().toISOString();
+        }
       } else {
         updateData.captured_at = new Date().toISOString();
       }
@@ -324,9 +329,9 @@ serve(async (req) => {
         throw new Error(`Failed to update transaction: ${updateError.message}`);
       }
 
-      // Only award cashback for PSP payments immediately
-      // Cash payments get cashback when confirmed
-      if (transaction.user_id && totalCredits > 0 && !isCashPayment) {
+      // Award cashback for PSP payments immediately, or cash payments if captureNow is true
+      // Otherwise cash payments get cashback when confirmed later
+      if (transaction.user_id && totalCredits > 0 && (!isCashPayment || captureNow)) {
         // Upsert credits for this merchant
         const { error: creditsError } = await supabase
           .from('credits')
@@ -399,9 +404,9 @@ serve(async (req) => {
         }
       }
 
-      // For PSP payments, auto-consume grab immediately
-      // For cash payments, this happens on confirmation
-      if (transaction.grab_id && !isCashPayment) {
+      // Auto-consume grab for PSP payments immediately, or cash payments if captureNow is true
+      // Otherwise cash payments consume grab on confirmation
+      if (transaction.grab_id && (!isCashPayment || captureNow)) {
         const { error: grabUpdateError } = await supabase
           .from('grabs')
           .update({ 
@@ -432,7 +437,7 @@ serve(async (req) => {
       }
 
       // Send merchant notification
-      const notificationType = isCashPayment ? 'PAYMENT_AUTHORIZED' : 'PAYMENT_VALIDATED';
+      const notificationType = shouldCapture ? 'PAYMENT_COMPLETED' : 'PAYMENT_AUTHORIZED';
       try {
         await supabase.functions.invoke('sendMerchantNotification', {
           body: {
@@ -443,9 +448,9 @@ serve(async (req) => {
               paymentCode: paymentCode,
               amount: transaction.original_amount,
               finalAmount: transaction.final_amount,
-              creditsEarned: isCashPayment ? 0 : totalCredits, // Cash gets credits on confirmation
+              creditsEarned: shouldCapture ? totalCredits : 0, // Captured payments get credits immediately
               dealTitle: dealInfo?.title,
-              awaitingConfirmation: isCashPayment
+              awaitingConfirmation: !shouldCapture
             }
           }
         });
@@ -454,30 +459,30 @@ serve(async (req) => {
         // Don't fail the transaction for notification errors
       }
 
-      console.log('Successfully processed transaction:', {
-        transactionId: transaction.id,
-        status: newStatus,
-        awaitingConfirmation: isCashPayment,
-        creditsEarned: isCashPayment ? 0 : totalCredits
-      });
+        console.log('Successfully processed transaction:', {
+          transactionId: transaction.id,
+          status: newStatus,
+          awaitingConfirmation: !shouldCapture,
+          creditsEarned: shouldCapture ? totalCredits : 0
+        });
 
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: isDemoMode ? 'Demo transaction validated' : (isCashPayment ? 'Transaction validated - awaiting cash collection' : 'Transaction validated successfully'),
-          data: {
-            transactionId: transaction.id,
-            merchantName: transaction.merchants?.name,
-            originalAmount: transaction.original_amount,
-            finalAmount: transaction.final_amount,
-            cashbackPct,
-            localCredits: isCashPayment ? 0 : localCredits,
-            networkCredits: isCashPayment ? 0 : networkCredits,
-            totalCredits: isCashPayment ? 0 : totalCredits,
-            dealTitle: dealInfo?.title,
-            status: newStatus,
-            awaitingConfirmation: isCashPayment
-          }
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: isDemoMode ? 'Demo transaction validated' : (shouldCapture ? 'Transaction completed successfully' : 'Transaction validated - awaiting cash collection'),
+            data: {
+              transactionId: transaction.id,
+              merchantName: transaction.merchants?.name,
+              originalAmount: transaction.original_amount,
+              finalAmount: transaction.final_amount,
+              cashbackPct,
+              localCredits: shouldCapture ? localCredits : 0,
+              networkCredits: shouldCapture ? networkCredits : 0,
+              totalCredits: shouldCapture ? totalCredits : 0,
+              dealTitle: dealInfo?.title,
+              status: newStatus,
+              awaitingConfirmation: !shouldCapture
+            }
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );

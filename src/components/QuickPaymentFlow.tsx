@@ -20,14 +20,16 @@ interface QuickPaymentFlowProps {
   networkCredits: number;
   merchantData?: any;
   onComplete: (result: any) => void;
+  isStaticQr?: boolean;
 }
 
-export default function QuickPaymentFlow({
-  grabData,
-  localCredits,
-  networkCredits,
+export default function QuickPaymentFlow({ 
+  grabData, 
+  localCredits, 
+  networkCredits, 
   merchantData,
-  onComplete
+  onComplete,
+  isStaticQr = false
 }: QuickPaymentFlowProps) {
   const { toast } = useToast();
   const [billAmount, setBillAmount] = useState('');
