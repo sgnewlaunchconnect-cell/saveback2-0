@@ -178,7 +178,10 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
     try {
       if (validationMode === 'payment') {
         const { data, error } = await supabase.functions.invoke('validatePendingTransaction', {
-          body: { paymentCode: validationCode }
+          body: { 
+            paymentCode: validationCode,
+            merchantId: merchantId // Add merchant verification
+          }
         });
 
         if (error) {
@@ -559,25 +562,51 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
               {pendingTransactions.length > 0 ? (
                 <div className="space-y-3">
                   {pendingTransactions.map((transaction) => (
-                    <Card key={transaction.id} className="border-l-4 border-l-orange-500">
+                    <Card key={transaction.id} className="border-orange-200 dark:border-orange-800 hover:shadow-md transition-shadow">
                       <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="font-mono text-lg font-bold">{transaction.payment_code}</div>
-                            <div className="text-sm text-muted-foreground">
-                              ${(transaction.original_amount / 100).toFixed(2)}
-                              {transaction.local_credits_used > 0 && (
-                                <span className="text-green-600 ml-2">
-                                  -${(transaction.local_credits_used / 100).toFixed(2)} credits
-                                </span>
+                        <div className="space-y-3">
+                          {/* Prominent Amount Display */}
+                          <div className="text-center bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-950/20 dark:to-yellow-950/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800">
+                            <div className="text-2xl font-bold text-orange-600 dark:text-orange-400 mb-1">
+                              ₹{(transaction.original_amount / 100).toFixed(2)}
+                            </div>
+                            <div className="text-sm text-orange-700 dark:text-orange-300 font-medium">
+                              COLLECT THIS AMOUNT
+                            </div>
+                            {transaction.final_amount !== transaction.original_amount && (
+                              <div className="text-xs text-muted-foreground mt-1">
+                                Final charge: ₹{(transaction.final_amount / 100).toFixed(2)}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex justify-between items-center">
+                            <div className="text-left">
+                              <div className="font-mono text-lg font-bold text-primary">
+                                {transaction.payment_code}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {new Date(transaction.created_at).toLocaleTimeString()}
+                              </div>
+                              {(transaction.local_credits_used > 0 || transaction.network_credits_used > 0) && (
+                                <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                                  Credits applied: ₹{((transaction.local_credits_used + transaction.network_credits_used) / 100).toFixed(2)}
+                                </div>
                               )}
                             </div>
-                          </div>
-                          <div className="text-right">
-                            <Badge variant="outline">Pending</Badge>
-                            <div className="text-xs text-muted-foreground mt-1 flex items-center">
-                              <Clock className="w-3 h-3 mr-1" />
-                              {new Date(transaction.created_at).toLocaleTimeString()}
+                            <div className="flex flex-col gap-2">
+                              <Badge variant="secondary">Pending</Badge>
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  setValidationCode(transaction.payment_code);
+                                  setValidationMode('payment');
+                                  handleValidation();
+                                }}
+                                className="text-xs"
+                              >
+                                Validate Now
+                              </Button>
                             </div>
                           </div>
                         </div>

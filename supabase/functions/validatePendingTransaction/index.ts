@@ -15,9 +15,9 @@ serve(async (req) => {
   }
 
   try {
-    const { paymentCode } = await req.json();
+    const { paymentCode, merchantId } = await req.json();
 
-    console.log('validatePendingTransaction called with payment code:', paymentCode);
+    console.log('validatePendingTransaction called with:', { paymentCode, merchantId });
 
     if (!paymentCode) {
       return new Response(
@@ -33,7 +33,7 @@ serve(async (req) => {
     );
 
     // Find the pending transaction with properly joined related tables using the new foreign keys
-    const { data: transaction, error: transactionError } = await supabase
+    let query = supabase
       .from('pending_transactions')
       .select(`
         *,
@@ -43,11 +43,26 @@ serve(async (req) => {
           default_cashback_pct
         )
       `)
-      .eq('payment_code', paymentCode)
-      .single();
+      .eq('payment_code', paymentCode);
+
+    // Add merchant verification if merchantId is provided
+    if (merchantId) {
+      query = query.eq('merchant_id', merchantId);
+    }
+
+    const { data: transaction, error: transactionError } = await query.single();
 
     if (transactionError || !transaction) {
-      console.error('Transaction not found:', transactionError);
+      console.error('Transaction not found or merchant mismatch:', transactionError);
+      
+      // Provide more specific error messages
+      if (merchantId && transactionError?.code === 'PGRST116') {
+        return new Response(
+          JSON.stringify({ error: 'Payment code not found for this merchant' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       return new Response(
         JSON.stringify({ error: 'Invalid payment code' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

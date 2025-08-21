@@ -100,10 +100,25 @@ export default function MerchantPaymentCode({
             </div>
           </div>
 
+          {/* Merchant Collection Amount - Prominent Display */}
+          <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20 p-4 rounded-lg border-2 border-green-200 dark:border-green-800 mb-4">
+            <div className="text-center">
+              <div className="text-sm text-green-700 dark:text-green-300 font-medium mb-1">
+                MERCHANT COLLECTS
+              </div>
+              <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+                ₹{paymentResult.billAmount.toFixed(2)}
+              </div>
+              <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                Full original amount
+              </div>
+            </div>
+          </div>
+
           {/* Payment Summary */}
           <div className="space-y-3">
             <div className="flex justify-between">
-              <span className="text-sm">Original Bill:</span>
+              <span className="text-sm">Customer Bill:</span>
               <span className="font-medium">₹{paymentResult.billAmount.toFixed(2)}</span>
             </div>
             
@@ -123,7 +138,7 @@ export default function MerchantPaymentCode({
             
             <div className="border-t pt-2">
               <div className="flex justify-between text-lg font-bold">
-                <span>Amount to Pay:</span>
+                <span>Customer Pays:</span>
                 <span className={paymentResult.isFullyCovered ? "text-green-600" : ""}>
                   {paymentResult.isFullyCovered ? "FREE!" : `₹${paymentResult.finalAmount.toFixed(2)}`}
                 </span>
