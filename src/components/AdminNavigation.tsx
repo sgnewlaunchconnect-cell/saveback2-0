@@ -5,10 +5,15 @@ import { supabase } from "@/integrations/supabase/client";
 
 export function AdminNavigation() {
   const [isAdmin, setIsAdmin] = useState(false);
+  const authBypass = import.meta.env.VITE_AUTH_BYPASS === 'true';
 
   useEffect(() => {
+    if (authBypass) {
+      setIsAdmin(true);
+      return;
+    }
     checkAdminAccess();
-  }, []);
+  }, [authBypass]);
 
   const checkAdminAccess = async () => {
     try {

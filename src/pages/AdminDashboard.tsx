@@ -12,9 +12,15 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const authBypass = import.meta.env.VITE_AUTH_BYPASS === 'true';
+
   useEffect(() => {
+    if (authBypass) {
+      setIsAdmin(true);
+      return;
+    }
     checkAdminAccess();
-  }, []);
+  }, [authBypass]);
 
   const checkAdminAccess = async () => {
     try {
@@ -63,11 +69,20 @@ export default function AdminDashboard() {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
-        <AdminSidebar 
-          activeSection={activeSection} 
-          onSectionChange={setActiveSection} 
-        />
-        <AdminContent activeSection={activeSection} />
+        {authBypass && (
+          <div className="fixed top-0 left-0 right-0 z-50 bg-destructive text-destructive-foreground text-center py-2 text-sm font-medium">
+            ⚠️ DEVELOPMENT MODE: Authentication bypassed
+          </div>
+        )}
+        <div className={authBypass ? "mt-10" : ""}>
+          <AdminSidebar 
+            activeSection={activeSection} 
+            onSectionChange={setActiveSection} 
+          />
+        </div>
+        <div className={authBypass ? "mt-10" : ""}>
+          <AdminContent activeSection={activeSection} />
+        </div>
       </div>
     </SidebarProvider>
   );
