@@ -14,6 +14,7 @@ import PayAtMerchant from "./pages/PayAtMerchant";
 import VerifyPayment from "./pages/VerifyPayment";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import Demo from "./pages/Demo";
 import CustomerValidation from "./components/CustomerValidation";
 import HawkerValidation from "./components/HawkerValidation";
 import MerchantPage from "./pages/MerchantPage";
@@ -42,6 +43,7 @@ const App = () => (
           <Route path="/verify-payment" element={<VerifyPayment />} />
           <Route path="/hawker/validate" element={<HawkerValidation />} />
           <Route path="/customer/validate" element={<CustomerValidation />} />
+          <Route path="/demo" element={<Demo />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

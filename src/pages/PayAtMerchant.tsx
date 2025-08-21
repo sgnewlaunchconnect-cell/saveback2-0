@@ -5,12 +5,15 @@ import { useToast } from "@/hooks/use-toast";
 import { getUserId } from "@/utils/userIdManager";
 import QuickPaymentFlow from "@/components/QuickPaymentFlow";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Play } from "lucide-react";
 
 export default function PayAtMerchant() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const grabId = searchParams.get("grabId");
+  const isDemoMode = searchParams.get("demo") === "1";
   
   const [grabData, setGrabData] = useState<any>(null);
   const [merchantData, setMerchantData] = useState<any>(null);
@@ -113,6 +116,21 @@ export default function PayAtMerchant() {
             ← Back to Deals
           </Button>
         </div>
+        
+        {/* Demo Mode Banner */}
+        {isDemoMode && (
+          <Card className="mb-4 border-purple-200 bg-purple-50 dark:bg-purple-950/20">
+            <CardContent className="py-3">
+              <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300">
+                <Play className="h-4 w-4" />
+                <span className="text-sm font-medium">Demo Mode Active</span>
+              </div>
+              <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                This is a simulation for testing purposes
+              </p>
+            </CardContent>
+          </Card>
+        )}
         
         <QuickPaymentFlow
           grabData={grabData}

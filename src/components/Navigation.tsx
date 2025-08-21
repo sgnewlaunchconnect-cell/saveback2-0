@@ -9,7 +9,8 @@ import {
   User, 
   Store,
   Wallet,
-  Gift
+  Gift,
+  Play
 } from "lucide-react";
 
 export default function Navigation() {
@@ -25,6 +26,7 @@ export default function Navigation() {
     { path: '/redeem', label: 'Redeem', icon: Gift },
     { path: '/wallet', label: 'Wallet', icon: Wallet },
     { path: '/merchant/550e8400-e29b-41d4-a716-446655440003', label: 'Merchant', icon: Store },
+    { path: '/demo', label: 'Demo', icon: Play },
     { path: '/profile', label: 'Profile', icon: User },
   ];
 
@@ -79,7 +81,7 @@ export default function Navigation() {
       {/* Mobile Navigation - Bottom Tab Bar */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t">
         <div className="flex items-center justify-around py-2">
-          {navItems.slice(0, 5).map((item) => {
+          {navItems.slice(0, 6).map((item) => {
             const Icon = item.icon;
             const isActive = isActivePath(item.path);
             return (

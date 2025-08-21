@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, CreditCard, Gift, Clock, QrCode, Loader2, Eye, AlertCircle, Play, CheckCheck } from 'lucide-react';
+import { CheckCircle, CreditCard, Gift, Clock, QrCode, Loader2, Eye, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,9 +34,6 @@ export default function MerchantPaymentCode({
   const [transactionStatus, setTransactionStatus] = useState<'pending' | 'authorized' | 'completed' | 'voided' | 'expired'>('pending');
   const [isPolling, setIsPolling] = useState(true);
   const [statusMessage, setStatusMessage] = useState('Waiting for cashier to scan...');
-  
-  // Check if demo mode is enabled
-  const isDemoMode = new URLSearchParams(window.location.search).get('demo') === '1';
 
   // Timer effect
   useEffect(() => {
@@ -128,61 +125,6 @@ export default function MerchantPaymentCode({
   const isCompleted = transactionStatus === 'completed';
   const isVoided = transactionStatus === 'voided';
   const isAuthorized = transactionStatus === 'authorized';
-
-  // Demo functions
-  const simulateScan = async () => {
-    if (!isDemoMode) return;
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('validatePendingTransaction', {
-        body: { 
-          paymentCode: paymentResult.paymentCode,
-          merchantId: null // Allow any merchant in demo mode
-        }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Demo: Merchant Scanned",
-        description: "Transaction has been authorized by merchant",
-      });
-    } catch (error) {
-      console.error('Demo scan error:', error);
-      toast({
-        title: "Demo Error",
-        description: "Failed to simulate merchant scan",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const simulateConfirm = async () => {
-    if (!isDemoMode || transactionStatus !== 'authorized') return;
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('confirmCashCollection', {
-        body: { 
-          paymentCode: paymentResult.paymentCode,
-          merchantId: null // Allow any merchant in demo mode
-        }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Demo: Payment Confirmed",
-        description: "Cash collection has been confirmed",
-      });
-    } catch (error) {
-      console.error('Demo confirm error:', error);
-      toast({
-        title: "Demo Error",
-        description: "Failed to simulate payment confirmation",
-        variant: "destructive"
-      });
-    }
-  };
 
 
   return (
@@ -398,44 +340,6 @@ export default function MerchantPaymentCode({
         </CardContent>
       </Card>
 
-      {/* Demo Mode Controls */}
-      {isDemoMode && (
-        <Card className="border-purple-200 bg-purple-50 dark:bg-purple-950/20">
-          <CardHeader>
-            <CardTitle className="text-sm text-purple-700 dark:text-purple-300 flex items-center gap-2">
-              <Play className="h-4 w-4" />
-              Demo Mode
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <p className="text-xs text-purple-600 dark:text-purple-400 mb-3">
-              Simulate merchant actions for testing:
-            </p>
-            <div className="space-y-2">
-              <Button 
-                onClick={simulateScan}
-                disabled={transactionStatus !== 'pending'}
-                variant="outline" 
-                size="sm" 
-                className="w-full border-purple-300 text-purple-700 hover:bg-purple-100"
-              >
-                <QrCode className="h-4 w-4 mr-2" />
-                Simulate Merchant Scan
-              </Button>
-              <Button 
-                onClick={simulateConfirm}
-                disabled={transactionStatus !== 'authorized'}
-                variant="outline" 
-                size="sm" 
-                className="w-full border-purple-300 text-purple-700 hover:bg-purple-100"
-              >
-                <CheckCheck className="h-4 w-4 mr-2" />
-                Simulate Cash Confirmation
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       <Button onClick={onBack} variant="outline" className="w-full">
         ← Edit Bill Amount
