@@ -451,6 +451,57 @@ export type Database = {
         }
         Relationships: []
       }
+      merchant_settlements: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          fees_cents: number
+          gross_cents: number
+          id: string
+          merchant_id: string
+          net_cents: number
+          paid_at: string | null
+          payment_method: string | null
+          payment_reference: string | null
+          period_end: string
+          period_start: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          fees_cents?: number
+          gross_cents?: number
+          id?: string
+          merchant_id: string
+          net_cents?: number
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          period_end: string
+          period_start: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          fees_cents?: number
+          gross_cents?: number
+          id?: string
+          merchant_id?: string
+          net_cents?: number
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          period_end?: string
+          period_start?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       merchant_stats: {
         Row: {
           cashback_amount: number | null
@@ -788,11 +839,53 @@ export type Database = {
           },
         ]
       }
+      review_flags: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          id: string
+          merchant_id: string
+          reason: string
+          resolved_at: string | null
+          resolved_by: string | null
+          review_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          id?: string
+          merchant_id: string
+          reason: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          review_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          id?: string
+          merchant_id?: string
+          reason?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          review_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       reviews: {
         Row: {
           comment: string | null
           created_at: string
+          hidden_by: string | null
+          hidden_reason: string | null
           id: string
+          is_hidden: boolean
           merchant_id: string
           rating: number
           updated_at: string
@@ -801,7 +894,10 @@ export type Database = {
         Insert: {
           comment?: string | null
           created_at?: string
+          hidden_by?: string | null
+          hidden_reason?: string | null
           id?: string
+          is_hidden?: boolean
           merchant_id: string
           rating: number
           updated_at?: string
@@ -810,7 +906,10 @@ export type Database = {
         Update: {
           comment?: string | null
           created_at?: string
+          hidden_by?: string | null
+          hidden_reason?: string | null
           id?: string
+          is_hidden?: boolean
           merchant_id?: string
           rating?: number
           updated_at?: string

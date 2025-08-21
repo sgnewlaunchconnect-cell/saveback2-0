@@ -116,5 +116,8 @@ verify_jwt = false
 [functions.merchant-manage-deals]
 verify_jwt = false
 
+[functions.generateSettlements]
+verify_jwt = false
+
 [analytics]
 enabled = false

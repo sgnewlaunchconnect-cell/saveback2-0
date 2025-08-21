@@ -9,6 +9,7 @@ import DealDetail from "./pages/DealDetail";
 import GrabPass from "./pages/GrabPass";
 import Profile from "./pages/Profile";
 import MerchantPortal from "./pages/MerchantPortal";
+import AdminDashboard from "./pages/AdminDashboard";
 import WalletPage from "./pages/WalletPage";
 import PayAtMerchant from "./pages/PayAtMerchant";
 import VerifyPayment from "./pages/VerifyPayment";
@@ -36,6 +37,7 @@ const App = () => (
           <Route path="/grab-pass/:grabId" element={<GrabPass />} />
           <Route path="/merchants/:merchantId" element={<MerchantPage />} />
           <Route path="/merchant/:merchantId" element={<MerchantPortal />} />
+          <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/wallet" element={<WalletPage />} />
           <Route path="/pay-at-merchant" element={<PayAtMerchant />} />
