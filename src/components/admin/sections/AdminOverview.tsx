@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Store, CreditCard, DollarSign, Flag, TrendingUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { Users, Store, CreditCard, DollarSign, Flag, TrendingUp, UserPlus } from "lucide-react";
 
 interface OverviewStats {
   totalUsers: number;
@@ -22,6 +24,8 @@ export function AdminOverview() {
     totalRevenue: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [seedingAccounts, setSeedingAccounts] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchOverviewStats();
@@ -59,6 +63,41 @@ export function AdminOverview() {
       console.error("Error fetching overview stats:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const createTestAccounts = async () => {
+    setSeedingAccounts(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('seedTestAccounts');
+      
+      if (error) throw error;
+      
+      if (data.success) {
+        toast({
+          title: "Test accounts created successfully!",
+          description: "Check console for credentials",
+        });
+        
+        // Display credentials in console for easy access
+        console.log("=== TEST ACCOUNT CREDENTIALS ===");
+        data.accounts.forEach((account: any) => {
+          console.log(`${account.role.toUpperCase()}: ${account.email} / ${account.password}`);
+        });
+        console.log("================================");
+        
+        // Refresh stats
+        fetchOverviewStats();
+      }
+    } catch (error) {
+      console.error('Error creating test accounts:', error);
+      toast({
+        title: "Error creating test accounts",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSeedingAccounts(false);
     }
   };
 
@@ -123,7 +162,17 @@ export function AdminOverview() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+        <Button 
+          onClick={createTestAccounts}
+          disabled={seedingAccounts}
+          className="flex items-center gap-2"
+        >
+          <UserPlus className="h-4 w-4" />
+          {seedingAccounts ? "Creating..." : "Create Test Accounts"}
+        </Button>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {statsCards.map((stat) => (
