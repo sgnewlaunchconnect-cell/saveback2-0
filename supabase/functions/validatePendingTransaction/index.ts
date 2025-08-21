@@ -189,19 +189,29 @@ serve(async (req) => {
           console.error('Failed to create credit event:', eventError);
         }
 
-        // Update user totals
-        const { error: userUpdateError } = await supabase
+        // Update user totals - get current values first
+        const { data: currentUser, error: getUserError } = await supabase
           .from('users')
-          .update({
-            local_credits: supabase.raw(`local_credits + ${localCredits}`),
-            network_credits: supabase.raw(`network_credits + ${networkCredits}`),
-            total_redemptions: supabase.raw('total_redemptions + 1'),
-            total_savings: supabase.raw(`total_savings + ${totalCredits}`)
-          })
-          .eq('user_id', transaction.user_id);
+          .select('local_credits, network_credits, total_redemptions, total_savings')
+          .eq('user_id', transaction.user_id)
+          .single();
 
-        if (userUpdateError) {
-          console.error('Failed to update user totals:', userUpdateError);
+        if (getUserError) {
+          console.error('Failed to get current user totals:', getUserError);
+        } else {
+          const { error: userUpdateError } = await supabase
+            .from('users')
+            .update({
+              local_credits: (currentUser.local_credits || 0) + localCredits,
+              network_credits: (currentUser.network_credits || 0) + networkCredits,
+              total_redemptions: (currentUser.total_redemptions || 0) + 1,
+              total_savings: (currentUser.total_savings || 0) + totalCredits
+            })
+            .eq('user_id', transaction.user_id);
+
+          if (userUpdateError) {
+            console.error('Failed to update user totals:', userUpdateError);
+          }
         }
       }
 
