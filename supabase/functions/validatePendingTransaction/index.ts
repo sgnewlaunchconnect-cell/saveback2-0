@@ -91,10 +91,160 @@ serve(async (req) => {
     const now = new Date();
     const expiresAt = new Date(transaction.expires_at);
     if (now > expiresAt) {
-      console.log('Transaction expired at:', expiresAt);
+      // Mark as expired
+      await supabase
+        .from('pending_transactions')
+        .update({ status: 'expired' })
+        .eq('payment_code', paymentCode);
+
       return new Response(
-        JSON.stringify({ error: 'Payment code has expired' }),
-        { status: 410, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          error: 'Payment code has expired',
+          requiresNewCode: true 
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Handle zero-amount transactions (fully covered by credits) - auto-complete
+    if (transaction.final_amount === 0 || transaction.final_amount === '0') {
+      console.log('Zero amount transaction detected, auto-completing...');
+      
+      // Get deal info if needed for cashback calculation
+      let dealInfo = null;
+      let cashbackPct = transaction.merchants?.default_cashback_pct || 5;
+      
+      if (transaction.deal_id) {
+        const { data: deal } = await supabase
+          .from('deals')
+          .select('id, title, cashback_pct, discount_pct')
+          .eq('id', transaction.deal_id)
+          .single();
+        
+        if (deal) {
+          dealInfo = deal;
+          cashbackPct = deal.cashback_pct || cashbackPct;
+        }
+      }
+      
+      // Calculate cashback on original amount (since final amount is 0)
+      const localCreditsEarned = Math.round((transaction.original_amount * cashbackPct / 100) * 100);
+      const networkCreditsEarned = 0; // For now, only local credits for cashback
+      
+      // Update transaction to completed immediately
+      const { error: updateError } = await supabase
+        .from('pending_transactions')
+        .update({ 
+          status: 'completed',
+          authorized_at: now.toISOString(),
+          captured_at: now.toISOString()
+        })
+        .eq('payment_code', paymentCode);
+
+      if (updateError) {
+        console.error('Error updating zero-amount transaction:', updateError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to complete transaction' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Award cashback credits if any
+      if (localCreditsEarned > 0) {
+        const { error: creditError } = await supabase
+          .from('credits')
+          .upsert({
+            user_id: transaction.user_id,
+            merchant_id: transaction.merchant_id,
+            local_cents: localCreditsEarned,
+            network_cents: 0
+          }, {
+            onConflict: 'user_id,merchant_id',
+            ignoreDuplicates: false
+          });
+
+        if (!creditError) {
+          // Create credit event
+          await supabase
+            .from('credit_events')
+            .insert({
+              user_id: transaction.user_id,
+              grab_id: transaction.grab_id,
+              merchant_id: transaction.merchant_id,
+              event_type: 'CREDIT_EARNED',
+              local_cents_change: localCreditsEarned,
+              network_cents_change: 0,
+              description: `Cashback from ${transaction.merchants.name}`
+            });
+
+          // Update user totals
+          await supabase
+            .from('users')
+            .update({
+              local_credits: supabase.rpc('increment', { x: localCreditsEarned }),
+              total_redemptions: supabase.rpc('increment', { x: 1 }),
+              total_savings: supabase.rpc('increment', { x: transaction.original_amount })
+            })
+            .eq('user_id', transaction.user_id);
+        }
+      }
+
+      // Mark grab as used if applicable
+      if (transaction.grab_id) {
+        await supabase
+          .from('grabs')
+          .update({ 
+            status: 'USED',
+            used_at: now.toISOString()
+          })
+          .eq('id', transaction.grab_id);
+
+        // Award tier points
+        try {
+          await supabase.rpc('award_tier_points', {
+            p_user_id: transaction.user_id,
+            p_grab_id: transaction.grab_id,
+            p_merchant_id: transaction.merchant_id
+          });
+        } catch (tierError) {
+          console.error('Error awarding tier points:', tierError);
+        }
+      }
+
+      // Send merchant notification
+      try {
+        await supabase.functions.invoke('sendMerchantNotification', {
+          body: {
+            merchantId: transaction.merchant_id,
+            type: 'PAYMENT_COMPLETED',
+            payload: {
+              paymentCode,
+              amount: transaction.original_amount,
+              finalAmount: transaction.final_amount,
+              method: 'zero_amount_auto',
+              completedAt: now.toISOString()
+            }
+          }
+        });
+      } catch (notifError) {
+        console.error('Error sending merchant notification:', notifError);
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'FREE transaction completed automatically',
+          data: {
+            status: 'completed',
+            paymentCode,
+            amount: transaction.original_amount,
+            finalAmount: transaction.final_amount,
+            merchantName: transaction.merchants.name,
+            cashbackEarned: localCreditsEarned / 100,
+            autoCompleted: true
+          }
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 

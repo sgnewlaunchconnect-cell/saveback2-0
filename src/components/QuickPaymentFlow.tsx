@@ -158,7 +158,8 @@ export default function QuickPaymentFlow({
           dealTitle: grabData?.deals?.title,
           hasCreditsApplied: creditsToUse > 0,
           isFullyCovered: finalAmount === 0,
-          paymentMethod: 'code'
+          paymentMethod: 'code',
+          pendingTransactionId: data.data.transactionId
         };
         
         console.log('Payment code generated for validation:', {

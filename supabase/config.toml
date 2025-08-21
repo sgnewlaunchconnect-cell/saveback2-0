@@ -98,5 +98,23 @@ verify_jwt = false
 [functions.sendPushNotification]
 verify_jwt = false
 
+[functions.checkPendingStatus]
+verify_jwt = false
+
+[functions.confirmCashCollection]
+verify_jwt = false
+
+[functions.voidPendingTransaction]
+verify_jwt = false
+
+[functions.validatePendingTransaction]
+verify_jwt = false
+
+[functions.createPendingTransaction]
+verify_jwt = false
+
+[functions.merchant-manage-deals]
+verify_jwt = false
+
 [analytics]
 enabled = false
