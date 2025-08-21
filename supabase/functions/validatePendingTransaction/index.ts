@@ -283,24 +283,9 @@ serve(async (req) => {
 
     // Start transaction to update everything atomically
     try {
-      // Process credit deductions if credits were used (skip in demo mode)
-      if ((transaction.local_credits_used > 0 || transaction.network_credits_used > 0) && transaction.user_id && !isDemoMode) {
-        // Use the existing credit processing function to deduct credits
-        const { error: creditError } = await supabase.rpc('process_credit_payment', {
-          p_user_id: transaction.user_id,
-          p_merchant_id: transaction.merchant_id,
-          p_original_amount: Math.round(transaction.original_amount * 100), // Convert to cents
-          p_local_credits_used: Math.round(transaction.local_credits_used * 100), // Convert to cents
-          p_network_credits_used: Math.round(transaction.network_credits_used * 100), // Convert to cents
-          p_final_amount: Math.round(transaction.final_amount * 100) // Convert to cents
-        });
-
-        if (creditError) {
-          console.error('Error processing credit deduction:', creditError);
-          throw new Error(`Failed to deduct credits: ${creditError.message}`);
-        }
-      }
-
+      // Note: Credit deductions are handled in confirmCashCollection, not here
+      // This validation step only marks the transaction as authorized/validated
+      
       // For cash payments, mark as validated and wait for confirmation
       // For PSP payments, mark as validated (completed)
       // If captureNow is true, complete cash payments immediately
@@ -329,8 +314,8 @@ serve(async (req) => {
         throw new Error(`Failed to update transaction: ${updateError.message}`);
       }
 
-      // Award cashback for PSP payments immediately, or cash payments if captureNow is true
-      // Otherwise cash payments get cashback when confirmed later
+      // Award cashback only for PSP payments or if captureNow is true for cash payments
+      // Regular cash payments get cashback when confirmed later in confirmCashCollection
       if (transaction.user_id && totalCredits > 0 && (!isCashPayment || captureNow)) {
         // Upsert credits for this merchant
         const { error: creditsError } = await supabase
@@ -346,19 +331,7 @@ serve(async (req) => {
           });
 
         if (creditsError) {
-          // If upsert failed, try to add to existing credits
-          const { error: incrementError } = await supabase.rpc('process_credit_payment', {
-            p_user_id: transaction.user_id,
-            p_merchant_id: transaction.merchant_id,
-            p_original_amount: transaction.original_amount,
-            p_local_credits_used: -localCredits, // Negative to add credits
-            p_network_credits_used: -networkCredits,
-            p_final_amount: transaction.final_amount
-          });
-
-          if (incrementError) {
-            console.error('Failed to increment credits:', incrementError);
-          }
+          console.error('Failed to award credits:', creditsError);
         }
 
         // Create credit event record
@@ -371,23 +344,21 @@ serve(async (req) => {
             local_cents_change: localCredits,
             network_cents_change: networkCredits,
             description: `Cashback from ${transaction.merchants?.name} - ${cashbackPct}% on $${(transaction.original_amount / 100).toFixed(2)}`,
-            grab_id: transaction.deal_id ? null : undefined // Only set if we have a deal
+            grab_id: transaction.deal_id ? null : undefined
           });
 
         if (eventError) {
           console.error('Failed to create credit event:', eventError);
         }
 
-        // Update user totals - get current values first
+        // Update user totals
         const { data: currentUser, error: getUserError } = await supabase
           .from('users')
           .select('local_credits, network_credits, total_redemptions, total_savings')
           .eq('user_id', transaction.user_id)
           .single();
 
-        if (getUserError) {
-          console.error('Failed to get current user totals:', getUserError);
-        } else {
+        if (!getUserError && currentUser) {
           const { error: userUpdateError } = await supabase
             .from('users')
             .update({
