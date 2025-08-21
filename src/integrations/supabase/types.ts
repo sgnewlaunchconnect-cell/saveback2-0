@@ -591,6 +591,8 @@ export type Database = {
       }
       pending_transactions: {
         Row: {
+          authorized_at: string | null
+          captured_at: string | null
           created_at: string
           credits_applied: number | null
           deal_id: string | null
@@ -607,8 +609,11 @@ export type Database = {
           status: string | null
           updated_at: string
           user_id: string
+          voided_at: string | null
         }
         Insert: {
+          authorized_at?: string | null
+          captured_at?: string | null
           created_at?: string
           credits_applied?: number | null
           deal_id?: string | null
@@ -625,8 +630,11 @@ export type Database = {
           status?: string | null
           updated_at?: string
           user_id: string
+          voided_at?: string | null
         }
         Update: {
+          authorized_at?: string | null
+          captured_at?: string | null
           created_at?: string
           credits_applied?: number | null
           deal_id?: string | null
@@ -643,6 +651,7 @@ export type Database = {
           status?: string | null
           updated_at?: string
           user_id?: string
+          voided_at?: string | null
         }
         Relationships: [
           {
