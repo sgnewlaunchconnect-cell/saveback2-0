@@ -9,8 +9,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Check, Eye } from "lucide-react";
+import { DateRangePicker } from "@/components/DateRangePicker";
+import { downloadCSV } from "@/utils/csvExport";
+import { Plus, Check, Eye, Download } from "lucide-react";
 import { format } from "date-fns";
+import { DateRange } from "react-day-picker";
 
 interface Settlement {
   id: string;
@@ -36,25 +39,37 @@ export function AdminSettlements() {
   const [loading, setLoading] = useState(true);
   const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
   const [isMarkPaidDialogOpen, setIsMarkPaidDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [selectedSettlement, setSelectedSettlement] = useState<Settlement | null>(null);
   const [paymentMethod, setPaymentMethod] = useState("");
   const [paymentReference, setPaymentReference] = useState("");
   const [adminNotes, setAdminNotes] = useState("");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const { toast } = useToast();
 
   useEffect(() => {
     fetchSettlements();
-  }, []);
+  }, [dateRange]);
 
   const fetchSettlements = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("merchant_settlements")
         .select(`
           *,
           merchant:merchants(name)
         `)
         .order("created_at", { ascending: false });
+
+      // Apply date range filter
+      if (dateRange?.from) {
+        query = query.gte("period_start", dateRange.from.toISOString().split('T')[0]);
+      }
+      if (dateRange?.to) {
+        query = query.lte("period_end", dateRange.to.toISOString().split('T')[0]);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setSettlements(data as any || []);
@@ -149,6 +164,23 @@ export function AdminSettlements() {
     }
   };
 
+  const exportCSV = () => {
+    const exportData = settlements.map(s => ({
+      merchant: s.merchant?.name || "",
+      period_start: s.period_start,
+      period_end: s.period_end,
+      gross_amount: (s.gross_cents / 100).toFixed(2),
+      fees: (s.fees_cents / 100).toFixed(2),
+      net_amount: (s.net_cents / 100).toFixed(2),
+      status: s.status,
+      payment_method: s.payment_method || "",
+      payment_reference: s.payment_reference || "",
+      created_at: format(new Date(s.created_at), "yyyy-MM-dd"),
+      paid_at: s.paid_at ? format(new Date(s.paid_at), "yyyy-MM-dd") : ""
+    }));
+    downloadCSV(exportData, `settlements-${format(new Date(), "yyyy-MM-dd")}.csv`);
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -169,26 +201,44 @@ export function AdminSettlements() {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Settlements</h2>
-        <Dialog open={isGenerateDialogOpen} onOpenChange={setIsGenerateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Generate Settlements
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Generate Settlements</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <p>This will generate settlements for all merchants based on their captured transactions from the last 30 days.</p>
-              <Button onClick={generateSettlements} className="w-full">
-                Generate
+        <div className="flex gap-2">
+          <Button onClick={exportCSV} variant="outline">
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
+          <Dialog open={isGenerateDialogOpen} onOpenChange={setIsGenerateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Generate Settlements
               </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Generate Settlements</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <p>This will generate settlements for all merchants based on their captured transactions from the last 30 days.</p>
+                <Button onClick={generateSettlements} className="w-full">
+                  Generate
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Date Range Filter</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DateRangePicker
+            date={dateRange}
+            onDateChange={setDateRange}
+          />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -241,7 +291,14 @@ export function AdminSettlements() {
                           Mark Paid
                         </Button>
                       )}
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setSelectedSettlement(settlement);
+                          setIsViewDialogOpen(true);
+                        }}
+                      >
                         <Eye className="h-4 w-4 mr-1" />
                         View
                       </Button>
@@ -291,6 +348,77 @@ export function AdminSettlements() {
               Mark as Paid
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Settlement Details</DialogTitle>
+          </DialogHeader>
+          {selectedSettlement && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Merchant</Label>
+                  <p className="font-medium">{selectedSettlement.merchant?.name}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                  <Badge className={getStatusColor(selectedSettlement.status)}>
+                    {selectedSettlement.status}
+                  </Badge>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Period</Label>
+                  <p>{format(new Date(selectedSettlement.period_start), "MMM dd")} - {format(new Date(selectedSettlement.period_end), "MMM dd, yyyy")}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Created</Label>
+                  <p>{format(new Date(selectedSettlement.created_at), "MMM dd, yyyy")}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Gross Amount</Label>
+                  <p className="font-medium">${(selectedSettlement.gross_cents / 100).toFixed(2)}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Fees</Label>
+                  <p>${(selectedSettlement.fees_cents / 100).toFixed(2)}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Net Amount</Label>
+                  <p className="font-medium text-primary">${(selectedSettlement.net_cents / 100).toFixed(2)}</p>
+                </div>
+                {selectedSettlement.paid_at && (
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Paid Date</Label>
+                    <p>{format(new Date(selectedSettlement.paid_at), "MMM dd, yyyy")}</p>
+                  </div>
+                )}
+              </div>
+              
+              {selectedSettlement.payment_method && (
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Payment Method</Label>
+                  <p>{selectedSettlement.payment_method}</p>
+                </div>
+              )}
+              
+              {selectedSettlement.payment_reference && (
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Payment Reference</Label>
+                  <p className="font-mono">{selectedSettlement.payment_reference}</p>
+                </div>
+              )}
+              
+              {selectedSettlement.admin_notes && (
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Admin Notes</Label>
+                  <p className="text-sm bg-muted p-3 rounded-lg">{selectedSettlement.admin_notes}</p>
+                </div>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

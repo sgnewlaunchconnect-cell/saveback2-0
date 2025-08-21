@@ -4,9 +4,14 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search } from "lucide-react";
+import { DateRangePicker } from "@/components/DateRangePicker";
+import { downloadCSV } from "@/utils/csvExport";
+import { Search, Download } from "lucide-react";
 import { format } from "date-fns";
+import { DateRange } from "react-day-picker";
 
 interface Transaction {
   id: string;
@@ -31,15 +36,17 @@ export function AdminTransactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const { toast } = useToast();
 
   useEffect(() => {
     fetchTransactions();
-  }, []);
+  }, [dateRange, statusFilter]);
 
   const fetchTransactions = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("pending_transactions")
         .select(`
           *,
@@ -47,7 +54,22 @@ export function AdminTransactions() {
           user:users(email, display_name)
         `)
         .order("created_at", { ascending: false })
-        .limit(100);
+        .limit(500);
+
+      // Apply date range filter
+      if (dateRange?.from) {
+        query = query.gte("created_at", dateRange.from.toISOString());
+      }
+      if (dateRange?.to) {
+        query = query.lte("created_at", dateRange.to.toISOString());
+      }
+
+      // Apply status filter
+      if (statusFilter !== "all") {
+        query = query.eq("status", statusFilter);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setTransactions(data as any || []);
@@ -82,6 +104,23 @@ export function AdminTransactions() {
     transaction.user?.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const exportCSV = () => {
+    const exportData = filteredTransactions.map(t => ({
+      payment_code: t.payment_code,
+      merchant: t.merchant?.name || "",
+      user_email: t.user?.email || "",
+      user_name: t.user?.display_name || "",
+      original_amount: (t.original_amount / 100).toFixed(2),
+      final_amount: (t.final_amount / 100).toFixed(2),
+      credits_applied: (t.credits_applied / 100).toFixed(2),
+      discount_applied: (t.discount_applied / 100).toFixed(2),
+      status: t.status,
+      created_at: format(new Date(t.created_at), "yyyy-MM-dd HH:mm:ss"),
+      captured_at: t.captured_at ? format(new Date(t.captured_at), "yyyy-MM-dd HH:mm:ss") : ""
+    }));
+    downloadCSV(exportData, `transactions-${format(new Date(), "yyyy-MM-dd")}.csv`);
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -100,13 +139,19 @@ export function AdminTransactions() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold">Transactions</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Transactions</h2>
+        <Button onClick={exportCSV} variant="outline">
+          <Download className="h-4 w-4 mr-2" />
+          Export CSV
+        </Button>
+      </div>
       
       <Card>
         <CardHeader>
-          <CardTitle>Transaction Search</CardTitle>
+          <CardTitle>Filters</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="flex items-center space-x-2">
             <Search className="h-4 w-4 text-muted-foreground" />
             <Input
@@ -115,6 +160,27 @@ export function AdminTransactions() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="flex-1"
             />
+          </div>
+          
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <DateRangePicker
+                date={dateRange}
+                onDateChange={setDateRange}
+              />
+            </div>
+            
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="captured">Captured</SelectItem>
+                <SelectItem value="voided">Voided</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
