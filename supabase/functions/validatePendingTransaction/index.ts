@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.55.0';
@@ -31,17 +32,11 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Find the pending transaction
+    // Find the pending transaction with properly joined related tables
     const { data: transaction, error: transactionError } = await supabase
       .from('pending_transactions')
       .select(`
         *,
-        deals (
-          id,
-          title,
-          cashback_pct,
-          discount_pct
-        ),
         merchants (
           id,
           name,
@@ -83,12 +78,21 @@ serve(async (req) => {
       );
     }
 
-    // Calculate cashback percentage (priority: deal > merchant default > 5%)
-    let cashbackPct = 5; // Default fallback
-    if (transaction.deals?.cashback_pct) {
-      cashbackPct = transaction.deals.cashback_pct;
-    } else if (transaction.merchants?.default_cashback_pct) {
-      cashbackPct = transaction.merchants.default_cashback_pct;
+    // Get deal info if deal_id exists
+    let dealInfo = null;
+    let cashbackPct = transaction.merchants?.default_cashback_pct || 5; // Default 5%
+
+    if (transaction.deal_id) {
+      const { data: deal } = await supabase
+        .from('deals')
+        .select('id, title, cashback_pct, discount_pct')
+        .eq('id', transaction.deal_id)
+        .single();
+      
+      if (deal) {
+        dealInfo = deal;
+        cashbackPct = deal.cashback_pct || cashbackPct;
+      }
     }
 
     // Calculate credit amounts
@@ -244,7 +248,7 @@ serve(async (req) => {
               amount: transaction.original_amount,
               finalAmount: transaction.final_amount,
               creditsEarned: totalCredits,
-              dealTitle: transaction.deals?.title
+              dealTitle: dealInfo?.title
             }
           }
         });
@@ -271,7 +275,7 @@ serve(async (req) => {
             localCredits,
             networkCredits,
             totalCredits,
-            dealTitle: transaction.deals?.title
+            dealTitle: dealInfo?.title
           }
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
