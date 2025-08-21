@@ -23,11 +23,15 @@ interface MerchantPaymentCodeProps {
     pendingTransactionId?: string;
   };
   onBack: () => void;
+  merchantData?: any;
+  grabData?: any;
 }
 
 export default function MerchantPaymentCode({
   paymentResult,
-  onBack
+  onBack,
+  merchantData,
+  grabData
 }: MerchantPaymentCodeProps) {
   const { toast } = useToast();
   const [timeLeft, setTimeLeft] = useState(0);
@@ -84,7 +88,7 @@ export default function MerchantPaymentCode({
           case 'validated':
             setStatusMessage(paymentResult.finalAmount === 0 
               ? 'Verified — Transaction complete!' 
-              : `Verified — Please pay ₹${paymentResult.finalAmount.toFixed(2)} to the cashier.`);
+              : `Verified — Please pay $${paymentResult.finalAmount.toFixed(2)} to the cashier.`);
             break;
           case 'completed':
             setStatusMessage('Payment confirmed — Transaction complete.');
@@ -159,10 +163,10 @@ export default function MerchantPaymentCode({
   // Merchant scan and validate functions
   const simulateScan = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('validatePendingTransaction', {
+        const { data, error } = await supabase.functions.invoke('validatePendingTransaction', {
         body: { 
           paymentCode: paymentResult.paymentCode,
-          merchantId: isActualDemo ? null : undefined // Allow any merchant only in actual demo mode
+          merchantId: isActualDemo ? undefined : merchantData?.id || grabData?.merchant_id
         }
       });
 
@@ -189,7 +193,7 @@ export default function MerchantPaymentCode({
       const { data, error } = await supabase.functions.invoke('confirmCashCollection', {
         body: { 
           paymentCode: paymentResult.paymentCode,
-          merchantId: isActualDemo ? null : undefined // Allow any merchant only in actual demo mode
+          merchantId: isActualDemo ? undefined : merchantData?.id || grabData?.merchant_id
         }
       });
 
@@ -296,7 +300,7 @@ export default function MerchantPaymentCode({
               isValidated ? 'text-blue-600 dark:text-blue-400' :
               'text-foreground'
             }`}>
-              {paymentResult.finalAmount === 0 ? 'FREE!' : `₹${paymentResult.finalAmount.toFixed(2)}`}
+              {paymentResult.finalAmount === 0 ? 'FREE!' : `$${paymentResult.finalAmount.toFixed(2)}`}
             </div>
             <p className="text-xs text-muted-foreground">
               {paymentResult.finalAmount === 0 ? 'Fully covered by credits' : 'After credits & discounts'}
@@ -433,20 +437,20 @@ export default function MerchantPaymentCode({
             
             <div className="flex justify-between">
               <span className="text-sm">Customer Bill:</span>
-              <span className="font-medium">₹{paymentResult.billAmount.toFixed(2)}</span>
+              <span className="font-medium">${paymentResult.billAmount.toFixed(2)}</span>
             </div>
             
             {paymentResult.directDiscount > 0 && (
               <div className="flex justify-between text-green-600">
                 <span className="text-sm">Deal Discount:</span>
-                <span className="font-medium">-₹{paymentResult.directDiscount.toFixed(2)}</span>
+                <span className="font-medium">-${paymentResult.directDiscount.toFixed(2)}</span>
               </div>
             )}
             
             {paymentResult.creditsUsed > 0 && (
               <div className="flex justify-between text-blue-600">
                 <span className="text-sm">Credits Applied:</span>
-                <span className="font-medium">-₹{paymentResult.creditsUsed.toFixed(2)}</span>
+                <span className="font-medium">-${paymentResult.creditsUsed.toFixed(2)}</span>
               </div>
             )}
             
@@ -454,7 +458,7 @@ export default function MerchantPaymentCode({
               <div className="flex justify-between text-lg font-bold">
                 <span>Final Amount:</span>
                 <span className={paymentResult.isFullyCovered ? "text-green-600" : ""}>
-                  {paymentResult.isFullyCovered ? "FREE!" : `₹${paymentResult.finalAmount.toFixed(2)}`}
+                  {paymentResult.isFullyCovered ? "FREE!" : `$${paymentResult.finalAmount.toFixed(2)}`}
                 </span>
               </div>
             </div>
@@ -465,7 +469,7 @@ export default function MerchantPaymentCode({
                 <div className="flex items-center justify-center gap-2 text-green-700 dark:text-green-300">
                   <Gift className="w-4 h-4" />
                   <span className="font-medium">
-                    You Saved ₹{paymentResult.totalSavings.toFixed(2)}!
+                    You Saved ${paymentResult.totalSavings.toFixed(2)}!
                   </span>
                 </div>
               </div>
@@ -498,7 +502,7 @@ export default function MerchantPaymentCode({
                 <span>
                   {paymentResult.isFullyCovered 
                     ? "Complete your purchase - it's FREE!" 
-                    : `Pay ₹${paymentResult.finalAmount.toFixed(2)} at the counter first`
+                    : `Pay $${paymentResult.finalAmount.toFixed(2)} at the counter first`
                   }
                 </span>
               </div>

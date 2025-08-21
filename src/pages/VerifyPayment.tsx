@@ -35,7 +35,7 @@ export default function VerifyPayment() {
       if (!paymentId || paymentId === 'demo') {
         setPaymentDetails({
           paymentIntentId: 'pi_3RyDGaLSqIZh0Qqt1oLmwsYN',
-          amount: 86696, // ₹866.96 in paisa
+          amount: 86696, // $866.96 in cents
           currency: 'inr',
           status: 'succeeded',
           created: Date.now() / 1000 - 3600, // 1 hour ago
@@ -170,7 +170,7 @@ export default function VerifyPayment() {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Amount:</span>
                 <span className="font-medium">
-                  ₹{(paymentDetails.amount / 100).toFixed(2)}
+                  ${(paymentDetails.amount / 100).toFixed(2)}
                 </span>
               </div>
               

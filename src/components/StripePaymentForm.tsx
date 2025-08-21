@@ -97,7 +97,7 @@ function PaymentForm({ clientSecret, paymentIntentId, pendingTransactionId, onSu
       <CardHeader>
         <CardTitle>Complete Payment</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Paying ₹{(amount / 100).toFixed(2)} to {merchantName}
+          Paying ${(amount / 100).toFixed(2)} to {merchantName}
         </p>
       </CardHeader>
       <CardContent>
@@ -126,7 +126,7 @@ function PaymentForm({ clientSecret, paymentIntentId, pendingTransactionId, onSu
             disabled={!stripe || isProcessing} 
             className="w-full"
           >
-            {isProcessing ? "Processing..." : `Pay ₹${(amount / 100).toFixed(2)}`}
+            {isProcessing ? "Processing..." : `Pay $${(amount / 100).toFixed(2)}`}
           </Button>
         </form>
       </CardContent>

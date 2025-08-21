@@ -246,6 +246,8 @@ export default function QuickPaymentFlow({
       <MerchantPaymentCode
         paymentResult={paymentResult}
         onBack={handleBackToEdit}
+        merchantData={merchantData}
+        grabData={grabData}
       />
     );
   }
@@ -311,7 +313,7 @@ export default function QuickPaymentFlow({
         <div className="space-y-2">
           <Label htmlFor="billAmount">Your Purchase Amount</Label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">₹</span>
+            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
             <Input
               id="billAmount"
               type="number"
@@ -333,7 +335,7 @@ export default function QuickPaymentFlow({
                 Apply Credits Now?
               </Label>
               <Badge variant="secondary" className="text-xs">
-                ₹{totalCredits.toFixed(2)} available
+                ${totalCredits.toFixed(2)} available
               </Badge>
             </div>
             <Switch
@@ -349,14 +351,14 @@ export default function QuickPaymentFlow({
               <div className="bg-green-100 dark:bg-green-900/20 p-2 rounded border border-green-200 dark:border-green-800">
                 <p className="text-green-700 dark:text-green-300 font-medium">✨ Smart Choice!</p>
                 <p className="text-green-600 dark:text-green-400">
-                  Using ₹{creditsToUse.toFixed(2)} credits now saves you money immediately
+                  Using ${creditsToUse.toFixed(2)} credits now saves you money immediately
                 </p>
               </div>
             ) : (
               <div className="bg-blue-100 dark:bg-blue-900/20 p-2 rounded border border-blue-200 dark:border-blue-800">
                 <p className="text-blue-700 dark:text-blue-300 font-medium">💎 Accumulate & Save More!</p>
                 <p className="text-blue-600 dark:text-blue-400">
-                  Keep your ₹{totalCredits.toFixed(2)} + earn ₹{cashbackEarned.toFixed(2)} more = ₹{(totalCredits + cashbackEarned).toFixed(2)} for bigger savings!
+                  Keep your ${totalCredits.toFixed(2)} + earn ${cashbackEarned.toFixed(2)} more = ${(totalCredits + cashbackEarned).toFixed(2)} for bigger savings!
                 </p>
               </div>
             )}
@@ -369,30 +371,30 @@ export default function QuickPaymentFlow({
             <h4 className="text-sm font-medium">Payment Summary</h4>
             <div className="flex justify-between text-sm">
               <span>Bill Amount:</span>
-              <span>₹{amount.toFixed(2)}</span>
+              <span>${amount.toFixed(2)}</span>
             </div>
             {directDiscount > 0 && (
               <div className="flex justify-between text-sm">
                 <span>Deal Discount:</span>
-                <span className="text-green-600">-₹{directDiscount.toFixed(2)}</span>
+                <span className="text-green-600">-${directDiscount.toFixed(2)}</span>
               </div>
             )}
             {creditsToUse > 0 && (
               <div className="flex justify-between text-sm">
                 <span>Credits Applied:</span>
-                <span className="text-green-600">-₹{creditsToUse.toFixed(2)}</span>
+                <span className="text-green-600">-${creditsToUse.toFixed(2)}</span>
               </div>
             )}
             {paymentMethod === 'psp' && feeAmount > 0 && feeMode === 'pass' && (
               <div className="flex justify-between text-sm">
                 <span>Payment Fee:</span>
-                <span className="text-orange-600">+₹{feeAmount.toFixed(2)}</span>
+                <span className="text-orange-600">+${feeAmount.toFixed(2)}</span>
               </div>
             )}
             <div className="flex justify-between text-sm font-medium border-t pt-2">
               <span>You Pay:</span>
               <span className={finalAmountWithFees === 0 ? "text-green-600" : ""}>
-                {finalAmountWithFees === 0 ? "FREE!" : `₹${finalAmountWithFees.toFixed(2)}`}
+                {finalAmountWithFees === 0 ? "FREE!" : `$${finalAmountWithFees.toFixed(2)}`}
               </span>
             </div>
           </div>
@@ -404,7 +406,7 @@ export default function QuickPaymentFlow({
             <div className="flex items-center justify-center gap-2 text-green-700 dark:text-green-300">
               <Gift className="w-4 h-4" />
               <span className="font-medium">
-                Total Savings: ₹{totalSavings.toFixed(2)}! 🎉
+                Total Savings: ${totalSavings.toFixed(2)}! 🎉
               </span>
             </div>
           </div>
@@ -415,7 +417,7 @@ export default function QuickPaymentFlow({
           <div className="text-center bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
             <div className="flex items-center justify-center gap-2 text-blue-700 dark:text-blue-300 mb-1">
               <Zap className="w-4 h-4" />
-              <span className="font-medium">You'll Earn Back: ₹{cashbackEarned.toFixed(2)}</span>
+              <span className="font-medium">You'll Earn Back: ${cashbackEarned.toFixed(2)}</span>
             </div>
             <p className="text-xs text-blue-600 dark:text-blue-400">
               {cashbackPct}% cashback for your next purchase! 💰
@@ -441,7 +443,7 @@ export default function QuickPaymentFlow({
             ) : (
               <>
                 <Smartphone className="w-4 h-4 mr-2" />
-                Pay ₹{finalAmountWithFees.toFixed(2)} Now
+                Pay ${finalAmountWithFees.toFixed(2)} Now
               </>
             )
           ) : (
@@ -481,14 +483,14 @@ export default function QuickPaymentFlow({
             )}
             {cashbackEarned > 0 && (
               <li className="font-medium text-purple-700 dark:text-purple-300">
-                {paymentMethod === 'psp' ? '6' : '7'}. Earn ₹{cashbackEarned.toFixed(2)} credits for next time! 🎁
+                {paymentMethod === 'psp' ? '6' : '7'}. Earn ${cashbackEarned.toFixed(2)} credits for next time! 🎁
               </li>
             )}
           </ol>
           
           {paymentMethod === 'psp' && feeAmount > 0 && feeMode === 'pass' && (
             <p className="mt-2 text-orange-600 dark:text-orange-400 font-medium">
-              Note: ₹{feeAmount.toFixed(2)} payment processing fee included
+              Note: ${feeAmount.toFixed(2)} payment processing fee included
             </p>
           )}
         </div>

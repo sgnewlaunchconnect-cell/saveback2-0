@@ -81,7 +81,7 @@ export default function ProofOfPaymentQR({
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Amount Paid:</span>
-            <span className="font-medium">₹{(amount / 100).toFixed(2)}</span>
+            <span className="font-medium">${(amount / 100).toFixed(2)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Transaction ID:</span>

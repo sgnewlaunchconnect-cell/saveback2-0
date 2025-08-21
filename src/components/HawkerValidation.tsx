@@ -65,7 +65,7 @@ export default function HawkerValidation() {
         (payload) => {
           const transaction = payload.new;
           setLiveTransactions(prev => [transaction, ...prev.slice(0, 4)]); // Keep last 5
-          toast.success(`Payment validated: ₹${(transaction.original_amount / 100).toFixed(2)}`);
+          toast.success(`Payment validated: $${(transaction.original_amount / 100).toFixed(2)}`);
         }
       )
       .subscribe();
@@ -305,7 +305,7 @@ export default function HawkerValidation() {
               {liveTransactions.map((transaction, index) => (
                 <div key={transaction.id} className="flex items-center justify-between p-2 bg-muted/50 rounded text-sm">
                   <div>
-                    <span className="font-medium">₹{(transaction.original_amount / 100).toFixed(2)}</span>
+                    <span className="font-medium">${(transaction.original_amount / 100).toFixed(2)}</span>
                     <span className="text-muted-foreground ml-2">
                       {new Date(transaction.updated_at).toLocaleTimeString()}
                     </span>

@@ -65,33 +65,33 @@ export default function PaymentSuccess({
           {/* Total Amount Paid - Large Display */}
           <div className="text-center bg-muted/50 rounded-lg p-4">
             <p className="text-sm text-muted-foreground mb-1">Total Paid</p>
-            <p className="text-3xl font-bold text-primary">₹{finalAmount.toFixed(2)}</p>
+            <p className="text-3xl font-bold text-primary">${finalAmount.toFixed(2)}</p>
           </div>
           
           {/* Breakdown */}
           <div className="space-y-3 text-sm">
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Bill Amount:</span>
-              <span>₹{originalAmount.toFixed(2)}</span>
+              <span>${originalAmount.toFixed(2)}</span>
             </div>
             
             {directDiscountAmount > 0 && (
               <div className="flex justify-between items-center text-green-600">
                 <span>Direct Discount:</span>
-                <span>-₹{directDiscountAmount.toFixed(2)}</span>
+                <span>-${directDiscountAmount.toFixed(2)}</span>
               </div>
             )}
             
             {creditsUsed > 0 && (
               <div className="flex justify-between items-center text-green-600">
                 <span>Credits Applied:</span>
-                <span>-₹{creditsUsed.toFixed(2)}</span>
+                <span>-${creditsUsed.toFixed(2)}</span>
               </div>
             )}
             
             <div className="border-t pt-2 flex justify-between items-center font-medium">
               <span>Net Paid:</span>
-              <span>₹{finalAmount.toFixed(2)}</span>
+              <span>${finalAmount.toFixed(2)}</span>
             </div>
           </div>
           
@@ -101,7 +101,7 @@ export default function PaymentSuccess({
                 <div className="flex items-center justify-center gap-2 text-green-700 dark:text-green-300">
                   <Gift className="w-5 h-5" />
                   <span className="font-semibold text-lg">
-                    Total Saved: ₹{totalSavings.toFixed(2)}!
+                    Total Saved: ${totalSavings.toFixed(2)}!
                   </span>
                 </div>
                 <p className="text-xs text-green-600 dark:text-green-400 mt-1">
