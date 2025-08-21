@@ -496,20 +496,46 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
                   <Label className="text-sm text-muted-foreground">Quick Demo</Label>
                   <div className="grid gap-2">
                     <Button
-                      onClick={() => setValidationCode(Math.floor(100000 + Math.random() * 900000).toString())}
+                      onClick={async () => {
+                        try {
+                          const { data } = await supabase.functions.invoke('generateValidationCode', {
+                            body: { billAmount: 10.00, merchantId }
+                          });
+                          if (data?.pin) {
+                            setValidationCode(data.pin);
+                            toast({
+                              title: "Demo Payment Code Generated",
+                              description: `Use PIN: ${data.pin}`,
+                            });
+                          }
+                        } catch (error) {
+                          toast({
+                            title: "Demo Failed",
+                            description: "Could not generate demo payment code",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
                       variant="outline"
                       size="sm"
                       className="w-full"
                     >
-                      Run Demo Payment (741743)
+                      Generate Demo Payment Code
                     </Button>
                     <Button
-                      onClick={() => setValidationCode(Math.floor(100000 + Math.random() * 900000).toString())}
+                      onClick={() => {
+                        const demoGrabPin = Math.floor(100000 + Math.random() * 900000).toString();
+                        setValidationCode(demoGrabPin);
+                        toast({
+                          title: "Demo Grab PIN",
+                          description: `Try validating PIN: ${demoGrabPin}`,
+                        });
+                      }}
                       variant="outline"
                       size="sm"
                       className="w-full"
                     >
-                      Run Demo Grab (Random PIN)
+                      Demo Grab PIN (Test Only)
                     </Button>
                   </div>
                 </div>
