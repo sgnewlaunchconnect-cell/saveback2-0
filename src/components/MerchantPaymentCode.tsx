@@ -6,6 +6,7 @@ import { CheckCircle, CreditCard, Gift, Clock, QrCode, Loader2, Eye, AlertCircle
 import { useToast } from '@/hooks/use-toast';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 import { supabase } from '@/integrations/supabase/client';
+import PaymentSuccess from './PaymentSuccess';
 
 interface MerchantPaymentCodeProps {
   paymentResult: {
@@ -38,9 +39,6 @@ export default function MerchantPaymentCode({
   const [transactionStatus, setTransactionStatus] = useState<'pending' | 'validated' | 'completed' | 'voided' | 'expired'>('pending');
   const [isPolling, setIsPolling] = useState(true);
   const [statusMessage, setStatusMessage] = useState('Waiting for cashier to scan...');
-  
-  // Always enable merchant scan and validate functionality
-  const isDemoMode = true; // Enable for all payments now
   
   // Check if actual demo mode is enabled
   const isActualDemo = new URLSearchParams(window.location.search).get('demo') === '1';
@@ -163,10 +161,11 @@ export default function MerchantPaymentCode({
   // Merchant scan and validate functions
   const simulateScan = async () => {
     try {
-        const { data, error } = await supabase.functions.invoke('validatePendingTransaction', {
+      const { data, error } = await supabase.functions.invoke('validatePendingTransaction', {
         body: { 
           paymentCode: paymentResult.paymentCode,
-          merchantId: isActualDemo ? undefined : merchantData?.id || grabData?.merchant_id
+          merchantId: isActualDemo ? null : merchantData?.id || grabData?.merchant_id,
+          captureNow: paymentResult.finalAmount === 0 // Auto-complete free transactions
         }
       });
 
@@ -193,7 +192,7 @@ export default function MerchantPaymentCode({
       const { data, error } = await supabase.functions.invoke('confirmCashCollection', {
         body: { 
           paymentCode: paymentResult.paymentCode,
-          merchantId: isActualDemo ? undefined : merchantData?.id || grabData?.merchant_id
+          merchantId: isActualDemo ? null : merchantData?.id || grabData?.merchant_id
         }
       });
 
@@ -217,6 +216,21 @@ export default function MerchantPaymentCode({
     }
   };
 
+
+  // Show PaymentSuccess component when transaction is completed
+  if (isCompleted) {
+    return (
+      <PaymentSuccess
+        paymentCode={paymentResult.paymentCode}
+        totalSavings={paymentResult.totalSavings}
+        originalAmount={paymentResult.billAmount}
+        finalAmount={paymentResult.finalAmount}
+        creditsUsed={paymentResult.creditsUsed}
+        directDiscountAmount={paymentResult.directDiscount}
+        onContinue={onBack}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -414,7 +428,7 @@ export default function MerchantPaymentCode({
                   {isActualDemo ? 'Demo: ' : ''}Merchant Scan
                 </Button>
               )}
-              {transactionStatus === 'validated' && (
+              {transactionStatus === 'validated' && paymentResult.finalAmount > 0 && (
                 <Button 
                   onClick={simulateConfirm}
                   variant="outline" 
@@ -425,7 +439,7 @@ export default function MerchantPaymentCode({
                   }`}
                 >
                   <CheckCheck className="w-4 h-4 mr-2" />
-                  {isActualDemo ? 'Demo: ' : ''}Confirm Payment
+                  {isActualDemo ? 'Demo: ' : ''}Payment Received
                 </Button>
               )}
             </div>
@@ -523,13 +537,13 @@ export default function MerchantPaymentCode({
         </Card>
       )}
 
-      {/* Demo Mode Controls - Only show if actual demo mode */}
+      {/* Demo Mode Banner - Only show if actual demo mode */}
       {isActualDemo && (
         <Card className="border-purple-200 bg-purple-50 dark:bg-purple-950/20">
           <CardContent className="p-4 text-center">
-            <p className="text-sm text-purple-700 dark:text-purple-300 mb-3">Demo Mode Active</p>
+            <p className="text-sm text-purple-700 dark:text-purple-300 mb-2 font-medium">🎯 Demo Mode Active</p>
             <p className="text-xs text-purple-600 dark:text-purple-400">
-              Merchant scan and validate actions are available above.
+              Use "Demo: Merchant Scan" and "Demo: Payment Received" buttons to simulate the merchant flow.
             </p>
           </CardContent>
         </Card>
