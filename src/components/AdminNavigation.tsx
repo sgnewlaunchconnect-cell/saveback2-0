@@ -2,10 +2,11 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { isAuthBypass } from "@/utils/envAccess";
 
 export function AdminNavigation() {
   const [isAdmin, setIsAdmin] = useState(false);
-  const authBypass = import.meta.env.VITE_AUTH_BYPASS === 'true';
+  const authBypass = isAuthBypass();
 
   useEffect(() => {
     if (authBypass) {

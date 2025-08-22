@@ -107,13 +107,27 @@ const Index = () => {
         .or(`end_at.is.null,end_at.gt.${now}`) // Include deals with null end_at OR future end_at
         .order('created_at', { ascending: false }); // Show newest deals first
 
-      if (error) throw error;
-      setDeals(data || []);
+      if (error) {
+        // Check if it's a 403 auth error
+        if (error.message?.includes('403') || error.message?.includes('JWT')) {
+          console.warn('Auth error detected, showing anonymous view');
+          setDeals([]); // Show empty state for unauthenticated users
+          toast({
+            title: "Authentication required",
+            description: "Please sign in to view deals",
+            variant: "default"
+          });
+        } else {
+          throw error;
+        }
+      } else {
+        setDeals(data || []);
+      }
     } catch (error) {
       console.error('Error fetching deals:', error);
       toast({
         title: "Error",
-        description: "Failed to load deals",
+        description: "Failed to load deals. Try refreshing the page.",
         variant: "destructive"
       });
     } finally {
