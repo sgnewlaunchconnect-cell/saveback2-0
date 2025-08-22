@@ -6,7 +6,6 @@ import { CheckCircle, CreditCard, Gift, Clock, QrCode, Loader2, Eye, AlertCircle
 import { useToast } from '@/hooks/use-toast';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 import { supabase } from '@/integrations/supabase/client';
-import PaymentSuccess from './PaymentSuccess';
 
 interface MerchantPaymentCodeProps {
   paymentResult: {
@@ -36,9 +35,12 @@ export default function MerchantPaymentCode({
 }: MerchantPaymentCodeProps) {
   const { toast } = useToast();
   const [timeLeft, setTimeLeft] = useState(0);
-  const [transactionStatus, setTransactionStatus] = useState<'pending' | 'validated' | 'authorized' | 'completed' | 'voided' | 'expired'>('pending');
+  const [transactionStatus, setTransactionStatus] = useState<'pending' | 'validated' | 'completed' | 'voided' | 'expired'>('pending');
   const [isPolling, setIsPolling] = useState(true);
   const [statusMessage, setStatusMessage] = useState('Waiting for cashier to scan...');
+  
+  // Always enable merchant scan and validate functionality
+  const isDemoMode = true; // Enable for all payments now
   
   // Check if actual demo mode is enabled
   const isActualDemo = new URLSearchParams(window.location.search).get('demo') === '1';
@@ -84,10 +86,9 @@ export default function MerchantPaymentCode({
             setStatusMessage('Waiting for merchant to scan…');
             break;
           case 'validated':
-          case 'authorized':
             setStatusMessage(paymentResult.finalAmount === 0 
               ? 'Verified — Transaction complete!' 
-              : `Verified — Please pay $${paymentResult.finalAmount.toFixed(2)} to the cashier. Then press Payment Received.`);
+              : `Verified — Please pay $${paymentResult.finalAmount.toFixed(2)} to the cashier.`);
             break;
           case 'completed':
             setStatusMessage('Payment confirmed — Transaction complete.');
@@ -162,11 +163,10 @@ export default function MerchantPaymentCode({
   // Merchant scan and validate functions
   const simulateScan = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('validatePendingTransaction', {
+        const { data, error } = await supabase.functions.invoke('validatePendingTransaction', {
         body: { 
           paymentCode: paymentResult.paymentCode,
-          merchantId: isActualDemo ? null : merchantData?.id || grabData?.merchant_id,
-          captureNow: paymentResult.finalAmount === 0 // Auto-complete free transactions
+          merchantId: isActualDemo ? undefined : merchantData?.id || grabData?.merchant_id
         }
       });
 
@@ -187,13 +187,13 @@ export default function MerchantPaymentCode({
   };
 
   const simulateConfirm = async () => {
-    if (transactionStatus !== 'validated' && transactionStatus !== 'authorized') return;
+    if (transactionStatus !== 'validated') return;
     
     try {
       const { data, error } = await supabase.functions.invoke('confirmCashCollection', {
         body: { 
           paymentCode: paymentResult.paymentCode,
-          merchantId: isActualDemo ? null : merchantData?.id || grabData?.merchant_id
+          merchantId: isActualDemo ? undefined : merchantData?.id || grabData?.merchant_id
         }
       });
 
@@ -217,38 +217,6 @@ export default function MerchantPaymentCode({
     }
   };
 
-  const simulateScanAndConfirm = async () => {
-    try {
-      // First scan
-      setTransactionStatus('validated');
-      await simulateScan();
-      
-      // Then confirm if it's not a free transaction
-      if (paymentResult.finalAmount > 0) {
-        setTimeout(async () => {
-          await simulateConfirm();
-        }, 1000);
-      }
-    } catch (error) {
-      console.error('Scan + Confirm error:', error);
-    }
-  };
-
-
-  // Show PaymentSuccess component when transaction is completed
-  if (isCompleted) {
-    return (
-      <PaymentSuccess
-        paymentCode={paymentResult.paymentCode}
-        totalSavings={paymentResult.totalSavings}
-        originalAmount={paymentResult.billAmount}
-        finalAmount={paymentResult.finalAmount}
-        creditsUsed={paymentResult.creditsUsed}
-        directDiscountAmount={paymentResult.directDiscount}
-        onContinue={onBack}
-      />
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -433,35 +401,20 @@ export default function MerchantPaymentCode({
             {/* Merchant Actions */}
             <div className="flex gap-2">
               {transactionStatus === 'pending' && (
-                <>
-                  <Button 
-                    onClick={simulateScan}
-                    variant="outline" 
-                    size="sm"
-                    className={`flex-1 ${isActualDemo 
-                      ? 'border-purple-300 text-purple-700 hover:bg-purple-100' 
-                      : 'border-blue-300 text-blue-700 hover:bg-blue-100'
-                    }`}
-                  >
-                    <Play className="w-4 h-4 mr-2" />
-                    {isActualDemo ? 'Demo: ' : ''}Merchant Scan
-                  </Button>
-                  
-                  {/* One-click demo button for non-free transactions */}
-                  {isActualDemo && paymentResult.finalAmount > 0 && (
-                    <Button 
-                      onClick={simulateScanAndConfirm}
-                      variant="outline" 
-                      size="sm"
-                      className="flex-1 border-purple-300 text-purple-700 hover:bg-purple-100"
-                    >
-                      <CheckCheck className="w-4 h-4 mr-2" />
-                      Demo: Scan + Confirm
-                    </Button>
-                  )}
-                </>
+                <Button 
+                  onClick={simulateScan}
+                  variant="outline" 
+                  size="sm"
+                  className={`flex-1 ${isActualDemo 
+                    ? 'border-purple-300 text-purple-700 hover:bg-purple-100' 
+                    : 'border-blue-300 text-blue-700 hover:bg-blue-100'
+                  }`}
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  {isActualDemo ? 'Demo: ' : ''}Merchant Scan
+                </Button>
               )}
-              {(transactionStatus === 'validated' || transactionStatus === 'authorized') && paymentResult.finalAmount > 0 && (
+              {transactionStatus === 'validated' && (
                 <Button 
                   onClick={simulateConfirm}
                   variant="outline" 
@@ -472,7 +425,7 @@ export default function MerchantPaymentCode({
                   }`}
                 >
                   <CheckCheck className="w-4 h-4 mr-2" />
-                  {isActualDemo ? 'Demo: ' : ''}Payment Received
+                  {isActualDemo ? 'Demo: ' : ''}Confirm Payment
                 </Button>
               )}
             </div>
@@ -570,16 +523,14 @@ export default function MerchantPaymentCode({
         </Card>
       )}
 
-      {/* Demo Mode Banner - Only show if actual demo mode */}
+      {/* Demo Mode Controls - Only show if actual demo mode */}
       {isActualDemo && (
         <Card className="border-purple-200 bg-purple-50 dark:bg-purple-950/20">
           <CardContent className="p-4 text-center">
-            <p className="text-sm text-purple-700 dark:text-purple-300 mb-2 font-medium">🎯 Demo Mode Active</p>
-            <div className="text-xs text-purple-600 dark:text-purple-400 space-y-1">
-              <p>• Use "Demo: Merchant Scan" then "Demo: Payment Received" for step-by-step flow</p>
-              <p>• Or use "Demo: Scan + Confirm" for one-click completion (non-free transactions)</p>
-              <p>• Free transactions auto-complete after scan</p>
-            </div>
+            <p className="text-sm text-purple-700 dark:text-purple-300 mb-3">Demo Mode Active</p>
+            <p className="text-xs text-purple-600 dark:text-purple-400">
+              Merchant scan and validate actions are available above.
+            </p>
           </CardContent>
         </Card>
       )}
