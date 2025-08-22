@@ -31,12 +31,13 @@ export default function StaffPOS() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [lockoutUntil, setLockoutUntil] = useState<number>(0);
   const [failedAttempts, setFailedAttempts] = useState(0);
+  const [enabledDemoMode, setEnabledDemoMode] = useState(false);
   
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
   
   // Check if merchantId is valid (basic UUID format check)
   const isValidMerchantId = merchantId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(merchantId);
-  const isDemoMode = searchParams.get('demo') === '1';
+  const isDemoMode = searchParams.get('demo') === '1' || enabledDemoMode;
 
   const playBeep = () => {
     const audio = new Audio('/beep.mp3');
@@ -57,7 +58,7 @@ export default function StaffPOS() {
     if (!isValidMerchantId && !isDemoMode) {
       toast({
         title: "Invalid Merchant ID",
-        description: "Please ensure you're using the correct POS URL with a valid merchant ID.",
+        description: "Please ensure you're using the correct POS URL with a valid merchant ID, or enable demo mode.",
         variant: "destructive"
       });
       return;
@@ -310,6 +311,7 @@ export default function StaffPOS() {
 
   const keypadNumbers = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
   const isLockedOut = lockoutUntil > Date.now();
+  const lockoutSecondsRemaining = Math.ceil((lockoutUntil - Date.now()) / 1000);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -327,7 +329,15 @@ export default function StaffPOS() {
               <AlertDescription>
                 Invalid merchant ID. Please use the correct POS URL format: <br />
                 <code className="text-xs">/merchant/{'<merchant-uuid>'}/pos</code>
-                {isDemoMode && <span className="block mt-1 text-xs">Add ?demo=1 for testing</span>}
+                <div className="mt-2">
+                  <Button 
+                    onClick={() => setEnabledDemoMode(true)}
+                    size="sm"
+                    variant="outline"
+                  >
+                    Enable Demo Mode
+                  </Button>
+                </div>
               </AlertDescription>
             </Alert>
           )}
@@ -353,7 +363,7 @@ export default function StaffPOS() {
               <Button
                 key={num}
                 onClick={() => handleKeypadPress(num)}
-                disabled={isLockedOut || isProcessing || (!isValidMerchantId && !isDemoMode)}
+                disabled={isLockedOut || isProcessing}
                 size="lg"
                 variant="outline"
                 className="h-16 text-xl"
@@ -363,7 +373,7 @@ export default function StaffPOS() {
             ))}
             <Button
               onClick={() => handleKeypadPress('delete')}
-              disabled={isLockedOut || isProcessing || (!isValidMerchantId && !isDemoMode)}
+              disabled={isLockedOut || isProcessing}
               size="lg"
               variant="outline"
               className="h-16 col-span-3"
@@ -376,7 +386,7 @@ export default function StaffPOS() {
           {/* QR Scan Button */}
           <Button
             onClick={startQRScan}
-            disabled={isLockedOut || isProcessing || (!isValidMerchantId && !isDemoMode)}
+            disabled={isLockedOut || isProcessing}
             size="lg"
             className="w-full"
           >
@@ -386,7 +396,7 @@ export default function StaffPOS() {
 
           {isLockedOut && (
             <p className="text-center text-red-500 mt-4 text-sm">
-              Locked out due to failed attempts
+              Locked out for {lockoutSecondsRemaining} seconds due to failed attempts
             </p>
           )}
         </CardContent>
