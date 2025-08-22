@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Camera, Flashlight, Delete, Check, X } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Camera, Flashlight, Delete, Check, X, AlertTriangle } from "lucide-react";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +21,7 @@ interface ConfirmationData {
 
 export default function StaffPOS() {
   const { merchantId } = useParams<{ merchantId: string }>();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   
   const [code, setCode] = useState("");
@@ -31,6 +33,10 @@ export default function StaffPOS() {
   const [failedAttempts, setFailedAttempts] = useState(0);
   
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  
+  // Check if merchantId is valid (basic UUID format check)
+  const isValidMerchantId = merchantId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(merchantId);
+  const isDemoMode = searchParams.get('demo') === '1';
 
   const playBeep = () => {
     const audio = new Audio('/beep.mp3');
@@ -48,6 +54,15 @@ export default function StaffPOS() {
   };
 
   const validateCode = async (paymentCode: string) => {
+    if (!isValidMerchantId && !isDemoMode) {
+      toast({
+        title: "Invalid Merchant ID",
+        description: "Please ensure you're using the correct POS URL with a valid merchant ID.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (lockoutUntil > Date.now()) {
       toast({
         title: "Locked Out",
@@ -60,7 +75,12 @@ export default function StaffPOS() {
     setIsProcessing(true);
     try {
       const { data, error } = await supabase.functions.invoke('validatePendingTransaction', {
-        body: { paymentCode, merchantId, captureNow: false }
+        body: { 
+          paymentCode, 
+          merchantId, 
+          captureNow: false,
+          isDemoMode: isDemoMode 
+        }
       });
 
       if (error) throw error;
@@ -75,9 +95,24 @@ export default function StaffPOS() {
       });
       setShowConfirmation(true);
       setFailedAttempts(0);
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Validation error:", error);
       const newFailedAttempts = failedAttempts + 1;
       setFailedAttempts(newFailedAttempts);
+      
+      // Extract error details for better error messages
+      let errorMessage = "Code not found";
+      if (error?.message) {
+        if (error.message.includes("invalid input syntax for type uuid")) {
+          errorMessage = "Invalid merchant ID in URL. Please check the POS link.";
+        } else if (error.message.includes("expired")) {
+          errorMessage = "Payment code has expired";
+        } else if (error.message.includes("already used")) {
+          errorMessage = "Payment code has already been used";
+        } else {
+          errorMessage = error.message;
+        }
+      }
       
       if (newFailedAttempts >= 5) {
         setLockoutUntil(Date.now() + 60000); // 60 second lockout
@@ -89,7 +124,7 @@ export default function StaffPOS() {
       } else {
         toast({
           title: "Invalid Code",
-          description: `Code not found. ${5 - newFailedAttempts} attempts remaining.`,
+          description: `${errorMessage}. ${5 - newFailedAttempts} attempts remaining.`,
           variant: "destructive"
         });
       }
@@ -143,33 +178,47 @@ export default function StaffPOS() {
 
   const startQRScan = () => {
     setIsScanning(true);
-    const scanner = new Html5QrcodeScanner("qr-reader", {
-      qrbox: { width: 250, height: 250 },
-      fps: 5,
-    }, false);
-    
-    scanner.render(
-      (decodedText) => {
-        scanner.clear();
-        setIsScanning(false);
-        
-        // Parse the payment code from QR content
-        const parsedCode = parsePaymentCode(decodedText);
-        if (parsedCode) {
-          validateCode(parsedCode);
-        } else {
-          toast({
-            title: "Invalid QR Code",
-            description: "Could not find a valid 6-digit payment code in the scanned QR.",
-            variant: "destructive"
-          });
-        }
-      },
-      () => {} // Ignore errors
-    );
-    
-    scannerRef.current = scanner;
   };
+
+  // Initialize QR scanner after the scan screen renders
+  useEffect(() => {
+    if (isScanning) {
+      // Small delay to ensure the DOM element exists
+      const timer = setTimeout(() => {
+        const qrReaderElement = document.getElementById("qr-reader");
+        if (qrReaderElement) {
+          const scanner = new Html5QrcodeScanner("qr-reader", {
+            qrbox: { width: 250, height: 250 },
+            fps: 5,
+          }, false);
+          
+          scanner.render(
+            (decodedText) => {
+              scanner.clear();
+              setIsScanning(false);
+              
+              // Parse the payment code from QR content
+              const parsedCode = parsePaymentCode(decodedText);
+              if (parsedCode) {
+                validateCode(parsedCode);
+              } else {
+                toast({
+                  title: "Invalid QR Code",
+                  description: "Could not find a valid 6-digit payment code in the scanned QR.",
+                  variant: "destructive"
+                });
+              }
+            },
+            () => {} // Ignore errors
+          );
+          
+          scannerRef.current = scanner;
+        }
+      }, 100);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isScanning]);
 
   const stopQRScan = () => {
     if (scannerRef.current) {
@@ -271,6 +320,26 @@ export default function StaffPOS() {
             <p className="text-muted-foreground">Enter 6-digit payment code</p>
           </div>
 
+          {/* Merchant ID Warning */}
+          {!isValidMerchantId && !isDemoMode && (
+            <Alert className="mb-6" variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Invalid merchant ID. Please use the correct POS URL format: <br />
+                <code className="text-xs">/merchant/{'<merchant-uuid>'}/pos</code>
+                {isDemoMode && <span className="block mt-1 text-xs">Add ?demo=1 for testing</span>}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {isDemoMode && (
+            <Alert className="mb-6">
+              <AlertDescription>
+                Demo mode enabled - validation will work with test codes
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Code Display */}
           <div className="bg-muted rounded-lg p-6 mb-6 text-center">
             <div className="text-3xl font-mono tracking-wider">
@@ -284,7 +353,7 @@ export default function StaffPOS() {
               <Button
                 key={num}
                 onClick={() => handleKeypadPress(num)}
-                disabled={isLockedOut || isProcessing}
+                disabled={isLockedOut || isProcessing || (!isValidMerchantId && !isDemoMode)}
                 size="lg"
                 variant="outline"
                 className="h-16 text-xl"
@@ -294,7 +363,7 @@ export default function StaffPOS() {
             ))}
             <Button
               onClick={() => handleKeypadPress('delete')}
-              disabled={isLockedOut || isProcessing}
+              disabled={isLockedOut || isProcessing || (!isValidMerchantId && !isDemoMode)}
               size="lg"
               variant="outline"
               className="h-16 col-span-3"
@@ -307,7 +376,7 @@ export default function StaffPOS() {
           {/* QR Scan Button */}
           <Button
             onClick={startQRScan}
-            disabled={isLockedOut || isProcessing}
+            disabled={isLockedOut || isProcessing || (!isValidMerchantId && !isDemoMode)}
             size="lg"
             className="w-full"
           >
