@@ -4,7 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Camera, Flashlight, Delete, Check, X, AlertTriangle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Camera, Flashlight, Delete, Check, X, AlertTriangle, TestTube } from "lucide-react";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -32,6 +33,7 @@ export default function StaffPOS() {
   const [lockoutUntil, setLockoutUntil] = useState<number>(0);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [enabledDemoMode, setEnabledDemoMode] = useState(false);
+  const [demoInput, setDemoInput] = useState("");
   
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
   
@@ -78,7 +80,7 @@ export default function StaffPOS() {
       const { data, error } = await supabase.functions.invoke('validatePendingTransaction', {
         body: { 
           paymentCode, 
-          merchantId, 
+          merchantId: isDemoMode ? null : merchantId, // Send null for demo mode
           captureNow: false,
           isDemoMode: isDemoMode 
         }
@@ -229,6 +231,32 @@ export default function StaffPOS() {
     setIsScanning(false);
   };
 
+  const simulateScan = () => {
+    if (!demoInput.trim()) {
+      toast({
+        title: "No Input",
+        description: "Please enter a payment code or QR data to simulate scanning.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Try to parse as QR content first, fallback to direct code
+    const parsedCode = parsePaymentCode(demoInput) || demoInput.trim();
+    
+    if (parsedCode && /^\d{6}$/.test(parsedCode)) {
+      setCode("");
+      validateCode(parsedCode);
+      setDemoInput("");
+    } else {
+      toast({
+        title: "Invalid Input",
+        description: "Please enter a valid 6-digit payment code or QR data.",
+        variant: "destructive"
+      });
+    }
+  };
+
   useEffect(() => {
     if (code.length === 6) {
       validateCode(code);
@@ -345,9 +373,40 @@ export default function StaffPOS() {
           {isDemoMode && (
             <Alert className="mb-6">
               <AlertDescription>
-                Demo mode enabled - validation will work with test codes
+                <div className="space-y-2">
+                  <p>Demo mode enabled - validation will work with test codes</p>
+                  <p className="text-xs text-muted-foreground">
+                    Generate payment codes at /pay-at-merchant?merchantId=&lt;uuid&gt;&demo=1
+                  </p>
+                </div>
               </AlertDescription>
             </Alert>
+          )}
+
+          {/* Demo Mode Simulate Scan */}
+          {isDemoMode && (
+            <div className="mb-6 p-4 border rounded-lg bg-muted/50">
+              <h3 className="text-sm font-semibold mb-2 flex items-center">
+                <TestTube className="w-4 h-4 mr-2" />
+                Simulate Scan (Demo Only)
+              </h3>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Enter 6-digit code or QR data"
+                  value={demoInput}
+                  onChange={(e) => setDemoInput(e.target.value)}
+                  className="flex-1"
+                />
+                <Button 
+                  onClick={simulateScan}
+                  size="sm"
+                  variant="outline"
+                  disabled={isProcessing || isLockedOut}
+                >
+                  Simulate
+                </Button>
+              </div>
+            </div>
           )}
 
           {/* Code Display */}
