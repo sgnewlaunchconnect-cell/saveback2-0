@@ -21,7 +21,6 @@ import CustomerValidation from "./components/CustomerValidation";
 import HawkerValidation from "./components/HawkerValidation";
 import MerchantPage from "./pages/MerchantPage";
 import Redeem from "./pages/Redeem";
-import StaffPOS from "./components/StaffPOS";
 
 const queryClient = new QueryClient();
 
@@ -42,7 +41,6 @@ const App = () => (
           <Route path="/grab-pass/:grabId" element={<GrabPass />} />
           <Route path="/merchants/:merchantId" element={<MerchantPage />} />
           <Route path="/merchant/:merchantId" element={<MerchantPortal />} />
-          <Route path="/merchant/:merchantId/pos" element={<StaffPOS />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/wallet" element={<WalletPage />} />

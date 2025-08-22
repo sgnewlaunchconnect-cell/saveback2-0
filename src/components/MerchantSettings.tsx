@@ -8,7 +8,6 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import OwnerModeSettings from "@/components/OwnerModeSettings";
 
 interface MerchantInfo {
   id: string;
@@ -283,19 +282,6 @@ export default function MerchantSettings({ merchantInfo, onUpdate }: MerchantSet
           </CardContent>
         </Card>
 
-        {/* Owner Mode */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Owner Mode</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Set up a PIN to unlock advanced features like analytics and settlement management
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <OwnerModeSettings merchantId={merchantInfo.id} />
-          </CardContent>
-        </Card>
-
         {/* QR Code Management */}
         <Card>
           <CardHeader>
@@ -310,39 +296,31 @@ export default function MerchantSettings({ merchantInfo, onUpdate }: MerchantSet
               <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
                 Place this QR code at your stall. Customers can scan to pay and earn credits on any purchase.
               </p>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  className="flex-1"
-                  onClick={() => {
-                    const qrUrl = `${window.location.origin}/pay-at-merchant?merchantId=${merchantInfo.id}`;
-                    const printContent = `
-                      <div style="text-align: center; padding: 20px;">
-                        <h1>${merchantInfo.name}</h1>
-                        <div style="margin: 20px 0;">
-                          <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrUrl)}" alt="QR Code" />
-                        </div>
-                        <p><strong>Scan to Pay & Earn Credits!</strong></p>
-                        <p>Save money on every purchase</p>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => {
+                  const qrUrl = `${window.location.origin}/pay-at-merchant?merchantId=${merchantInfo.id}`;
+                  const printContent = `
+                    <div style="text-align: center; padding: 20px;">
+                      <h1>${merchantInfo.name}</h1>
+                      <div style="margin: 20px 0;">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrUrl)}" alt="QR Code" />
                       </div>
-                    `;
-                    const printWindow = window.open('', '_blank');
-                    if (printWindow) {
-                      printWindow.document.write(printContent);
-                      printWindow.document.close();
-                      printWindow.print();
-                    }
-                  }}
-                >
-                  🖨️ Print Stall QR Code
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => window.open(`/merchant/${merchantInfo.id}/pos`, '_blank')}
-                >
-                  📱 Staff POS
-                </Button>
-              </div>
+                      <p><strong>Scan to Pay & Earn Credits!</strong></p>
+                      <p>Save money on every purchase</p>
+                    </div>
+                  `;
+                  const printWindow = window.open('', '_blank');
+                  if (printWindow) {
+                    printWindow.document.write(printContent);
+                    printWindow.document.close();
+                    printWindow.print();
+                  }
+                }}
+              >
+                🖨️ Print Stall QR Code
+              </Button>
             </div>
           </CardContent>
         </Card>

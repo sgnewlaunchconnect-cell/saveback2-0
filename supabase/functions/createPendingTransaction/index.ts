@@ -138,7 +138,7 @@ serve(async (req) => {
         grab_id: linkedGrabId,
         status: 'pending',
         payment_code: dummyPin,
-        expires_at: new Date(Date.now() + 60 * 1000).toISOString() // 60 seconds from now
+        expires_at: new Date(Date.now() + 3 * 60 * 1000).toISOString() // 3 minutes from now
       })
       .select('id, payment_code, expires_at')
       .maybeSingle();
