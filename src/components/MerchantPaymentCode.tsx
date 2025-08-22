@@ -35,14 +35,11 @@ export default function MerchantPaymentCode({
 }: MerchantPaymentCodeProps) {
   const { toast } = useToast();
   const [timeLeft, setTimeLeft] = useState(0);
-  const [transactionStatus, setTransactionStatus] = useState<'pending' | 'validated' | 'completed' | 'voided' | 'expired'>('pending');
+  const [transactionStatus, setTransactionStatus] = useState<'pending' | 'validated' | 'authorized' | 'completed' | 'voided' | 'expired'>('pending');
   const [isPolling, setIsPolling] = useState(true);
   const [statusMessage, setStatusMessage] = useState('Waiting for cashier to scan...');
   
-  // Always enable merchant scan and validate functionality
-  const isDemoMode = true; // Enable for all payments now
-  
-  // Check if actual demo mode is enabled
+  // Check if demo mode is enabled
   const isActualDemo = new URLSearchParams(window.location.search).get('demo') === '1';
 
   // Timer effect
@@ -86,9 +83,12 @@ export default function MerchantPaymentCode({
             setStatusMessage('Waiting for merchant to scan…');
             break;
           case 'validated':
-            setStatusMessage(paymentResult.finalAmount === 0 
-              ? 'Verified — Transaction complete!' 
-              : `Verified — Please pay $${paymentResult.finalAmount.toFixed(2)} to the cashier.`);
+          case 'authorized':
+            if (paymentResult.finalAmount === 0) {
+              setStatusMessage('Verified — Transaction complete!');
+            } else {
+              setStatusMessage(`Verified — Please pay $${paymentResult.finalAmount.toFixed(2)} to the cashier. Then press Payment Received.`);
+            }
             break;
           case 'completed':
             setStatusMessage('Payment confirmed — Transaction complete.');
@@ -134,7 +134,7 @@ export default function MerchantPaymentCode({
   const isExpired = transactionStatus === 'expired' || (timeLeft === 0 && paymentResult.expiresAt);
   const isCompleted = transactionStatus === 'completed';
   const isVoided = transactionStatus === 'voided';
-  const isValidated = transactionStatus === 'validated';
+  const isValidated = transactionStatus === 'validated' || transactionStatus === 'authorized';
 
   // Copy payment code to clipboard
   const copyPaymentCode = async () => {
@@ -163,18 +163,29 @@ export default function MerchantPaymentCode({
   // Merchant scan and validate functions
   const simulateScan = async () => {
     try {
-        const { data, error } = await supabase.functions.invoke('validatePendingTransaction', {
+      const { data, error } = await supabase.functions.invoke('validatePendingTransaction', {
         body: { 
           paymentCode: paymentResult.paymentCode,
-          merchantId: isActualDemo ? undefined : merchantData?.id || grabData?.merchant_id
+          merchantId: isActualDemo ? null : merchantData?.id || grabData?.merchant_id,
+          captureNow: paymentResult.finalAmount === 0
         }
       });
 
       if (error) throw error;
 
+      // Optimistically update status for free transactions
+      if (paymentResult.finalAmount === 0) {
+        setTransactionStatus('completed');
+        setIsPolling(false);
+      } else {
+        setTransactionStatus('validated');
+      }
+
       toast({
         title: isActualDemo ? "Demo: Merchant Scanned" : "Merchant Scanned",
-        description: "Transaction has been authorized by merchant",
+        description: paymentResult.finalAmount === 0 
+          ? "Free transaction completed!" 
+          : "Transaction has been authorized by merchant",
       });
     } catch (error) {
       console.error('Scan error:', error);
@@ -187,24 +198,24 @@ export default function MerchantPaymentCode({
   };
 
   const simulateConfirm = async () => {
-    if (transactionStatus !== 'validated') return;
+    if (!isValidated || paymentResult.finalAmount === 0) return;
     
     try {
       const { data, error } = await supabase.functions.invoke('confirmCashCollection', {
         body: { 
           paymentCode: paymentResult.paymentCode,
-          merchantId: isActualDemo ? undefined : merchantData?.id || grabData?.merchant_id
+          merchantId: isActualDemo ? null : merchantData?.id || grabData?.merchant_id
         }
       });
 
       if (error) throw error;
 
-      // Immediately refresh status after confirmation
+      // Immediately update status after confirmation
       setTransactionStatus('completed');
       setIsPolling(false);
 
       toast({
-        title: isActualDemo ? "Demo: Payment Confirmed" : "Payment Confirmed",
+        title: isActualDemo ? "Demo: Payment Received" : "Payment Received",
         description: "Cash collection has been confirmed",
       });
     } catch (error) {
@@ -212,6 +223,57 @@ export default function MerchantPaymentCode({
       toast({
         title: isActualDemo ? "Demo Error" : "Confirmation Error",
         description: "Failed to confirm payment",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // One-click demo flow for scan + confirm
+  const simulateScanAndConfirm = async () => {
+    if (paymentResult.finalAmount === 0) {
+      // For free transactions, just run scan
+      await simulateScan();
+      return;
+    }
+
+    try {
+      // First scan/validate
+      const { data: scanData, error: scanError } = await supabase.functions.invoke('validatePendingTransaction', {
+        body: { 
+          paymentCode: paymentResult.paymentCode,
+          merchantId: null,
+          captureNow: false
+        }
+      });
+
+      if (scanError) throw scanError;
+
+      // Update to validated state
+      setTransactionStatus('validated');
+
+      // Then immediately confirm
+      const { data: confirmData, error: confirmError } = await supabase.functions.invoke('confirmCashCollection', {
+        body: { 
+          paymentCode: paymentResult.paymentCode,
+          merchantId: null
+        }
+      });
+
+      if (confirmError) throw confirmError;
+
+      // Final completion
+      setTransactionStatus('completed');
+      setIsPolling(false);
+
+      toast({
+        title: "Demo: Scan + Confirm Complete",
+        description: "Transaction completed in one step",
+      });
+    } catch (error) {
+      console.error('One-click demo error:', error);
+      toast({
+        title: "Demo Error",
+        description: "Failed to complete one-click demo",
         variant: "destructive"
       });
     }
@@ -313,13 +375,53 @@ export default function MerchantPaymentCode({
         </CardContent>
       </Card>
 
-      {/* Enhanced QR Code Panel */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="space-y-6">
-            {/* QR Code with Countdown Ring */}
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-4">Ask the merchant to scan this code. They will validate and then confirm cash collection.</p>
+      {/* Demo Mode Banner */}
+      {isActualDemo && (
+        <Card className="bg-purple-50 dark:bg-purple-950/20 border-purple-200">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300">
+              <Play className="w-4 h-4" />
+              <span className="font-medium">Demo Mode Active</span>
+            </div>
+            <p className="text-sm text-purple-600 dark:text-purple-400 mt-1">
+              Add ?demo=1 to URL. Use "Demo: Merchant Scan" then "Demo: Payment Received", or use "Demo: Scan + Confirm" for one-click completion.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* QR Code Panel or Success View */}
+      {isCompleted ? (
+        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200">
+          <CardContent className="p-8 text-center">
+            <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-green-700 dark:text-green-300 mb-2">
+              Payment Complete!
+            </h3>
+            <p className="text-green-600 dark:text-green-400 mb-4">
+              Your transaction has been successfully processed.
+            </p>
+            <div className="bg-white/50 rounded-lg p-4 mb-4">
+              <p className="text-sm text-green-700">
+                Amount Paid: <span className="font-bold">${paymentResult.finalAmount.toFixed(2)}</span>
+              </p>
+              {paymentResult.totalSavings > 0 && (
+                <p className="text-sm text-green-700">
+                  Total Savings: <span className="font-bold">${paymentResult.totalSavings.toFixed(2)}</span>
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="p-6">
+            <div className="space-y-6">
+              {/* QR Code with Countdown Ring */}
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-4">
+                  Ask the merchant to scan this code. They will validate and {paymentResult.finalAmount > 0 ? 'then confirm cash collection.' : 'complete the transaction.'}
+                </p>
               
               {!isExpired && (
                 <div className="relative inline-block">
@@ -399,39 +501,55 @@ export default function MerchantPaymentCode({
             </div>
 
             {/* Merchant Actions */}
-            <div className="flex gap-2">
+            <div className="space-y-2">
               {transactionStatus === 'pending' && (
-                <Button 
-                  onClick={simulateScan}
-                  variant="outline" 
-                  size="sm"
-                  className={`flex-1 ${isActualDemo 
-                    ? 'border-purple-300 text-purple-700 hover:bg-purple-100' 
-                    : 'border-blue-300 text-blue-700 hover:bg-blue-100'
-                  }`}
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  {isActualDemo ? 'Demo: ' : ''}Merchant Scan
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={simulateScan}
+                    variant="outline" 
+                    size="sm"
+                    className={`flex-1 ${isActualDemo 
+                      ? 'border-purple-300 text-purple-700 hover:bg-purple-100' 
+                      : 'border-blue-300 text-blue-700 hover:bg-blue-100'
+                    }`}
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    {isActualDemo ? 'Demo: ' : ''}Merchant Scan
+                  </Button>
+                  
+                  {isActualDemo && paymentResult.finalAmount > 0 && (
+                    <Button 
+                      onClick={simulateScanAndConfirm}
+                      variant="outline" 
+                      size="sm"
+                      className="flex-1 border-purple-300 text-purple-700 hover:bg-purple-100"
+                    >
+                      <CheckCheck className="w-4 h-4 mr-2" />
+                      Demo: Scan + Confirm
+                    </Button>
+                  )}
+                </div>
               )}
-              {transactionStatus === 'validated' && (
+              
+              {isValidated && paymentResult.finalAmount > 0 && (
                 <Button 
                   onClick={simulateConfirm}
                   variant="outline" 
                   size="sm"
-                  className={`flex-1 ${isActualDemo 
+                  className={`w-full ${isActualDemo 
                     ? 'border-purple-300 text-purple-700 hover:bg-purple-100' 
                     : 'border-green-300 text-green-700 hover:bg-green-100'
                   }`}
                 >
                   <CheckCheck className="w-4 h-4 mr-2" />
-                  {isActualDemo ? 'Demo: ' : ''}Confirm Payment
+                  {isActualDemo ? 'Demo: ' : ''}Payment Received
                 </Button>
               )}
             </div>
-          </div>
-        </CardContent>
-      </Card>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Payment Summary */}
       <Card>
