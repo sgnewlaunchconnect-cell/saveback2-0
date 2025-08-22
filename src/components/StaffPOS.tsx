@@ -7,6 +7,7 @@ import { Camera, Flashlight, Delete, Check, X } from "lucide-react";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { parsePaymentCode } from "@/utils/qrParsing";
 
 interface ConfirmationData {
   originalAmount: number;
@@ -151,7 +152,18 @@ export default function StaffPOS() {
       (decodedText) => {
         scanner.clear();
         setIsScanning(false);
-        validateCode(decodedText);
+        
+        // Parse the payment code from QR content
+        const parsedCode = parsePaymentCode(decodedText);
+        if (parsedCode) {
+          validateCode(parsedCode);
+        } else {
+          toast({
+            title: "Invalid QR Code",
+            description: "Could not find a valid 6-digit payment code in the scanned QR.",
+            variant: "destructive"
+          });
+        }
       },
       () => {} // Ignore errors
     );
