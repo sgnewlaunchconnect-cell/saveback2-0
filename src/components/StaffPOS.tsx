@@ -347,7 +347,7 @@ export default function StaffPOS() {
         <CardContent className="p-8">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold mb-2">Payment Terminal</h1>
-            <p className="text-muted-foreground">Enter 6-digit payment code</p>
+            <p className="text-muted-foreground">Enter 6-digit code OR scan QR code</p>
           </div>
 
           {/* Merchant ID Warning */}
@@ -447,10 +447,11 @@ export default function StaffPOS() {
             onClick={startQRScan}
             disabled={isLockedOut || isProcessing}
             size="lg"
+            variant="outline"
             className="w-full"
           >
             <Camera className="w-5 h-5 mr-2" />
-            Scan QR Code
+            Scan QR Code (Optional)
           </Button>
 
           {isLockedOut && (
