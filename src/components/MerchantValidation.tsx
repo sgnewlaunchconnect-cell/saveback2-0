@@ -87,15 +87,15 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
         filter: `merchant_id=eq.${merchantId}`
       }, (payload) => {
         console.log('Transaction updated:', payload);
-        if (payload.new.status === 'authorized') {
+        if (payload.new.status === 'validated') {
           loadAuthorizedTransactions();
           loadPendingTransactions();
           
           toast({
-            title: "Payment Authorized",
-            description: `Transaction ${payload.new.payment_code} awaiting cash collection`,
+            title: "Payment Validated",
+            description: `Code ${payload.new.payment_code} - collect ₹${(payload.new.final_amount / 100).toFixed(2)} cash`,
           });
-        } else if (payload.new.status === 'validated' || payload.new.status === 'completed') {
+        } else if (payload.new.status === 'completed') {
           loadRecentTransactions();
           loadAuthorizedTransactions();
           
@@ -158,8 +158,8 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
       .from('pending_transactions')
       .select('*')
       .eq('merchant_id', merchantId)
-      .eq('status', 'authorized')
-      .order('authorized_at', { ascending: false })
+      .eq('status', 'validated')
+      .order('updated_at', { ascending: false })
       .limit(10);
       
     if (error) {
@@ -176,7 +176,7 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
       .from('pending_transactions')
       .select('*')
       .eq('merchant_id', merchantId)
-      .in('status', ['validated', 'completed'])
+      .eq('status', 'completed')
       .order('updated_at', { ascending: false })
       .limit(10);
       
@@ -404,8 +404,8 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
                           <span className="font-semibold">{validationResult.customerName}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span>Amount:</span>
-                          <span className="font-semibold">${(validationResult.amount / 100).toFixed(2)}</span>
+                           <span>Amount:</span>
+                           <span className="font-semibold">₹{(validationResult.amount / 100).toFixed(2)}</span>
                         </div>
                       </div>
                     </CardContent>
@@ -456,9 +456,9 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
           <TabsTrigger value="validate">Validate</TabsTrigger>
           <TabsTrigger value="pending">Pending ({pendingTransactions.length})</TabsTrigger>
           <TabsTrigger value="authorized">
-            Awaiting Cash ({authorizedTransactions.length})
+            Collect Cash ({authorizedTransactions.length})
           </TabsTrigger>
-          <TabsTrigger value="recent">Recent ({recentTransactions.length})</TabsTrigger>
+          <TabsTrigger value="recent">Completed ({recentTransactions.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="validate" className="space-y-4">
@@ -585,9 +585,9 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
                       <div className="font-medium text-lg">
                         {transaction.payment_code}
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        ${(transaction.original_amount / 100).toFixed(2)}
-                      </div>
+                       <div className="text-sm text-muted-foreground">
+                         ₹{(transaction.original_amount / 100).toFixed(2)}
+                       </div>
                       <div className="text-xs text-muted-foreground">
                         {formatDistanceToNow(new Date(transaction.created_at), { addSuffix: true })}
                       </div>
@@ -610,12 +610,12 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
 
         <TabsContent value="authorized" className="space-y-4">
           <div className="text-sm text-muted-foreground">
-            Transactions authorized and awaiting cash collection
+            Validated payments ready for cash collection
           </div>
           
           {authorizedTransactions.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No transactions awaiting cash collection
+              No validated payments awaiting cash collection
             </div>
           ) : (
             <div className="space-y-2">
@@ -628,10 +628,10 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
                           Code: {transaction.payment_code}
                         </div>
                         <div className="text-lg font-bold text-orange-900">
-                          COLLECT: ${(transaction.final_amount / 100).toFixed(2)}
+                          COLLECT: ₹{(transaction.final_amount / 100).toFixed(2)}
                         </div>
                         <div className="text-sm text-orange-700">
-                          Authorized {formatDistanceToNow(new Date(transaction.authorized_at || transaction.created_at), { addSuffix: true })}
+                          Validated {formatDistanceToNow(new Date(transaction.updated_at), { addSuffix: true })}
                         </div>
                       </div>
                       <div className="text-right">
@@ -667,7 +667,7 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
 
         <TabsContent value="recent" className="space-y-4">
           <div className="text-sm text-muted-foreground">
-            Recently completed transactions
+            Successfully completed transactions
           </div>
           
           {recentTransactions.length === 0 ? (
@@ -683,10 +683,9 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
                       <div className="font-medium text-lg">
                         {transaction.payment_code}
                       </div>
-                      <div className="text-sm text-green-700">
-                        ${(transaction.original_amount / 100).toFixed(2)} • 
-                        {transaction.status === 'completed' ? ' Cash Collected' : ' Card Payment'}
-                      </div>
+                       <div className="text-sm text-green-700">
+                         ₹{(transaction.original_amount / 100).toFixed(2)} • Cash Collected
+                       </div>
                       <div className="text-xs text-muted-foreground">
                         {formatDistanceToNow(new Date(transaction.updated_at), { addSuffix: true })}
                       </div>
