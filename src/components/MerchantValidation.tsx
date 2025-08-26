@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { formatDistanceToNow } from "date-fns";
 import MerchantValidationSimulator from "./MerchantValidationSimulator";
+import { MerchantCollectCashSimulator } from "./MerchantCollectCashSimulator";
+import { MerchantCompletedSimulator } from "./MerchantCompletedSimulator";
 
 interface MerchantValidationProps {
   merchantId: string;
@@ -53,6 +55,8 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
   const [isListening, setIsListening] = useState(false);
   const [oneTapMode, setOneTapMode] = useState(false);
   const [showSimulator, setShowSimulator] = useState(false);
+  const [showCollectSimulator, setShowCollectSimulator] = useState(false);
+  const [showCompletedSimulator, setShowCompletedSimulator] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -636,6 +640,29 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
         </TabsContent>
 
         <TabsContent value="authorized" className="space-y-4">
+          {/* Collect Cash Flow Preview */}
+          <Card className="border-orange-200 bg-orange-50/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-orange-800">
+                <Eye className="w-5 h-5" />
+                Collect Cash Flow Preview
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-orange-700 mb-4">
+                See how the collect cash flow works step-by-step
+              </p>
+              <Button
+                onClick={() => setShowCollectSimulator(true)}
+                variant="outline"
+                className="w-full border-orange-300 text-orange-700 hover:bg-orange-100"
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Preview Collect Cash Flow
+              </Button>
+            </CardContent>
+          </Card>
+
           <div className="text-sm text-muted-foreground">
             Validated payments ready for cash collection
           </div>
@@ -693,6 +720,29 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
         </TabsContent>
 
         <TabsContent value="recent" className="space-y-4">
+          {/* Completed Flow Preview */}
+          <Card className="border-green-200 bg-green-50/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-green-800">
+                <Eye className="w-5 h-5" />
+                Completed Flow Preview
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-green-700 mb-4">
+                See how completed payments look step-by-step
+              </p>
+              <Button
+                onClick={() => setShowCompletedSimulator(true)}
+                variant="outline"
+                className="w-full border-green-300 text-green-700 hover:bg-green-100"
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Preview Completed Flow
+              </Button>
+            </CardContent>
+          </Card>
+
           <div className="text-sm text-muted-foreground">
             Successfully completed transactions
           </div>
@@ -732,6 +782,18 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
       <MerchantValidationSimulator
         open={showSimulator}
         onOpenChange={setShowSimulator}
+      />
+      
+      {/* Collect Cash Simulator */}
+      <MerchantCollectCashSimulator
+        open={showCollectSimulator}
+        onOpenChange={setShowCollectSimulator}
+      />
+      
+      {/* Completed Simulator */}
+      <MerchantCompletedSimulator
+        open={showCompletedSimulator}
+        onOpenChange={setShowCompletedSimulator}
       />
     </div>
   );
