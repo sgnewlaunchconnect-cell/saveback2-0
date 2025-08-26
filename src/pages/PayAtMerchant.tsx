@@ -7,6 +7,7 @@ import QuickPaymentFlow from "@/components/QuickPaymentFlow";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Play } from "lucide-react";
+import { MerchantVisitSummary } from "@/components/MerchantVisitSummary";
 
 export default function PayAtMerchant() {
   const [searchParams] = useSearchParams();
@@ -233,6 +234,9 @@ export default function PayAtMerchant() {
             </CardContent>
           </Card>
         )}
+        
+        {/* Customer Status Panel */}
+        {merchantData && <MerchantVisitSummary merchantId={merchantData.id} />}
         
         <QuickPaymentFlow
           grabData={grabData}

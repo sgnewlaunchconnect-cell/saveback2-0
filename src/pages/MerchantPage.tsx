@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getUserId } from "@/utils/userIdManager";
 import PaymentMethodBadge from "@/components/PaymentMethodBadge";
 import ReviewForm from "@/components/ReviewForm";
+import { MerchantVisitSummary } from "@/components/MerchantVisitSummary";
 
 interface Merchant {
   id: string;
@@ -284,6 +285,9 @@ export default function MerchantPage() {
       </div>
 
       <div className="max-w-4xl mx-auto p-6">
+        {/* Customer Status Panel */}
+        <MerchantVisitSummary merchantId={merchantId!} />
+        
         <Tabs defaultValue="deals" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="deals">Deals ({deals.length})</TabsTrigger>
