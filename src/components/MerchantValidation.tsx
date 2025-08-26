@@ -40,6 +40,14 @@ interface Transaction {
   network_credits_used: number;
 }
 
+interface DemoTransaction {
+  id: string;
+  paymentCode: string;
+  amount: number;
+  status: 'generated' | 'validated' | 'collected';
+  timestamp: Date;
+}
+
 export default function MerchantValidation({ merchantId }: MerchantValidationProps) {
   const [validationCode, setValidationCode] = useState("");
   const [isValidating, setIsValidating] = useState(false);
@@ -50,6 +58,8 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
   const [authorizedTransactions, setAuthorizedTransactions] = useState<Transaction[]>([]);
   const [isListening, setIsListening] = useState(false);
   const [oneTapMode, setOneTapMode] = useState(false);
+  const [demoTransaction, setDemoTransaction] = useState<DemoTransaction | null>(null);
+  const [demoStep, setDemoStep] = useState<'idle' | 'generating' | 'validating' | 'collecting'>('idle');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -379,6 +389,7 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
 
   // Demo functions
   const generateDemoPayment = async (amountCents: number) => {
+    setDemoStep('generating');
     try {
       const { data, error } = await supabase.functions.invoke('createPendingTransaction', {
         body: {
@@ -394,15 +405,25 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
       if (error) throw error;
 
       if (data?.success) {
-        toast({
-          title: "Demo Payment Generated",
-          description: `Payment code: ${data.paymentCode} - Amount: $${(amountCents / 100).toFixed(2)}`,
-        });
+        const newDemo: DemoTransaction = {
+          id: Date.now().toString(),
+          paymentCode: data.paymentCode,
+          amount: amountCents,
+          status: 'generated',
+          timestamp: new Date()
+        };
         
-        loadPendingTransactions();
+        setDemoTransaction(newDemo);
+        setDemoStep('idle');
+        
+        toast({
+          title: "💳 Demo Payment Generated",
+          description: `Code: ${data.paymentCode} - ₹${(amountCents / 100).toFixed(2)}`,
+        });
       }
     } catch (error) {
       console.error('Error generating demo payment:', error);
+      setDemoStep('idle');
       toast({
         title: "Demo Error",
         description: "Failed to generate demo payment",
@@ -411,96 +432,95 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
     }
   };
 
-  const simulateMerchantScan = async () => {
-    if (pendingTransactions.length === 0) {
+  const validateDemoPayment = async () => {
+    if (!demoTransaction || demoTransaction.status !== 'generated') {
       toast({
-        title: "No Pending Payments",
+        title: "No Demo Payment",
         description: "Generate a demo payment first",
         variant: "destructive"
       });
       return;
     }
 
-    const transaction = pendingTransactions[0];
-    setValidationCode(transaction.payment_code);
-    
-    toast({
-      title: "Merchant Scan Simulated",
-      description: `Scanned code: ${transaction.payment_code}`,
-    });
+    setDemoStep('validating');
+    try {
+      const { data, error } = await supabase.functions.invoke('validatePendingTransaction', {
+        body: { 
+          paymentCode: demoTransaction.paymentCode,
+          merchantId,
+          captureNow: false
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        setDemoTransaction(prev => prev ? {...prev, status: 'validated'} : null);
+        setDemoStep('idle');
+        
+        toast({
+          title: "✅ Payment Validated",
+          description: "Cash collection required",
+        });
+      }
+    } catch (error) {
+      console.error('Error validating demo payment:', error);
+      setDemoStep('idle');
+      toast({
+        title: "Validation Error",
+        description: "Failed to validate payment",
+        variant: "destructive"
+      });
+    }
   };
 
-  const simulatePaymentReceived = async () => {
-    if (authorizedTransactions.length === 0) {
+  const collectDemoCash = async () => {
+    if (!demoTransaction || demoTransaction.status !== 'validated') {
       toast({
-        title: "No Authorized Payments",
+        title: "No Validated Payment",
         description: "Validate a payment first",
         variant: "destructive"
       });
       return;
     }
 
-    const transaction = authorizedTransactions[0];
-    await confirmCashCollection(transaction.payment_code);
+    setDemoStep('collecting');
+    try {
+      await confirmCashCollection(demoTransaction.paymentCode);
+      setDemoTransaction(prev => prev ? {...prev, status: 'collected'} : null);
+      setDemoStep('idle');
+      
+      toast({
+        title: "💰 Cash Collected",
+        description: "Demo payment flow completed!",
+      });
+    } catch (error) {
+      console.error('Error collecting cash:', error);
+      setDemoStep('idle');
+      toast({
+        title: "Collection Error",
+        description: "Failed to confirm cash collection",
+        variant: "destructive"
+      });
+    }
   };
 
-  const simulateFullDemoFlow = async () => {
+  const runFullDemo = async () => {
     try {
-      // Step 1: Generate demo payment
       toast({
-        title: "Demo Flow Started",
-        description: "Step 1: Generating payment...",
+        title: "🚀 Full Demo Started",
+        description: "Running complete payment flow...",
       });
       
-      await generateDemoPayment(1500); // $15
+      await generateDemoPayment(2500); // ₹25
       
-      // Wait a bit for the transaction to be created
       setTimeout(async () => {
-        // Step 2: Validate the payment
-        const { data: transactions } = await supabase
-          .from('pending_transactions')
-          .select('*')
-          .eq('merchant_id', merchantId)
-          .eq('status', 'pending')
-          .order('created_at', { ascending: false })
-          .limit(1);
-
-        if (transactions && transactions.length > 0) {
-          const paymentCode = transactions[0].payment_code;
-          
-          toast({
-            title: "Demo Flow",
-            description: "Step 2: Validating payment...",
-          });
-          
-          // Validate the payment
-          const { data, error } = await supabase.functions.invoke('validatePendingTransaction', {
-            body: { 
-              paymentCode,
-              merchantId,
-              captureNow: false,
-              isDemoMode: true
-            }
-          });
-
-          if (data?.success) {
-            setTimeout(async () => {
-              toast({
-                title: "Demo Flow",
-                description: "Step 3: Confirming cash collection...",
-              });
-              
-              // Confirm cash collection
-              await confirmCashCollection(paymentCode);
-              
-              toast({
-                title: "Demo Flow Complete!",
-                description: "Full payment cycle demonstrated successfully",
-              });
-            }, 2000);
-          }
-        }
-      }, 1000);
+        await validateDemoPayment();
+        
+        setTimeout(async () => {
+          await collectDemoCash();
+        }, 2000);
+      }, 1500);
     } catch (error) {
       console.error('Error in demo flow:', error);
       toast({
@@ -509,6 +529,15 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
         variant: "destructive"
       });
     }
+  };
+
+  const resetDemo = () => {
+    setDemoTransaction(null);
+    setDemoStep('idle');
+    toast({
+      title: "Demo Reset",
+      description: "Ready for new demo",
+    });
   };
 
   if (validationResult) {
@@ -596,6 +625,81 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
         </TabsList>
 
         <TabsContent value="validate" className="space-y-4">
+          {/* Demo Result Card */}
+          {demoTransaction && (
+            <Card className="border-blue-200 bg-blue-50/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-blue-800">
+                  <QrCode className="w-5 h-5" />
+                  Demo Payment
+                  <Badge 
+                    variant={demoTransaction.status === 'collected' ? 'default' : 'outline'} 
+                    className={demoTransaction.status === 'collected' 
+                      ? 'bg-green-100 text-green-800 border-green-300' 
+                      : 'text-blue-600 border-blue-300'
+                    }
+                  >
+                    {demoTransaction.status === 'generated' && 'Generated'}
+                    {demoTransaction.status === 'validated' && 'Validated'}
+                    {demoTransaction.status === 'collected' && 'Completed'}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Code:</span>
+                    <div className="font-mono font-bold text-lg">{demoTransaction.paymentCode}</div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Amount:</span>
+                    <div className="font-bold text-lg">₹{(demoTransaction.amount / 100).toFixed(2)}</div>
+                  </div>
+                </div>
+                
+                <div className="flex gap-2">
+                  {demoTransaction.status === 'generated' && (
+                    <Button
+                      onClick={validateDemoPayment}
+                      disabled={demoStep === 'validating'}
+                      className="flex-1"
+                    >
+                      {demoStep === 'validating' ? 'Validating...' : 'Validate Now'}
+                    </Button>
+                  )}
+                  
+                  {demoTransaction.status === 'validated' && (
+                    <Button
+                      onClick={collectDemoCash}
+                      disabled={demoStep === 'collecting'}
+                      className="flex-1 bg-green-600 hover:bg-green-700"
+                    >
+                      {demoStep === 'collecting' ? 'Collecting...' : 'Confirm Cash Collection'}
+                    </Button>
+                  )}
+                  
+                  {demoTransaction.status === 'collected' && (
+                    <Button
+                      onClick={resetDemo}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      Start New Demo
+                    </Button>
+                  )}
+                  
+                  <Button
+                    onClick={resetDemo}
+                    variant="outline"
+                    size="sm"
+                  >
+                    Reset
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Demo Controls */}
           <Card className="border-orange-200 bg-orange-50/50">
             <CardHeader className="pb-3">
@@ -613,45 +717,30 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
                   onClick={() => generateDemoPayment(1000)}
                   variant="outline"
                   size="sm"
+                  disabled={demoStep === 'generating'}
                   className="text-orange-700 border-orange-300 hover:bg-orange-100"
                 >
                   <DollarSign className="w-4 h-4 mr-1" />
-                  Generate Demo Payment ($10)
+                  {demoStep === 'generating' ? 'Generating...' : 'Generate ₹10'}
                 </Button>
                 <Button
                   onClick={() => generateDemoPayment(2500)}
                   variant="outline"
                   size="sm"
+                  disabled={demoStep === 'generating'}
                   className="text-orange-700 border-orange-300 hover:bg-orange-100"
                 >
                   <DollarSign className="w-4 h-4 mr-1" />
-                  Generate Demo Payment ($25)
-                </Button>
-                <Button
-                  onClick={simulateMerchantScan}
-                  variant="outline"
-                  size="sm"
-                  className="text-orange-700 border-orange-300 hover:bg-orange-100"
-                >
-                  <Camera className="w-4 h-4 mr-1" />
-                  Demo: Merchant Scan
-                </Button>
-                <Button
-                  onClick={simulatePaymentReceived}
-                  variant="outline"
-                  size="sm"
-                  className="text-orange-700 border-orange-300 hover:bg-orange-100"
-                >
-                  <CheckCircle className="w-4 h-4 mr-1" />
-                  Demo: Payment Received
+                  {demoStep === 'generating' ? 'Generating...' : 'Generate ₹25'}
                 </Button>
               </div>
               <Button
-                onClick={simulateFullDemoFlow}
+                onClick={runFullDemo}
+                disabled={demoStep !== 'idle'}
                 className="w-full bg-orange-600 hover:bg-orange-700 text-white"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
-                Demo: Full Payment Flow
+                {demoStep !== 'idle' ? 'Demo Running...' : 'Run Full Demo Flow'}
               </Button>
             </CardContent>
           </Card>
