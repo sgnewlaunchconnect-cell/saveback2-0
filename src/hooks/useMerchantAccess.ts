@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { isAuthBypass } from '@/utils/envAccess';
 
 export type MerchantRole = 'owner' | 'manager' | 'staff';
 
@@ -34,6 +35,24 @@ export function useMerchantAccess(merchantId?: string) {
     try {
       setIsLoading(true);
       setError(null);
+
+      // Auth bypass for development
+      if (isAuthBypass() && merchantId) {
+        setAccess({
+          merchantId,
+          role: 'owner',
+          permissions: {
+            validate: true,
+            collect_cash: true,
+            view_transactions: true,
+            manage_staff: true,
+            manage_deals: true,
+            view_analytics: true,
+          }
+        });
+        setIsLoading(false);
+        return;
+      }
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {

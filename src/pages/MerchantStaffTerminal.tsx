@@ -8,6 +8,7 @@ import MerchantValidation from "@/components/MerchantValidation";
 import { Loader2, Store, User, Shield } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { isAuthBypass } from "@/utils/envAccess";
 
 export default function MerchantStaffTerminal() {
   const { merchantId } = useParams<{ merchantId: string }>();
@@ -44,6 +45,9 @@ export default function MerchantStaffTerminal() {
         .single();
       
       setStaffName(userData?.display_name || userData?.email?.split('@')[0] || 'Staff Member');
+    } else {
+      // Fallback for auth bypass mode
+      setStaffName('Guest');
     }
   };
 
@@ -55,7 +59,7 @@ export default function MerchantStaffTerminal() {
     );
   }
 
-  if (error || !isStaff) {
+  if (!isAuthBypass() && (error || !isStaff)) {
     return <Navigate to="/auth" replace />;
   }
 
