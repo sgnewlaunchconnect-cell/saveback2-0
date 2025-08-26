@@ -29,30 +29,8 @@ export function MerchantVisitSummary({ merchantId }: MerchantVisitSummaryProps) 
   const { data: credits, isLoading: creditsLoading } = useMerchantCredits(merchantId, userId || undefined);
   const { data: lastVisit, isLoading: visitLoading } = useLastVisit(merchantId, userId || undefined);
 
-  // Don't show anything if user is not authenticated
-  if (!isAuthenticated) {
-    return (
-      <Card className="mb-6 border-muted-foreground/20">
-        <CardContent className="p-4 text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Wallet className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium text-muted-foreground">Your Status</span>
-          </div>
-          <p className="text-sm text-muted-foreground mb-3">
-            Sign in to view your credits and visit history
-          </p>
-          <button 
-            onClick={() => window.location.href = '/auth'}
-            className="text-xs text-primary hover:underline"
-          >
-            Sign in to see your status
-          </button>
-        </CardContent>
-      </Card>
-    );
-  }
-
   const isLoading = creditsLoading || visitLoading;
+
 
   if (isLoading) {
     return (
