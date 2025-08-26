@@ -502,6 +502,42 @@ export type Database = {
         }
         Relationships: []
       }
+      merchant_staff: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          merchant_id: string
+          permissions: Json
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          merchant_id: string
+          permissions?: Json
+          role?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          merchant_id?: string
+          permissions?: Json
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       merchant_stats: {
         Row: {
           cashback_amount: number | null
@@ -1112,9 +1148,17 @@ export type Database = {
           total_redeemed: number
         }[]
       }
+      get_merchant_staff_role: {
+        Args: { p_merchant_id: string; p_user_id: string }
+        Returns: string
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_merchant_access: {
+        Args: { p_merchant_id: string; p_user_id: string }
+        Returns: boolean
       }
       has_role: {
         Args: {
