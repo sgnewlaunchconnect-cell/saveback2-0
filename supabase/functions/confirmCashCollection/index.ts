@@ -16,6 +16,47 @@ serve(async (req) => {
 
   try {
     const { paymentCode, merchantId } = await req.json();
+    
+    // Create Supabase client with service role key
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Check authentication and merchant access
+    const authHeader = req.headers.get('Authorization');
+    let currentUserId = null;
+    
+    if (authHeader && merchantId) {
+      try {
+        const jwt = authHeader.replace('Bearer ', '');
+        const { data: { user } } = await supabase.auth.getUser(jwt);
+        
+        if (user) {
+          currentUserId = user.id;
+          
+          // Check if user has access to this merchant
+          const { data: hasAccess } = await supabase
+            .rpc('has_merchant_access', {
+              p_user_id: user.id,
+              p_merchant_id: merchantId
+            });
+          
+          if (!hasAccess) {
+            return new Response(
+              JSON.stringify({ error: 'Access denied to this merchant' }),
+              { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+        }
+      } catch (authError) {
+        console.error('Authentication error:', authError);
+        return new Response(
+          JSON.stringify({ error: 'Invalid authentication' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
     console.log('confirmCashCollection called with:', { paymentCode, merchantId });
 
     // Check if this is demo mode
@@ -36,10 +77,6 @@ serve(async (req) => {
       );
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
 
     // Get the validated transaction
     let query = supabase

@@ -17,6 +17,7 @@ import { MerchantCompletedSimulator } from "./MerchantCompletedSimulator";
 
 interface MerchantValidationProps {
   merchantId: string;
+  isStaffTerminal?: boolean;
 }
 
 interface ValidationResult {
@@ -44,7 +45,7 @@ interface Transaction {
 }
 
 
-export default function MerchantValidation({ merchantId }: MerchantValidationProps) {
+export default function MerchantValidation({ merchantId, isStaffTerminal = false }: MerchantValidationProps) {
   const [validationCode, setValidationCode] = useState("");
   const [isValidating, setIsValidating] = useState(false);
   const [validationMode, setValidationMode] = useState<'payment' | 'grab'>('payment');
@@ -460,9 +461,9 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
       </Card>
 
       <Tabs defaultValue="validate" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className={`grid w-full ${isStaffTerminal ? 'grid-cols-3' : 'grid-cols-4'}`}>
           <TabsTrigger value="validate">Validate</TabsTrigger>
-          <TabsTrigger value="pending">Pending ({pendingTransactions.length})</TabsTrigger>
+          {!isStaffTerminal && <TabsTrigger value="pending">Pending ({pendingTransactions.length})</TabsTrigger>}
           <TabsTrigger value="authorized">
             Collect Cash ({authorizedTransactions.length})
           </TabsTrigger>
@@ -598,46 +599,48 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
           </Card>
         </TabsContent>
 
-        <TabsContent value="pending" className="space-y-4">
-          <div className="text-sm text-muted-foreground">
-            Transactions waiting for validation
-          </div>
-          
-          {pendingTransactions.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No pending transactions
+        {!isStaffTerminal && (
+          <TabsContent value="pending" className="space-y-4">
+            <div className="text-sm text-muted-foreground">
+              Transactions waiting for validation
             </div>
-          ) : (
-            <div className="space-y-2">
-              {pendingTransactions.map((transaction) => (
-                <Card key={transaction.id} className="p-4">
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <div className="font-medium text-lg">
-                        {transaction.payment_code}
+            
+            {pendingTransactions.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No pending transactions
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {pendingTransactions.map((transaction) => (
+                  <Card key={transaction.id} className="p-4">
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-1">
+                        <div className="font-medium text-lg">
+                          {transaction.payment_code}
+                        </div>
+                         <div className="text-sm text-muted-foreground">
+                           ₹{(transaction.original_amount / 100).toFixed(2)}
+                         </div>
+                        <div className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(transaction.created_at), { addSuffix: true })}
+                        </div>
                       </div>
-                       <div className="text-sm text-muted-foreground">
-                         ₹{(transaction.original_amount / 100).toFixed(2)}
-                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(transaction.created_at), { addSuffix: true })}
-                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setValidationCode(transaction.payment_code);
+                          handleValidation();
+                        }}
+                      >
+                        Validate
+                      </Button>
                     </div>
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        setValidationCode(transaction.payment_code);
-                        handleValidation();
-                      }}
-                    >
-                      Validate
-                    </Button>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        )}
 
         <TabsContent value="authorized" className="space-y-4">
           {/* Collect Cash Flow Preview */}

@@ -187,6 +187,23 @@ export default function MerchantPortal() {
           </TabsContent>
 
           <TabsContent value="validation" className="space-y-4">
+            <div className="mb-4 p-4 bg-card border rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium">Staff Terminal</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Simple validation interface for staff members
+                  </p>
+                </div>
+                <Button 
+                  onClick={() => window.open(`/merchant/${merchantId}/terminal`, '_blank')}
+                  variant="outline"
+                  size="sm"
+                >
+                  Open Staff Terminal
+                </Button>
+              </div>
+            </div>
             <MerchantValidation merchantId={merchantId!} />
           </TabsContent>
 
