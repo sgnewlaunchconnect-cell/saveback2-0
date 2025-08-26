@@ -377,6 +377,140 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
     }
   };
 
+  // Demo functions
+  const generateDemoPayment = async (amountCents: number) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('createPendingTransaction', {
+        body: {
+          merchantId,
+          originalAmount: amountCents,
+          finalAmount: amountCents,
+          localCreditsUsed: 0,
+          networkCreditsUsed: 0,
+          isDemoMode: true
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast({
+          title: "Demo Payment Generated",
+          description: `Payment code: ${data.paymentCode} - Amount: $${(amountCents / 100).toFixed(2)}`,
+        });
+        
+        loadPendingTransactions();
+      }
+    } catch (error) {
+      console.error('Error generating demo payment:', error);
+      toast({
+        title: "Demo Error",
+        description: "Failed to generate demo payment",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const simulateMerchantScan = async () => {
+    if (pendingTransactions.length === 0) {
+      toast({
+        title: "No Pending Payments",
+        description: "Generate a demo payment first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const transaction = pendingTransactions[0];
+    setValidationCode(transaction.payment_code);
+    
+    toast({
+      title: "Merchant Scan Simulated",
+      description: `Scanned code: ${transaction.payment_code}`,
+    });
+  };
+
+  const simulatePaymentReceived = async () => {
+    if (authorizedTransactions.length === 0) {
+      toast({
+        title: "No Authorized Payments",
+        description: "Validate a payment first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const transaction = authorizedTransactions[0];
+    await confirmCashCollection(transaction.payment_code);
+  };
+
+  const simulateFullDemoFlow = async () => {
+    try {
+      // Step 1: Generate demo payment
+      toast({
+        title: "Demo Flow Started",
+        description: "Step 1: Generating payment...",
+      });
+      
+      await generateDemoPayment(1500); // $15
+      
+      // Wait a bit for the transaction to be created
+      setTimeout(async () => {
+        // Step 2: Validate the payment
+        const { data: transactions } = await supabase
+          .from('pending_transactions')
+          .select('*')
+          .eq('merchant_id', merchantId)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (transactions && transactions.length > 0) {
+          const paymentCode = transactions[0].payment_code;
+          
+          toast({
+            title: "Demo Flow",
+            description: "Step 2: Validating payment...",
+          });
+          
+          // Validate the payment
+          const { data, error } = await supabase.functions.invoke('validatePendingTransaction', {
+            body: { 
+              paymentCode,
+              merchantId,
+              captureNow: false,
+              isDemoMode: true
+            }
+          });
+
+          if (data?.success) {
+            setTimeout(async () => {
+              toast({
+                title: "Demo Flow",
+                description: "Step 3: Confirming cash collection...",
+              });
+              
+              // Confirm cash collection
+              await confirmCashCollection(paymentCode);
+              
+              toast({
+                title: "Demo Flow Complete!",
+                description: "Full payment cycle demonstrated successfully",
+              });
+            }, 2000);
+          }
+        }
+      }, 1000);
+    } catch (error) {
+      console.error('Error in demo flow:', error);
+      toast({
+        title: "Demo Flow Error",
+        description: "Failed to complete demo flow",
+        variant: "destructive"
+      });
+    }
+  };
+
   if (validationResult) {
     return (
       <div className="w-full max-w-md mx-auto">
@@ -462,6 +596,66 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
         </TabsList>
 
         <TabsContent value="validate" className="space-y-4">
+          {/* Demo Controls */}
+          <Card className="border-orange-200 bg-orange-50/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-orange-800">
+                <QrCode className="w-5 h-5" />
+                Demo Controls
+                <Badge variant="outline" className="text-orange-600 border-orange-300">
+                  Testing Mode
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  onClick={() => generateDemoPayment(1000)}
+                  variant="outline"
+                  size="sm"
+                  className="text-orange-700 border-orange-300 hover:bg-orange-100"
+                >
+                  <DollarSign className="w-4 h-4 mr-1" />
+                  Generate Demo Payment ($10)
+                </Button>
+                <Button
+                  onClick={() => generateDemoPayment(2500)}
+                  variant="outline"
+                  size="sm"
+                  className="text-orange-700 border-orange-300 hover:bg-orange-100"
+                >
+                  <DollarSign className="w-4 h-4 mr-1" />
+                  Generate Demo Payment ($25)
+                </Button>
+                <Button
+                  onClick={simulateMerchantScan}
+                  variant="outline"
+                  size="sm"
+                  className="text-orange-700 border-orange-300 hover:bg-orange-100"
+                >
+                  <Camera className="w-4 h-4 mr-1" />
+                  Demo: Merchant Scan
+                </Button>
+                <Button
+                  onClick={simulatePaymentReceived}
+                  variant="outline"
+                  size="sm"
+                  className="text-orange-700 border-orange-300 hover:bg-orange-100"
+                >
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  Demo: Payment Received
+                </Button>
+              </div>
+              <Button
+                onClick={simulateFullDemoFlow}
+                className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Demo: Full Payment Flow
+              </Button>
+            </CardContent>
+          </Card>
+
           <Card className="w-full max-w-md mx-auto">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
