@@ -117,7 +117,7 @@ export default function GrabPassPage() {
   const handlePaymentComplete = async (paymentResult: any) => {
     // Note: Don't mark grab as used here - validation by merchant will handle this
     // This just shows the payment code for cashier validation
-    console.log('Payment code generated for validation:', paymentResult.paymentCode);
+    console.debug('Payment code generated for validation:', paymentResult.paymentCode);
   };
 
   if (loading) {

@@ -79,12 +79,14 @@ export function AdminOverview() {
           description: "Check console for credentials",
         });
         
-        // Display credentials in console for easy access
-        console.log("=== TEST ACCOUNT CREDENTIALS ===");
-        data.accounts.forEach((account: any) => {
-          console.log(`${account.role.toUpperCase()}: ${account.email} / ${account.password}`);
-        });
-        console.log("================================");
+        // Display credentials in dev console for easy access
+        if (import.meta.env.DEV) {
+          console.debug("=== TEST ACCOUNT CREDENTIALS ===");
+          data.accounts.forEach((account: any) => {
+            console.debug(`${account.role.toUpperCase()}: ${account.email} / ${account.password}`);
+          });
+          console.debug("================================");
+        }
         
         // Refresh stats
         fetchOverviewStats();

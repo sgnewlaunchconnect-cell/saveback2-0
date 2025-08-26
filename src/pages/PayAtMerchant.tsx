@@ -49,7 +49,7 @@ export default function PayAtMerchant() {
       
       // Fetch merchant data for PSP capabilities
       if (data.data?.merchant_id) {
-        console.log('Fetching merchant data for:', data.data.merchant_id);
+        console.debug('Fetching merchant data for:', data.data.merchant_id);
         const { data: merchant, error: merchantError } = await supabase
           .from('merchants')
           .select('*')
@@ -57,7 +57,7 @@ export default function PayAtMerchant() {
           .maybeSingle();
           
         if (!merchantError && merchant) {
-          console.log('Merchant PSP enabled:', merchant.psp_enabled);
+          console.debug('Merchant PSP enabled:', merchant.psp_enabled);
           setMerchantData(merchant);
         } else {
           console.error('Error fetching merchant:', merchantError);
@@ -140,7 +140,7 @@ export default function PayAtMerchant() {
 
   const handlePaymentComplete = async (paymentResult: any) => {
     // Payment code generated - merchant validation will handle the rest
-    console.log('Payment code generated for validation:', paymentResult.paymentCode);
+    console.debug('Payment code generated for validation:', paymentResult.paymentCode);
   };
 
   // Set document title when merchant data is available

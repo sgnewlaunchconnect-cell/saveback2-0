@@ -59,7 +59,7 @@ const Index = () => {
           table: 'deals'
         },
         (payload) => {
-          console.log('New deal created:', payload);
+          console.debug('New deal created:', payload);
           // Add new deal if it's active and not expired
           const newDeal = payload.new;
           if (newDeal.is_active && (!newDeal.end_at || new Date(newDeal.end_at) > new Date())) {
@@ -75,7 +75,7 @@ const Index = () => {
           table: 'deals'
         },
         (payload) => {
-          console.log('Deal updated:', payload);
+          console.debug('Deal updated:', payload);
           // Update the specific deal in our state
           setDeals(currentDeals => 
             currentDeals.map(deal => 

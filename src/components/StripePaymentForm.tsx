@@ -56,7 +56,7 @@ function PaymentForm({ clientSecret, paymentIntentId, pendingTransactionId, onSu
           variant: "destructive"
         });
       } else if (paymentIntent.status === "succeeded") {
-        console.log("Payment succeeded:", paymentIntent.id);
+        console.debug("Payment succeeded:", paymentIntent.id);
         
         // Verify payment with backend
         try {

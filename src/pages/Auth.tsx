@@ -23,14 +23,14 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      console.log('Attempting sign in with:', { email, password: '***' });
+      console.debug('Attempting sign in with:', { email, password: '***' });
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      console.log('Sign in response:', { data, error });
+      console.debug('Sign in response:', { data, error });
 
       if (error) {
         console.error('Sign in error:', error);

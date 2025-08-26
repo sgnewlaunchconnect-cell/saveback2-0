@@ -65,7 +65,7 @@ export default function Redeem() {
           filter: `anon_user_id=eq.${anonymousUserId}`
         },
         (payload) => {
-          console.log('New grab created:', payload);
+          console.debug('New grab created:', payload);
           // Add new grab to active list if not expired
           const newGrab = payload.new;
           if (new Date(newGrab.expires_at) > new Date()) {
@@ -82,7 +82,7 @@ export default function Redeem() {
           filter: `anon_user_id=eq.${anonymousUserId}`
         },
         (payload) => {
-          console.log('Grab updated:', payload);
+          console.debug('Grab updated:', payload);
           fetchGrabs(); // Refresh on updates
         }
       )
@@ -97,7 +97,7 @@ export default function Redeem() {
     setLoading(true);
     try {
       const anonymousUserId = getUserId();
-      console.log('Fetching grabs for anonymous user:', anonymousUserId);
+      console.debug('Fetching grabs for anonymous user:', anonymousUserId);
 
       // Fetch active grabs
       const { data: activeData, error: activeError } = await supabase.functions.invoke('getGrabs', {
@@ -125,7 +125,7 @@ export default function Redeem() {
         setHistoryGrabs(expiredOrUsed);
       }
 
-      console.log('Successfully fetched grabs');
+      console.debug('Successfully fetched grabs');
     } catch (error) {
       console.error('Error fetching grabs:', error);
       toast({
@@ -230,7 +230,7 @@ export default function Redeem() {
   };
 
   const handleUseNow = (grabId: string, e: React.MouseEvent) => {
-    console.log('Button clicked for grab:', grabId);
+    console.debug('Button clicked for grab:', grabId);
     e.stopPropagation();
     e.preventDefault();
     navigate(`/pay-at-merchant?grabId=${grabId}`);
@@ -312,7 +312,7 @@ export default function Redeem() {
           {showUseButton && !isUsed && !isExpired && (
             <Button 
               onClick={(e) => {
-                console.log('Direct button click triggered');
+                console.debug('Direct button click triggered');
                 handleUseNow(grab.id, e);
               }}
               variant="cta"

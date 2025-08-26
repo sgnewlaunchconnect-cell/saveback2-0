@@ -72,7 +72,7 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
         table: 'pending_transactions',
         filter: `merchant_id=eq.${merchantId}`
       }, (payload) => {
-        console.log('New transaction:', payload);
+        console.debug('New transaction:', payload);
         loadPendingTransactions();
         
         toast({
@@ -86,7 +86,7 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
         table: 'pending_transactions',
         filter: `merchant_id=eq.${merchantId}`
       }, (payload) => {
-        console.log('Transaction updated:', payload);
+        console.debug('Transaction updated:', payload);
         if (payload.new.status === 'validated') {
           loadAuthorizedTransactions();
           loadPendingTransactions();
@@ -111,7 +111,7 @@ export default function MerchantValidation({ merchantId }: MerchantValidationPro
         table: 'merchant_notifications',
         filter: `merchant_id=eq.${merchantId}`
       }, (payload) => {
-        console.log('Merchant notification:', payload);
+        console.debug('Merchant notification:', payload);
         const notification = payload.new;
         if (notification.type === 'PAYMENT_AUTHORIZED') {
           toast({

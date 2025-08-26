@@ -94,8 +94,8 @@ export default function QuickPaymentFlow({
       
       if (paymentMethod === 'psp') {
         // PSP payment flow
-        console.log('Attempting PSP payment for merchant:', grabData?.merchant_id || merchantData?.id);
-        console.log('Merchant PSP enabled:', isPspEnabled);
+        console.debug('Attempting PSP payment for merchant:', grabData?.merchant_id || merchantData?.id);
+        console.debug('Merchant PSP enabled:', isPspEnabled);
         
         if (!isPspEnabled) {
           toast({
@@ -165,7 +165,7 @@ export default function QuickPaymentFlow({
           pendingTransactionId: data.data.transactionId
         };
         
-        console.log('Payment code generated for validation:', {
+        console.debug('Payment code generated for validation:', {
           paymentCode: data.data.paymentCode,
           fullResponse: data.data
         });

@@ -2,9 +2,17 @@ import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getEnvVar } from "@/utils/envAccess";
 
 export function SessionResetButton() {
   const { toast } = useToast();
+  
+  // Only show in development or when explicitly enabled
+  const showResetButton = getEnvVar("VITE_SHOW_DEV_TOOLS") === "true" || import.meta.env.DEV;
+  
+  if (!showResetButton) {
+    return null;
+  }
 
   const handleResetSession = async () => {
     try {
