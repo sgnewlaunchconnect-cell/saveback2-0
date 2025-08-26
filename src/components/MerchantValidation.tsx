@@ -54,7 +54,7 @@ export default function MerchantValidation({ merchantId, isStaffTerminal = false
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [authorizedTransactions, setAuthorizedTransactions] = useState<Transaction[]>([]);
   const [isListening, setIsListening] = useState(false);
-  const [oneTapMode, setOneTapMode] = useState(false);
+  const [oneTapMode, setOneTapMode] = useState(isStaffTerminal);
   const [showSimulator, setShowSimulator] = useState(false);
   const [showCollectSimulator, setShowCollectSimulator] = useState(false);
   const [showCompletedSimulator, setShowCompletedSimulator] = useState(false);
@@ -461,12 +461,12 @@ export default function MerchantValidation({ merchantId, isStaffTerminal = false
       </Card>
 
       <Tabs defaultValue="validate" className="w-full">
-        <TabsList className={`grid w-full ${isStaffTerminal ? 'grid-cols-3' : 'grid-cols-4'}`}>
+        <TabsList className={`grid w-full ${isStaffTerminal ? 'grid-cols-2' : 'grid-cols-4'}`}>
           <TabsTrigger value="validate">Validate</TabsTrigger>
           {!isStaffTerminal && <TabsTrigger value="pending">Pending ({pendingTransactions.length})</TabsTrigger>}
-          <TabsTrigger value="authorized">
+          {!isStaffTerminal && <TabsTrigger value="authorized">
             Collect Cash ({authorizedTransactions.length})
-          </TabsTrigger>
+          </TabsTrigger>}
           <TabsTrigger value="recent">Completed ({recentTransactions.length})</TabsTrigger>
         </TabsList>
 
@@ -533,7 +533,7 @@ export default function MerchantValidation({ merchantId, isStaffTerminal = false
                 </div>
 
                 {/* One-Tap Mode Toggle */}
-                {validationMode === 'payment' && (
+                {validationMode === 'payment' && !isStaffTerminal && (
                   <div className="flex items-center justify-between space-x-2 bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
                     <div className="space-y-1">
                       <Label htmlFor="one-tap-mode" className="text-sm font-medium text-blue-700 dark:text-blue-300">
@@ -548,6 +548,17 @@ export default function MerchantValidation({ merchantId, isStaffTerminal = false
                       checked={oneTapMode}
                       onCheckedChange={setOneTapMode}
                     />
+                  </div>
+                )}
+                {/* Staff Terminal Info */}
+                {isStaffTerminal && validationMode === 'payment' && (
+                  <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
+                    <p className="text-sm text-green-700 dark:text-green-300 font-medium">
+                      ✓ One-Tap Complete Mode Enabled
+                    </p>
+                    <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                      Cash payments will be completed instantly upon validation
+                    </p>
                   </div>
                 )}
               </div>
@@ -642,7 +653,8 @@ export default function MerchantValidation({ merchantId, isStaffTerminal = false
           </TabsContent>
         )}
 
-        <TabsContent value="authorized" className="space-y-4">
+        {!isStaffTerminal && (
+          <TabsContent value="authorized" className="space-y-4">
           {/* Collect Cash Flow Preview */}
           <Card className="border-orange-200 bg-orange-50/50">
             <CardHeader className="pb-3">
@@ -720,7 +732,8 @@ export default function MerchantValidation({ merchantId, isStaffTerminal = false
               ))}
             </div>
           )}
-        </TabsContent>
+          </TabsContent>
+        )}
 
         <TabsContent value="recent" className="space-y-4">
           {/* Completed Flow Preview */}
