@@ -54,7 +54,7 @@ export default function MerchantValidation({ merchantId, isStaffTerminal = false
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [authorizedTransactions, setAuthorizedTransactions] = useState<Transaction[]>([]);
   const [isListening, setIsListening] = useState(false);
-  const [oneTapMode, setOneTapMode] = useState(isStaffTerminal);
+  const [oneTapMode, setOneTapMode] = useState(true); // Always enabled for simple mode
   const [showSimulator, setShowSimulator] = useState(false);
   const [showCollectSimulator, setShowCollectSimulator] = useState(false);
   const [showCompletedSimulator, setShowCompletedSimulator] = useState(false);
@@ -461,12 +461,8 @@ export default function MerchantValidation({ merchantId, isStaffTerminal = false
       </Card>
 
       <Tabs defaultValue="validate" className="w-full">
-        <TabsList className={`grid w-full ${isStaffTerminal ? 'grid-cols-2' : 'grid-cols-4'}`}>
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="validate">Validate</TabsTrigger>
-          {!isStaffTerminal && <TabsTrigger value="pending">Pending ({pendingTransactions.length})</TabsTrigger>}
-          {!isStaffTerminal && <TabsTrigger value="authorized">
-            Collect Cash ({authorizedTransactions.length})
-          </TabsTrigger>}
           <TabsTrigger value="recent">Completed ({recentTransactions.length})</TabsTrigger>
         </TabsList>
 
@@ -532,26 +528,8 @@ export default function MerchantValidation({ merchantId, isStaffTerminal = false
                   </Button>
                 </div>
 
-                {/* One-Tap Mode Toggle */}
-                {validationMode === 'payment' && !isStaffTerminal && (
-                  <div className="flex items-center justify-between space-x-2 bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <div className="space-y-1">
-                      <Label htmlFor="one-tap-mode" className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                        One-Tap Complete
-                      </Label>
-                      <p className="text-xs text-blue-600 dark:text-blue-400">
-                        Complete cash payments in one step (scan & confirm together)
-                      </p>
-                    </div>
-                    <Switch
-                      id="one-tap-mode"
-                      checked={oneTapMode}
-                      onCheckedChange={setOneTapMode}
-                    />
-                  </div>
-                )}
-                {/* Staff Terminal Info */}
-                {isStaffTerminal && validationMode === 'payment' && (
+                {/* Simple Mode Info */}
+                {validationMode === 'payment' && (
                   <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
                     <p className="text-sm text-green-700 dark:text-green-300 font-medium">
                       ✓ One-Tap Complete Mode Enabled
@@ -610,130 +588,6 @@ export default function MerchantValidation({ merchantId, isStaffTerminal = false
           </Card>
         </TabsContent>
 
-        {!isStaffTerminal && (
-          <TabsContent value="pending" className="space-y-4">
-            <div className="text-sm text-muted-foreground">
-              Transactions waiting for validation
-            </div>
-            
-            {pendingTransactions.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No pending transactions
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {pendingTransactions.map((transaction) => (
-                  <Card key={transaction.id} className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-1">
-                        <div className="font-medium text-lg">
-                          {transaction.payment_code}
-                        </div>
-                         <div className="text-sm text-muted-foreground">
-                           ₹{(transaction.original_amount / 100).toFixed(2)}
-                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(transaction.created_at), { addSuffix: true })}
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setValidationCode(transaction.payment_code);
-                          handleValidation();
-                        }}
-                      >
-                        Validate
-                      </Button>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-        )}
-
-        {!isStaffTerminal && (
-          <TabsContent value="authorized" className="space-y-4">
-          {/* Collect Cash Flow Preview */}
-          <Card className="border-orange-200 bg-orange-50/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-orange-800">
-                <Eye className="w-5 h-5" />
-                Collect Cash Flow Preview
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-orange-700 mb-4">
-                See how the collect cash flow works step-by-step
-              </p>
-              <Button
-                onClick={() => setShowCollectSimulator(true)}
-                variant="outline"
-                className="w-full border-orange-300 text-orange-700 hover:bg-orange-100"
-              >
-                <Eye className="w-4 h-4 mr-2" />
-                Preview Collect Cash Flow
-              </Button>
-            </CardContent>
-          </Card>
-
-          <div className="text-sm text-muted-foreground">
-            Validated payments ready for cash collection
-          </div>
-          
-          {authorizedTransactions.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No validated payments awaiting cash collection
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {authorizedTransactions.map((transaction) => (
-                <Card key={transaction.id} className="p-4 border-orange-200 bg-orange-50">
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-1">
-                        <div className="font-medium text-lg text-orange-800">
-                          Code: {transaction.payment_code}
-                        </div>
-                        <div className="text-lg font-bold text-orange-900">
-                          COLLECT: ₹{(transaction.final_amount / 100).toFixed(2)}
-                        </div>
-                        <div className="text-sm text-orange-700">
-                          Validated {formatDistanceToNow(new Date(transaction.updated_at), { addSuffix: true })}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xs text-orange-600 mb-1">
-                          Expires in {Math.max(0, Math.floor((new Date(transaction.expires_at).getTime() - Date.now()) / 60000))} min
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => confirmCashCollection(transaction.payment_code)}
-                        className="flex-1 bg-green-600 hover:bg-green-700"
-                      >
-                        ✓ Confirm Collected
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => voidTransaction(transaction.payment_code, "Customer did not pay")}
-                        className="flex-1 text-red-600 border-red-300 hover:bg-red-50"
-                      >
-                        ✗ Void
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
-          </TabsContent>
-        )}
 
         <TabsContent value="recent" className="space-y-4">
           {/* Completed Flow Preview */}
