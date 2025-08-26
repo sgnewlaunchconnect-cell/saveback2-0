@@ -14,14 +14,15 @@ serve(async (req) => {
   }
 
   try {
-    const { merchantId, originalAmount, grabId, dealId, anonymousUserId, localCreditsUsed = 0, networkCreditsUsed = 0 } = await req.json();
+    const { merchantId, originalAmount, grabId, dealId, anonymousUserId, isDemoMode, localCreditsUsed = 0, networkCreditsUsed = 0 } = await req.json();
 
     console.log('createPendingTransaction called with:', {
       merchantId,
       originalAmount,
       grabId,
       dealId,
-      anonymousUserId
+      anonymousUserId,
+      isDemoMode
     });
 
     // Validate required fields
@@ -38,8 +39,8 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Determine user_id - use demo user for anonymous users
-    const userId = anonymousUserId ? '550e8400-e29b-41d4-a716-446655440000' : null;
+    // Determine user_id - use demo user for anonymous/demo users
+    const userId = (anonymousUserId || isDemoMode) ? '550e8400-e29b-41d4-a716-446655440000' : null;
 
     // Get merchant info to calculate cashback
     const { data: merchant, error: merchantError } = await supabase
