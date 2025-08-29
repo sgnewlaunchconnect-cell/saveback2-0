@@ -36,7 +36,7 @@ export default function Navigation() {
         <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
           <Tag className="h-4 w-4 text-primary-foreground" />
         </div>
-            <span className="font-bold text-lg">Save&Shop</span>
+            <span className="font-bold text-lg">Earnify</span>
       </div>
 
       <nav className="flex-1 p-4 space-y-2">
@@ -72,9 +72,9 @@ export default function Navigation() {
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <Tag className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="font-bold text-lg">Save&Shop</span>
+            <span className="font-bold text-lg">Earnify</span>
           </Link>
-          <span className="text-xs text-muted-foreground mt-1">Discover amazing deals and save money</span>
+          <span className="text-xs text-muted-foreground mt-1">Instant deals and cashback near you</span>
         </div>
       </div>
 
@@ -111,8 +111,8 @@ export default function Navigation() {
                 <Tag className="h-4 w-4 text-primary-foreground" />
               </div>
               <div className="flex flex-col">
-                <span className="font-bold text-lg">Save&Shop</span>
-                <span className="text-xs text-muted-foreground hidden md:block">Discover amazing deals and save money</span>
+                <span className="font-bold text-lg">Earnify</span>
+                <span className="text-xs text-muted-foreground hidden md:block">Instant deals and cashback near you</span>
               </div>
             </Link>
 

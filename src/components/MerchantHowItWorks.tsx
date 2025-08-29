@@ -79,7 +79,7 @@ export default function MerchantHowItWorks({ merchantId }: MerchantHowItWorksPro
     <div className="space-y-6">
       {/* Header */}
       <div className="text-center space-y-2">
-        <h2 className="text-2xl font-bold">How Your Business Works on Save&Shop</h2>
+        <h2 className="text-2xl font-bold">How Your Business Works on Earnify</h2>
         <p className="text-muted-foreground">
           A complete guide to managing deals, credits, and customer interactions
         </p>
