@@ -7,6 +7,7 @@ import { ArrowLeft, MapPin, Clock, Star } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { getUserId } from '@/utils/userIdManager';
+import { useDemoMode } from '@/hooks/useDemoMode';
 import DealBadge from '@/components/DealBadge';
 import PaymentMethodBadge from '@/components/PaymentMethodBadge';
 
@@ -35,6 +36,7 @@ const DealDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
   const [deal, setDeal] = useState<DealDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [grabbing, setGrabbing] = useState(false);
@@ -47,6 +49,37 @@ const DealDetail = () => {
 
   const fetchDealDetail = async (dealId: string) => {
     try {
+      // Handle demo mode with mock data
+      if (isDemoMode && dealId === 'demo-deal-123') {
+        // Simulate loading delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const mockDeal: DealDetail = {
+          id: 'demo-deal-123',
+          title: '20% Off + 5% Cashback on Coffee',
+          description: 'Get an instant 20% discount on all coffee drinks and earn 5% cashback credits on the final amount you pay. Perfect for your daily caffeine fix! Valid on all specialty coffees including lattes, cappuccinos, and cold brews.',
+          discount_pct: 20,
+          cashback_pct: 5,
+          end_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
+          start_at: new Date().toISOString(),
+          stock: 100,
+          redemptions: 23,
+          merchant_id: 'demo-merchant-456',
+          merchants: {
+            name: 'Demo Coffee Shop',
+            address: '123 Main Street, Downtown Coffee District',
+            latitude: 1.3521,
+            longitude: 103.8198,
+            phone: '+65 6123 4567',
+            payout_method: 'stripe'
+          }
+        };
+        
+        setDeal(mockDeal);
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('deals')
         .select(`
@@ -82,6 +115,21 @@ const DealDetail = () => {
     
     setGrabbing(true);
     try {
+      // Handle demo mode
+      if (isDemoMode) {
+        // Simulate loading delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        toast({
+          title: "Demo: Deal Grabbed! 🎉",
+          description: "Demo deal reserved successfully. Click 'Redeem' to continue the demo flow."
+        });
+
+        // Navigate to redeem page with demo grab ID
+        navigate(`/redeem?grabId=demo-grab-456&demo=1`);
+        return;
+      }
+
       // Use consistent getUserId helper
       const anonymousUserId = getUserId();
 
