@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Store, BarChart3, Settings, ShieldCheck, Package, Users, MessageCircle } from "lucide-react";
+import { Plus, Store, BarChart3, Settings, ShieldCheck, Package, Users, MessageCircle, HelpCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import DealManagement from "@/components/DealManagement";
@@ -15,6 +15,7 @@ import ProductManagement from "@/components/ProductManagement";
 import ReelsManager from "@/components/ReelsManager";
 import GrabManagement from "@/components/GrabManagement";
 import MerchantReviews from "@/components/MerchantReviews";
+import MerchantHowItWorks from "@/components/MerchantHowItWorks";
 
 interface MerchantInfo {
   id: string;
@@ -109,7 +110,7 @@ export default function MerchantPortal() {
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="deals" className="flex items-center gap-2">
               <Store className="h-4 w-4" />
               Deals
@@ -133,6 +134,10 @@ export default function MerchantPortal() {
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Analytics
+            </TabsTrigger>
+            <TabsTrigger value="how-it-works" className="flex items-center gap-2">
+              <HelpCircle className="h-4 w-4" />
+              Guide
             </TabsTrigger>
             <TabsTrigger value="settings" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
@@ -209,6 +214,10 @@ export default function MerchantPortal() {
 
           <TabsContent value="analytics" className="space-y-4">
             <MerchantAnalytics merchantId={merchantId!} />
+          </TabsContent>
+
+          <TabsContent value="how-it-works" className="space-y-4">
+            <MerchantHowItWorks merchantId={merchantId!} />
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-4">
