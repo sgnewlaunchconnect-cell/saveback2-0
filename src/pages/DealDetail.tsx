@@ -48,9 +48,14 @@ const DealDetail = () => {
   }, [id]);
 
   const fetchDealDetail = async (dealId: string) => {
+    console.log('Fetching deal detail for ID:', dealId);
+    console.log('Demo mode status:', isDemoMode);
+    console.log('URL search params:', window.location.search);
+    
     try {
       // Handle demo mode with mock data
       if (isDemoMode && dealId === 'demo-deal-123') {
+        console.log('Using demo mode with mock data');
         // Simulate loading delay
         await new Promise(resolve => setTimeout(resolve, 500));
         
@@ -79,6 +84,8 @@ const DealDetail = () => {
         setLoading(false);
         return;
       }
+
+      console.log('Not demo mode, fetching from Supabase for ID:', dealId);
 
       const { data, error } = await supabase
         .from('deals')
