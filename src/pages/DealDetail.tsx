@@ -45,20 +45,17 @@ const DealDetail = () => {
     if (id) {
       fetchDealDetail(id);
     }
-  }, [id]);
+  }, [id, isDemoMode]); // Refetch when demo mode changes
+
+  const isValidUUID = (str: string) => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(str);
+  };
 
   const fetchDealDetail = async (dealId: string) => {
-    console.log('Fetching deal detail for ID:', dealId);
-    console.log('Demo mode status:', isDemoMode);
-    console.log('URL search params:', window.location.search);
-    
     try {
-      // Handle demo mode with mock data
-      if (isDemoMode && dealId === 'demo-deal-123') {
-        console.log('Using demo mode with mock data');
-        // Simulate loading delay
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
+      // Handle demo deals immediately - never call Supabase for demo IDs
+      if (dealId.startsWith('demo-')) {
         const mockDeal: DealDetail = {
           id: 'demo-deal-123',
           title: '20% Off + 5% Cashback on Coffee',
@@ -80,12 +77,17 @@ const DealDetail = () => {
           }
         };
         
+        // Simulate loading delay
+        await new Promise(resolve => setTimeout(resolve, 500));
         setDeal(mockDeal);
         setLoading(false);
         return;
       }
 
-      console.log('Not demo mode, fetching from Supabase for ID:', dealId);
+      // Only call Supabase for valid UUIDs
+      if (!isValidUUID(dealId)) {
+        throw new Error('Invalid deal ID format');
+      }
 
       const { data, error } = await supabase
         .from('deals')
@@ -107,11 +109,14 @@ const DealDetail = () => {
       setDeal(data);
     } catch (error) {
       console.error('Error fetching deal:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load deal details",
-        variant: "destructive",
-      });
+      // Only show toast for real fetch errors, not demo ID validation errors
+      if (!dealId.startsWith('demo-')) {
+        toast({
+          title: "Error",
+          description: "Failed to load deal details",
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
