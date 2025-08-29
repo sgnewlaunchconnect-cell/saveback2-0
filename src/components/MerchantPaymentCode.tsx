@@ -6,6 +6,7 @@ import { CheckCircle, CreditCard, Gift, Clock, QrCode, Loader2, Eye, AlertCircle
 import { useToast } from '@/hooks/use-toast';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 import { supabase } from '@/integrations/supabase/client';
+import { useDemoMode } from '@/hooks/useDemoMode';
 
 interface MerchantPaymentCodeProps {
   paymentResult: {
@@ -34,6 +35,7 @@ export default function MerchantPaymentCode({
   grabData
 }: MerchantPaymentCodeProps) {
   const { toast } = useToast();
+  const { isDemoMode, mockSupabaseCall } = useDemoMode();
   const [timeLeft, setTimeLeft] = useState(0);
   const [transactionStatus, setTransactionStatus] = useState<'pending' | 'validated' | 'authorized' | 'completed' | 'voided' | 'expired'>('pending');
   const [isPolling, setIsPolling] = useState(true);
@@ -68,10 +70,18 @@ export default function MerchantPaymentCode({
 
     const pollStatus = async () => {
       try {
-        const { data, error } = await supabase.functions.invoke('checkPendingStatus', {
-          body: { paymentCode: paymentResult.paymentCode }
-        });
-
+        let response;
+        if (isDemoMode) {
+          response = await mockSupabaseCall('checkPendingStatus', {
+            paymentCode: paymentResult.paymentCode
+          });
+        } else {
+          response = await supabase.functions.invoke('checkPendingStatus', {
+            body: { paymentCode: paymentResult.paymentCode }
+          });
+        }
+        
+        const { data, error } = response;
         if (error) throw error;
 
         const status = data.data.status;
@@ -163,14 +173,24 @@ export default function MerchantPaymentCode({
   // Merchant scan and validate functions
   const simulateScan = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('validatePendingTransaction', {
-        body: { 
+      let response;
+      if (isDemoMode) {
+        response = await mockSupabaseCall('validatePendingTransaction', {
           paymentCode: paymentResult.paymentCode,
-          merchantId: isActualDemo ? null : merchantData?.id || grabData?.merchant_id,
+          merchantId: merchantData?.id || grabData?.merchant_id,
           captureNow: paymentResult.finalAmount === 0
-        }
-      });
-
+        });
+      } else {
+        response = await supabase.functions.invoke('validatePendingTransaction', {
+          body: { 
+            paymentCode: paymentResult.paymentCode,
+            merchantId: isActualDemo ? null : merchantData?.id || grabData?.merchant_id,
+            captureNow: paymentResult.finalAmount === 0
+          }
+        });
+      }
+      
+      const { data, error } = response;
       if (error) throw error;
 
       // Optimistically update status for free transactions
@@ -201,13 +221,22 @@ export default function MerchantPaymentCode({
     if (!isValidated || paymentResult.finalAmount === 0) return;
     
     try {
-      const { data, error } = await supabase.functions.invoke('confirmCashCollection', {
-        body: { 
+      let response;
+      if (isDemoMode) {
+        response = await mockSupabaseCall('confirmCashCollection', {
           paymentCode: paymentResult.paymentCode,
-          merchantId: isActualDemo ? null : merchantData?.id || grabData?.merchant_id
-        }
-      });
-
+          merchantId: merchantData?.id || grabData?.merchant_id
+        });
+      } else {
+        response = await supabase.functions.invoke('confirmCashCollection', {
+          body: { 
+            paymentCode: paymentResult.paymentCode,
+            merchantId: isActualDemo ? null : merchantData?.id || grabData?.merchant_id
+          }
+        });
+      }
+      
+      const { data, error } = response;
       if (error) throw error;
 
       // Immediately update status after confirmation

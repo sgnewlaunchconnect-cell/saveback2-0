@@ -12,7 +12,11 @@ export const getEnvVar = (key: string, fallback: string = ""): string => {
 
 export const isAuthBypass = (): boolean => {
   try {
-    return getEnvVar("VITE_AUTH_BYPASS") === "true";
+    // Check for demo mode in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const isDemoMode = urlParams.get('demo') === '1';
+    
+    return getEnvVar("VITE_AUTH_BYPASS") === "true" || isDemoMode;
   } catch {
     return false;
   }

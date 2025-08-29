@@ -22,6 +22,7 @@ import HawkerValidation from "./components/HawkerValidation";
 import MerchantPage from "./pages/MerchantPage";
 import MerchantStaffTerminal from "./pages/MerchantStaffTerminal";
 import Redeem from "./pages/Redeem";
+import DemoBanner from "./components/DemoBanner";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <DemoBanner />
             <Navigation />
             <Routes>
           <Route path="/" element={<Index />} />

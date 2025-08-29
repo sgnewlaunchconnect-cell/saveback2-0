@@ -301,6 +301,27 @@ const Index = () => {
           ))}
         </div>
 
+        {/* Demo Button */}
+        <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border-dashed border-blue-300 dark:border-blue-700">
+          <CardContent className="p-4 text-center">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Try the Full Demo</span>
+            </div>
+            <p className="text-xs text-blue-600 dark:text-blue-400 mb-3">
+              Experience the complete payment flow without creating an account
+            </p>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate('/deals/demo-deal-123?demo=1')}
+              className="border-blue-300 text-blue-700 hover:bg-blue-100 dark:border-blue-600 dark:text-blue-300 dark:hover:bg-blue-950/30"
+            >
+              Start Demo →
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* Deal Sections - conditionally rendered based on filter */}
         {selectedRewardType === 'all' && (
           <>

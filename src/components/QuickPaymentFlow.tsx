@@ -10,6 +10,7 @@ import { QrCode, CreditCard, Gift, Zap, Smartphone, DollarSign } from 'lucide-re
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { getUserId } from '@/utils/userIdManager';
+import { useDemoMode } from '@/hooks/useDemoMode';
 import MerchantPaymentCode from './MerchantPaymentCode';
 import StripePaymentForm from './StripePaymentForm';
 import ProofOfPaymentQR from './ProofOfPaymentQR';
@@ -33,6 +34,7 @@ export default function QuickPaymentFlow({
   isStaticQr = false
 }: QuickPaymentFlowProps) {
   const { toast } = useToast();
+  const { isDemoMode, mockSupabaseCall } = useDemoMode();
   const [billAmount, setBillAmount] = useState('');
   const [useCredits, setUseCredits] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -107,8 +109,10 @@ export default function QuickPaymentFlow({
           setIsProcessing(false);
           return;
         }
-        const { data, error } = await supabase.functions.invoke('create-payment', {
-          body: {
+        
+        let response;
+        if (isDemoMode) {
+          response = await mockSupabaseCall('create-payment', {
             merchantId: grabData?.merchant_id || merchantData?.id,
             originalAmount: amount,
             grabId: grabData?.id,
@@ -116,9 +120,22 @@ export default function QuickPaymentFlow({
             anonymousUserId,
             localCreditsUsed,
             networkCreditsUsed
-          }
-        });
-
+          });
+        } else {
+          response = await supabase.functions.invoke('create-payment', {
+            body: {
+              merchantId: grabData?.merchant_id || merchantData?.id,
+              originalAmount: amount,
+              grabId: grabData?.id,
+              dealId: grabData?.deal_id,
+              anonymousUserId,
+              localCreditsUsed,
+              networkCreditsUsed
+            }
+          });
+        }
+        
+        const { data, error } = response;
         if (error) throw error;
         
         if (data.clientSecret) {
@@ -135,8 +152,9 @@ export default function QuickPaymentFlow({
         
       } else {
         // Payment code flow
-        const { data, error } = await supabase.functions.invoke('createPendingTransaction', {
-          body: {
+        let response;
+        if (isDemoMode) {
+          response = await mockSupabaseCall('createPendingTransaction', {
             merchantId: grabData?.merchant_id || merchantData?.id,
             originalAmount: amount,
             grabId: grabData?.id,
@@ -144,9 +162,22 @@ export default function QuickPaymentFlow({
             anonymousUserId,
             localCreditsUsed,
             networkCreditsUsed
-          }
-        });
-
+          });
+        } else {
+          response = await supabase.functions.invoke('createPendingTransaction', {
+            body: {
+              merchantId: grabData?.merchant_id || merchantData?.id,
+              originalAmount: amount,
+              grabId: grabData?.id,
+              dealId: grabData?.deal_id,
+              anonymousUserId,
+              localCreditsUsed,
+              networkCreditsUsed
+            }
+          });
+        }
+        
+        const { data, error } = response;
         if (error) throw error;
         
         const result = {
