@@ -15,39 +15,61 @@ export const useDemoMode = () => {
   });
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const demoParam = urlParams.get('demo');
-    setIsDemoMode(demoParam === '1');
+    const checkDemoMode = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const demoParam = urlParams.get('demo');
+      console.log('useDemoMode: checking demo param:', demoParam);
+      const isDemoActive = demoParam === '1';
+      console.log('useDemoMode: setting demo mode to:', isDemoActive);
+      setIsDemoMode(isDemoActive);
+      
+      if (isDemoActive) {
+        // Initialize demo data
+        setDemoState({
+          mode: 'customer',
+          step: 0,
+          data: {
+            mockUser: {
+              id: 'demo-user-123',
+              localCredits: 15.50,
+              networkCredits: 8.25
+            },
+            mockMerchant: {
+              id: 'demo-merchant-456',
+              name: 'Demo Coffee Shop',
+              category: 'food',
+              psp_enabled: true,
+              psp_fee_mode: 'absorb'
+            },
+            mockDeal: {
+              id: 'demo-deal-789',
+              title: '20% Off + 5% Cashback on Coffee',
+              discount_pct: 20,
+              cashback_pct: 5,
+              reward_mode: 'both'
+            },
+            mockTransaction: null
+          }
+        });
+      } else {
+        console.log('useDemoMode: not demo mode, clearing demo state');
+        setDemoState({
+          mode: null,
+          step: 0,
+          data: {}
+        });
+      }
+    };
+
+    // Check immediately
+    checkDemoMode();
+
+    // Listen for URL changes (e.g., back/forward navigation)
+    window.addEventListener('popstate', checkDemoMode);
     
-    if (demoParam === '1') {
-      // Initialize demo data
-      setDemoState({
-        mode: 'customer',
-        step: 0,
-        data: {
-          mockUser: {
-            id: 'demo-user-123',
-            localCredits: 15.50,
-            networkCredits: 8.25
-          },
-          mockMerchant: {
-            id: 'demo-merchant-456',
-            name: 'Demo Coffee Shop',
-            category: 'food',
-            psp_enabled: true,
-            psp_fee_mode: 'absorb'
-          },
-          mockDeal: {
-            id: 'demo-deal-789',
-            title: '20% Off + 5% Cashback on Coffee',
-            discount_pct: 20,
-            cashback_pct: 5,
-            reward_mode: 'both'
-          },
-          mockTransaction: null
-        }
-      });
-    }
+    return () => {
+      window.removeEventListener('popstate', checkDemoMode);
+    };
   }, []);
 
   const startDemo = (mode: 'customer' | 'merchant' | 'admin') => {
