@@ -20,6 +20,18 @@ interface QueueCustomer {
   amount: string;
   code6: string;
   isReadyToPay: boolean;
+  paymentWindowExpiry?: Date;
+}
+
+interface HoldData {
+  dealId: string;
+  grabbedAt: Date;
+  expiresAt: Date;
+}
+
+interface GrabAttempt {
+  timestamp: Date;
+  dealId: string;
 }
 
 interface MockDeal {
@@ -50,10 +62,19 @@ interface DemoState {
   isReadyToPay: boolean;
   queue: QueueCustomer[];
   currentlyServing?: string;
+  currentHold?: HoldData;
+  noShowCount: number;
 }
 
 const DemoQRScanPay = () => {
   const { toast } = useToast();
+
+  // Anti-grab-for-fun constants
+  const HOLD_DURATION_MS = 10 * 60 * 1000; // 10 minutes
+  const PAYMENT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+  const MAX_GRAB_ATTEMPTS = 3;
+  const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+  const COOLDOWN_MS = 15 * 60 * 1000; // 15 minutes after too many attempts
   
   // Merchant default cashback percentage
   const merchantDefaultCashbackPct = 10;
@@ -130,8 +151,63 @@ const DemoQRScanPay = () => {
         isReadyToPay: true
       }
     ],
-    currentlyServing: undefined
+    currentlyServing: undefined,
+    currentHold: undefined,
+    noShowCount: 0
   });
+
+  // Timer for countdown updates
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Timer effect for countdowns and expiry
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+      
+      setState(prev => {
+        let updated = { ...prev };
+        
+        // Check hold expiry
+        if (prev.currentHold && new Date() >= prev.currentHold.expiresAt) {
+          updated.currentHold = undefined;
+          updated.selectedDeal = undefined;
+          toast({ 
+            title: "Hold Expired", 
+            description: "Your deal hold has expired. Please grab again if needed.",
+            variant: "destructive"
+          });
+        }
+        
+        // Check payment window expiry and auto-remove from queue
+        const updatedQueue = prev.queue.filter(customer => {
+          if (customer.paymentWindowExpiry && new Date() >= customer.paymentWindowExpiry) {
+            if (customer.id === prev.txId) {
+              // This is the current user's payment that expired
+              updated.noShowCount = prev.noShowCount + 1;
+              updated.step = 'merchant-enter';
+              updated.currentlyServing = undefined;
+              updated.isReadyToPay = false;
+              toast({ 
+                title: "Payment Expired", 
+                description: "Payment window expired. Marked as no-show.",
+                variant: "destructive"
+              });
+            }
+            return false; // Remove from queue
+          }
+          return true; // Keep in queue
+        });
+        
+        if (updatedQueue.length !== prev.queue.length) {
+          updated.queue = updatedQueue;
+        }
+        
+        return updated;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [toast]);
 
   // Save display name to localStorage and update queue when it changes
   const updateDisplayName = (newName: string) => {
@@ -144,6 +220,54 @@ const DemoQRScanPay = () => {
         customer.id === prev.txId ? { ...customer, displayName: newName } : customer
       )
     }));
+  };
+
+  // Rate limiting functions
+  const getGrabAttempts = (): GrabAttempt[] => {
+    const stored = localStorage.getItem('demoGrabAttempts');
+    if (!stored) return [];
+    
+    try {
+      const attempts = JSON.parse(stored);
+      return attempts.map((a: any) => ({
+        ...a,
+        timestamp: new Date(a.timestamp)
+      }));
+    } catch {
+      return [];
+    }
+  };
+
+  const addGrabAttempt = (dealId: string) => {
+    const attempts = getGrabAttempts();
+    const newAttempt: GrabAttempt = {
+      timestamp: new Date(),
+      dealId
+    };
+    
+    attempts.push(newAttempt);
+    localStorage.setItem('demoGrabAttempts', JSON.stringify(attempts));
+  };
+
+  const getRecentAttempts = (): GrabAttempt[] => {
+    const attempts = getGrabAttempts();
+    const cutoff = new Date(Date.now() - RATE_LIMIT_WINDOW_MS);
+    return attempts.filter(a => a.timestamp >= cutoff);
+  };
+
+  const isRateLimited = (): boolean => {
+    const recentAttempts = getRecentAttempts();
+    return recentAttempts.length >= MAX_GRAB_ATTEMPTS;
+  };
+
+  const getCooldownExpiry = (): Date | null => {
+    const attempts = getGrabAttempts();
+    if (attempts.length < MAX_GRAB_ATTEMPTS) return null;
+    
+    const sortedAttempts = attempts.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    const thirdMostRecent = sortedAttempts[MAX_GRAB_ATTEMPTS - 1];
+    
+    return new Date(thirdMostRecent.timestamp.getTime() + COOLDOWN_MS);
   };
 
   const amountCents = Math.round(parseFloat(state.amount) * 100) || 0;
@@ -186,6 +310,9 @@ const DemoQRScanPay = () => {
       discountPct: discountPct
     });
     
+    // Create payment window expiry (5 minutes from now)
+    const paymentWindowExpiry = new Date(Date.now() + PAYMENT_WINDOW_MS);
+    
     // Auto-add to queue when QR is generated
     const customer: QueueCustomer = {
       id: txId,
@@ -193,7 +320,8 @@ const DemoQRScanPay = () => {
       deal: state.selectedDeal,
       amount: state.amount,
       code6: code6,
-      isReadyToPay: true
+      isReadyToPay: true,
+      paymentWindowExpiry
     };
     
     setState(prev => ({
@@ -206,7 +334,7 @@ const DemoQRScanPay = () => {
       queue: [...prev.queue, customer]
     }));
     
-    toast({ title: "Payment QR Generated", description: `Amount: ${formatCurrencyDisplay(effectiveBillCents)}` });
+    toast({ title: "Payment QR Generated", description: `Amount: ${formatCurrencyDisplay(effectiveBillCents)} - 5min window` });
   };
 
   const handleSimulateScan = () => {
@@ -245,6 +373,17 @@ const DemoQRScanPay = () => {
   };
 
   const handleMerchantConfirm = () => {
+    // Check if payment window has expired
+    const currentCustomerInQueue = state.queue.find(c => c.id === state.txId);
+    if (currentCustomerInQueue?.paymentWindowExpiry && new Date() >= currentCustomerInQueue.paymentWindowExpiry) {
+      toast({ 
+        title: "Payment Expired", 
+        description: "Cannot confirm - payment window has expired.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setState(prev => ({ ...prev, step: 'processing' }));
     toast({ title: "Processing Payment...", description: "Please wait" });
     
@@ -257,21 +396,62 @@ const DemoQRScanPay = () => {
         // Remove from queue on completion
         queue: prev.queue.filter(c => c.id !== prev.txId),
         currentlyServing: undefined,
-        isReadyToPay: false
+        isReadyToPay: false,
+        currentHold: undefined // Clear hold on completion
       }));
       toast({ title: "Payment Verified!", description: "Transaction completed" });
     }, 1500);
   };
 
   const handleGrabDeal = (deal: MockDeal) => {
+    // Check rate limiting
+    if (isRateLimited()) {
+      const cooldownExpiry = getCooldownExpiry();
+      const remainingMs = cooldownExpiry ? cooldownExpiry.getTime() - Date.now() : 0;
+      const remainingMins = Math.ceil(remainingMs / 60000);
+      
+      toast({ 
+        title: "Too Many Attempts", 
+        description: `Please wait ${remainingMins} more minutes before grabbing deals.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Add grab attempt for rate limiting
+    addGrabAttempt(deal.id);
+
+    // Create hold with 10-minute expiry
+    const holdExpiry = new Date(Date.now() + HOLD_DURATION_MS);
+    const holdData: HoldData = {
+      dealId: deal.id,
+      grabbedAt: new Date(),
+      expiresAt: holdExpiry
+    };
+
     setState(prev => ({
       ...prev,
       selectedDeal: deal,
+      currentHold: holdData,
       step: 'merchant-enter'
     }));
+    
     toast({ 
-      title: "Deal Grabbed!", 
-      description: `${deal.title} - Ready to use at ${deal.merchantName}` 
+      title: "Deal Hold Created!", 
+      description: `${deal.title} - Hold expires in 10 minutes` 
+    });
+  };
+
+  const handleCancelHold = () => {
+    setState(prev => ({
+      ...prev,
+      selectedDeal: undefined,
+      currentHold: undefined
+    }));
+    
+    toast({ 
+      title: "Hold Cancelled", 
+      description: "You can grab another deal if needed." 
     });
   };
 
@@ -306,7 +486,9 @@ const DemoQRScanPay = () => {
       displayName: displayName,
       isReadyToPay: false,
       queue: prev.queue.filter(c => c.id !== prev.txId),
-      currentlyServing: undefined
+      currentlyServing: undefined,
+      currentHold: undefined,
+      noShowCount: prev.noShowCount // Keep no-show count
     }));
   };
 
@@ -477,77 +659,95 @@ const DemoQRScanPay = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    {state.queue.map((customer, index) => (
-                      <div
-                        key={customer.id}
-                        className={`p-3 rounded-lg border ${
-                          state.currentlyServing === customer.id
-                            ? 'bg-primary/10 border-primary'
-                            : 'bg-background'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="w-6 h-6 bg-muted rounded-full flex items-center justify-center text-xs font-medium">
-                                {index + 1}
-                              </span>
-                              <span className="font-bold">{customer.displayName}</span>
-                              {state.currentlyServing === customer.id && (
-                                <Badge variant="default" className="text-xs">Currently Serving</Badge>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2 mt-1">
-                              {customer.deal ? (
-                                <DealBadge 
-                                  discountPct={customer.deal.discountPct} 
-                                  cashbackPct={customer.deal.cashbackPct}
-                                />
-                              ) : (
-                                <Badge variant="secondary" className="text-xs">Default Cashback</Badge>
-                              )}
-                              <span className="text-sm font-medium">{formatCurrencyDisplay(Math.round(parseFloat(customer.amount) * 100))}</span>
-                              <span className="text-xs text-muted-foreground">Code: ••••••</span>
-                            </div>
-                            {state.currentlyServing === customer.id && (
-                              <div className="mt-2 text-sm text-primary font-medium">
-                                💬 Verbal verify: {customer.displayName}
+                    {state.queue.map((customer, index) => {
+                      const isExpired = customer.paymentWindowExpiry && new Date() >= customer.paymentWindowExpiry;
+                      const timeLeft = customer.paymentWindowExpiry ? customer.paymentWindowExpiry.getTime() - currentTime.getTime() : 0;
+                      const minutesLeft = Math.floor(timeLeft / 60000);
+                      const secondsLeft = Math.floor((timeLeft % 60000) / 1000);
+                      
+                      return (
+                        <div
+                          key={customer.id}
+                          className={`p-3 rounded-lg border ${
+                            state.currentlyServing === customer.id
+                              ? 'bg-primary/10 border-primary'
+                              : isExpired
+                              ? 'bg-destructive/10 border-destructive opacity-60'
+                              : 'bg-background'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="w-6 h-6 bg-muted rounded-full flex items-center justify-center text-xs font-medium">
+                                  {index + 1}
+                                </span>
+                                <span className="font-bold">{customer.displayName}</span>
+                                {state.currentlyServing === customer.id && (
+                                  <Badge variant="default" className="text-xs">Currently Serving</Badge>
+                                )}
+                                {isExpired && (
+                                  <Badge variant="destructive" className="text-xs">Expired</Badge>
+                                )}
                               </div>
-                            )}
-                          </div>
-                          <div className="flex gap-1">
-                            {state.currentlyServing !== customer.id ? (
+                              <div className="flex items-center gap-2 mt-1">
+                                {customer.deal ? (
+                                  <DealBadge 
+                                    discountPct={customer.deal.discountPct} 
+                                    cashbackPct={customer.deal.cashbackPct}
+                                  />
+                                ) : (
+                                  <Badge variant="secondary" className="text-xs">Default Cashback</Badge>
+                                )}
+                                <span className="text-sm font-medium">{formatCurrencyDisplay(Math.round(parseFloat(customer.amount) * 100))}</span>
+                                <span className="text-xs text-muted-foreground">Code: ••••••</span>
+                                {customer.paymentWindowExpiry && timeLeft > 0 && (
+                                  <span className="text-xs text-orange-600 font-medium">
+                                    ⏰ {minutesLeft}:{secondsLeft.toString().padStart(2, '0')}
+                                  </span>
+                                )}
+                              </div>
+                              {state.currentlyServing === customer.id && (
+                                <div className="mt-2 text-sm text-primary font-medium">
+                                  💬 Verbal verify: {customer.displayName}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex gap-1">
+                              {state.currentlyServing !== customer.id ? (
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleCallNext(customer.id)}
+                                  className="h-8"
+                                  disabled={isExpired}
+                                >
+                                  Call
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setState(prev => ({ ...prev, currentlyServing: undefined }))}
+                                  className="h-8"
+                                >
+                                  Done
+                                </Button>
+                              )}
                               <Button
                                 size="sm"
-                                onClick={() => handleCallNext(customer.id)}
-                                className="h-8"
+                                variant="ghost"
+                                onClick={() => handleSkipCustomer(customer.id)}
+                                className="h-8 w-8 p-0"
                               >
-                                Call
+                                <X className="w-3 h-3" />
                               </Button>
-                            ) : (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setState(prev => ({ ...prev, currentlyServing: undefined }))}
-                                className="h-8"
-                              >
-                                Done
-                              </Button>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleSkipCustomer(customer.id)}
-                              className="h-8 w-8 p-0"
-                            >
-                              <X className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                             </div>
+                           </div>
+                         </div>
+                       );
+                     })}
+                   </div>
+                 </div>
               )}
             </CardContent>
           </Card>
@@ -681,8 +881,22 @@ const DemoQRScanPay = () => {
                   <span>{formatCurrencyDisplay(state.balanceCents)}</span>
                 </div>
               </div>
-              <Button onClick={handleMerchantConfirm} className="w-full" size="lg">
-                Confirm Payment
+              <Button 
+                onClick={handleMerchantConfirm} 
+                className="w-full" 
+                size="lg"
+                disabled={(() => {
+                  const currentCustomerInQueue = state.queue.find(c => c.id === state.txId);
+                  return currentCustomerInQueue?.paymentWindowExpiry && new Date() >= currentCustomerInQueue.paymentWindowExpiry;
+                })()}
+              >
+                {(() => {
+                  const currentCustomerInQueue = state.queue.find(c => c.id === state.txId);
+                  if (currentCustomerInQueue?.paymentWindowExpiry && new Date() >= currentCustomerInQueue.paymentWindowExpiry) {
+                    return "Payment Expired";
+                  }
+                  return "Confirm Payment";
+                })()}
               </Button>
             </CardContent>
           </Card>
@@ -789,6 +1003,80 @@ const DemoQRScanPay = () => {
               <p className="text-sm text-muted-foreground">
                 Browse and grab deals to use during payment
               </p>
+
+              {/* Show rate limiting status */}
+              {(() => {
+                const cooldownExpiry = getCooldownExpiry();
+                if (cooldownExpiry && new Date() < cooldownExpiry) {
+                  const remainingMs = cooldownExpiry.getTime() - currentTime.getTime();
+                  const remainingMins = Math.floor(remainingMs / 60000);
+                  const remainingSecs = Math.floor((remainingMs % 60000) / 1000);
+                  
+                  return (
+                    <div className="p-3 bg-destructive/10 rounded-lg border border-destructive">
+                      <div className="text-center">
+                        <p className="text-sm font-medium text-destructive">Too Many Grab Attempts</p>
+                        <p className="text-xs text-destructive">
+                          Cooldown: {remainingMins}:{remainingSecs.toString().padStart(2, '0')} remaining
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }
+                
+                const recentAttempts = getRecentAttempts();
+                const attemptsLeft = Math.max(0, MAX_GRAB_ATTEMPTS - recentAttempts.length);
+                
+                if (attemptsLeft <= 1 && attemptsLeft > 0) {
+                  return (
+                    <div className="p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                      <div className="text-center">
+                        <p className="text-sm font-medium text-orange-600">
+                          {attemptsLeft} grab attempt remaining
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }
+                
+                return null;
+              })()}
+
+              {/* Show current hold status */}
+              {state.currentHold && (
+                <div className="p-3 bg-primary/10 rounded-lg border border-primary">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-primary">Deal Hold Active</p>
+                      <p className="text-xs text-primary">
+                        Expires in {(() => {
+                          const timeLeft = state.currentHold.expiresAt.getTime() - currentTime.getTime();
+                          const minutesLeft = Math.floor(timeLeft / 60000);
+                          const secondsLeft = Math.floor((timeLeft % 60000) / 1000);
+                          return `${minutesLeft}:${secondsLeft.toString().padStart(2, '0')}`;
+                        })()}
+                      </p>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={handleCancelHold}>
+                      Cancel Hold
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* No-show warning */}
+              {state.noShowCount > 0 && (
+                <div className="p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-orange-600">
+                      ⚠️ {state.noShowCount} no-show{state.noShowCount > 1 ? 's' : ''}
+                    </p>
+                    <p className="text-xs text-orange-600">
+                      Please complete payments within the time window
+                    </p>
+                  </div>
+                </div>
+              )}
               
               {/* Default Cashback - Made Prominent */}
               <Card className="border-2 border-green-500 bg-green-50 dark:bg-green-950/20 hover:shadow-lg transition-shadow">
@@ -847,8 +1135,9 @@ const DemoQRScanPay = () => {
                           onClick={() => handleGrabDeal(deal)}
                           size="sm"
                           variant="outline"
+                          disabled={isRateLimited() || !!state.currentHold}
                         >
-                          Grab
+                          {state.currentHold ? 'Hold Active' : 'Grab'}
                         </Button>
                       </div>
                     </CardContent>
