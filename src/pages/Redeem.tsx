@@ -312,7 +312,8 @@ export default function Redeem() {
           {showUseButton && !isUsed && !isExpired && (
             <Button 
               onClick={(e) => {
-                console.debug('Direct button click triggered');
+                console.debug('Direct button click triggered for:', grab.deals.title);
+                console.debug('Deal data:', grab.deals);
                 handleUseNow(grab.id, e);
               }}
               variant="cta"
@@ -321,7 +322,8 @@ export default function Redeem() {
               type="button"
               style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10, cursor: 'pointer' }}
             >
-              {grab.deals.discount_pct > 0 && (grab.deals.cashback_pct === 0 || grab.deals.cashback_pct === null)
+              {/* Discount only deals show "Show to Cashier", everything else shows "Use Now & Pay" */}
+              {(grab.deals.discount_pct > 0 && (!grab.deals.cashback_pct || grab.deals.cashback_pct <= 0))
                 ? "Show to Cashier" 
                 : "Use Now & Pay"
               }
