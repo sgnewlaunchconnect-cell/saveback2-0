@@ -20,7 +20,7 @@ export default function WalletPage() {
   const [sortBy, setSortBy] = useState<'amount' | 'name' | 'recent'>('amount');
   const [showFilter, setShowFilter] = useState(false);
 
-  // Get current user
+  // Get current user (optional for guests)
   React.useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -40,8 +40,8 @@ export default function WalletPage() {
   // Filter and sort merchant credits
   const filteredCredits = useMemo(() => {
     let filtered = merchantCredits.filter(credit => 
-      credit.merchant?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      credit.merchant?.category.toLowerCase().includes(searchQuery.toLowerCase())
+      credit.merchant?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      credit.merchant?.category?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     switch (sortBy) {
@@ -66,7 +66,7 @@ export default function WalletPage() {
   }, [merchantCredits]);
 
   const handleUseCreditsTap = (merchantId: string) => {
-    navigate(`/pay/${merchantId}`);
+    navigate(`/pay-at-merchant?merchantId=${merchantId}`);
   };
 
   const handleSettingsChange = (settings: any) => {
@@ -76,7 +76,7 @@ export default function WalletPage() {
     });
   };
 
-  if (creditsLoading || eventsLoading || !user) {
+  if (creditsLoading || eventsLoading) {
     return (
       <div className="min-h-screen bg-background p-4">
         <div className="max-w-4xl mx-auto">
