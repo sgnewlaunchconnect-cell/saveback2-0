@@ -640,14 +640,6 @@ const DemoQRScanPay = () => {
               <div className="text-center text-sm text-muted-foreground">
                 Customer Paid – Waiting for Confirmation
               </div>
-              {currentCustomer && (
-                <div className="p-3 bg-primary/10 rounded-lg border border-primary">
-                  <div className="text-center">
-                    <p className="text-sm text-muted-foreground">Verbal verify:</p>
-                    <p className="font-medium text-primary">{currentCustomer.displayName}</p>
-                  </div>
-                </div>
-              )}
               {state.selectedDeal && (
                 <div className="p-3 bg-muted/50 rounded-lg border">
                   <div className="flex items-center gap-2 mb-2">
