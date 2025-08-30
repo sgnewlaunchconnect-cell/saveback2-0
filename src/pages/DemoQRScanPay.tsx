@@ -42,6 +42,9 @@ interface DemoState {
 const DemoQRScanPay = () => {
   const { toast } = useToast();
   
+  // Merchant default cashback percentage
+  const merchantDefaultCashbackPct = 10;
+  
   // Mock deals for demonstration
   const mockDeals: MockDeal[] = [
     {
@@ -69,7 +72,7 @@ const DemoQRScanPay = () => {
   ];
   
   const [state, setState] = useState<DemoState>({
-    step: 'grab-deal',
+    step: 'merchant-enter',
     amount: '',
     txId: '',
     qrPayload: '',
@@ -85,20 +88,26 @@ const DemoQRScanPay = () => {
   });
 
   const amountCents = Math.round(parseFloat(state.amount) * 100) || 0;
+  
+  // Calculate effective bill with discounts and active cashback
+  const activeCashbackPct = state.selectedDeal?.cashbackPct ?? merchantDefaultCashbackPct;
+  const discountPct = state.selectedDeal?.discountPct ?? 0;
+  const discountCents = Math.floor(amountCents * discountPct / 100);
+  const effectiveBillCents = amountCents - discountCents;
 
-  // Auto-allocate credits with local-first, then network
+  // Auto-allocate credits with local-first, then network (based on effective bill)
   const allocateCredits = (apply: boolean) => {
     if (!apply) {
-      return { local: 0, network: 0, balance: amountCents };
+      return { local: 0, network: 0, balance: effectiveBillCents };
     }
     
-    const maxLocal = Math.min(state.availableLocalCents, amountCents);
-    const maxNetwork = Math.min(state.availableNetworkCents, amountCents - maxLocal);
+    const maxLocal = Math.min(state.availableLocalCents, effectiveBillCents);
+    const maxNetwork = Math.min(state.availableNetworkCents, effectiveBillCents - maxLocal);
     
     return {
       local: maxLocal,
       network: maxNetwork,
-      balance: amountCents - maxLocal - maxNetwork
+      balance: effectiveBillCents - maxLocal - maxNetwork
     };
   };
 
@@ -110,7 +119,13 @@ const DemoQRScanPay = () => {
     
     const txId = Date.now().toString() + Math.random().toString(36).substring(2, 7);
     const code6 = txId.slice(-6).padStart(6, '0');
-    const qrPayload = JSON.stringify({ amount: state.amount, txId });
+    const qrPayload = JSON.stringify({ 
+      amount: state.amount, 
+      txId,
+      dealId: state.selectedDeal?.id,
+      cashbackPct: activeCashbackPct,
+      discountPct: discountPct
+    });
     
     setState(prev => ({
       ...prev,
@@ -120,7 +135,7 @@ const DemoQRScanPay = () => {
       qrPayload
     }));
     
-    toast({ title: "Payment QR Generated", description: `Amount: ${formatCurrencyDisplay(amountCents)}` });
+    toast({ title: "Payment QR Generated", description: `Amount: ${formatCurrencyDisplay(effectiveBillCents)}` });
   };
 
   const handleSimulateScan = () => {
@@ -163,7 +178,7 @@ const DemoQRScanPay = () => {
     toast({ title: "Processing Payment...", description: "Please wait" });
     
     setTimeout(() => {
-      const creditsEarnedCents = Math.floor(state.balanceCents * 0.05);
+      const creditsEarnedCents = Math.floor(state.balanceCents * activeCashbackPct / 100);
       setState(prev => ({ 
         ...prev, 
         step: 'complete',
@@ -185,9 +200,20 @@ const DemoQRScanPay = () => {
     });
   };
 
+  const handleSkipDeals = () => {
+    setState(prev => ({
+      ...prev,
+      selectedDeal: undefined
+    }));
+    toast({ 
+      title: "Using Default Reward", 
+      description: `${merchantDefaultCashbackPct}% cashback on all payments` 
+    });
+  };
+
   const handleReset = () => {
     setState({
-      step: 'grab-deal',
+      step: 'merchant-enter',
       amount: '',
       txId: '',
       qrPayload: '',
@@ -217,57 +243,6 @@ const DemoQRScanPay = () => {
 
   const renderMerchantScreen = () => {
     switch (state.step) {
-      case 'grab-deal':
-        return (
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Tag className="w-5 h-5" />
-                Available Deals
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Browse and grab deals to use during payment
-              </p>
-              <div className="space-y-3">
-                {mockDeals.map((deal) => (
-                  <Card key={deal.id} className="border hover:shadow-md transition-shadow">
-                    <CardContent className="p-3">
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <Store className="h-5 w-5 text-primary" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-sm truncate">{deal.title}</h4>
-                          <p className="text-xs text-muted-foreground truncate">{deal.merchantName}</p>
-                          <div className="flex items-center gap-1 mt-1">
-                            <MapPin className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-xs text-muted-foreground truncate">{deal.address}</span>
-                          </div>
-                          <div className="mt-2">
-                            <DealBadge 
-                              discountPct={deal.discountPct} 
-                              cashbackPct={deal.cashbackPct} 
-                            />
-                          </div>
-                        </div>
-                        <Button 
-                          onClick={() => handleGrabDeal(deal)}
-                          size="sm"
-                          variant="outline"
-                        >
-                          Grab
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        );
-
       case 'merchant-enter':
         return (
           <Card className="h-full">
@@ -278,7 +253,7 @@ const DemoQRScanPay = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {state.selectedDeal && (
+              {state.selectedDeal ? (
                 <div className="p-3 bg-muted/50 rounded-lg border">
                   <div className="flex items-center gap-2 mb-2">
                     <Tag className="w-4 h-4 text-primary" />
@@ -295,6 +270,17 @@ const DemoQRScanPay = () => {
                     </div>
                   </div>
                 </div>
+              ) : (
+                <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Tag className="w-4 h-4 text-green-600" />
+                    <span className="text-sm font-medium text-green-700 dark:text-green-300">Default Reward</span>
+                  </div>
+                  <div className="text-sm">
+                    <p className="font-medium text-green-800 dark:text-green-200">{merchantDefaultCashbackPct}% Cashback on All Payments</p>
+                    <p className="text-green-600 dark:text-green-400">No deals required - automatic reward</p>
+                  </div>
+                </div>
               )}
               <div>
                 <label className="text-sm font-medium">Bill Amount</label>
@@ -305,6 +291,24 @@ const DemoQRScanPay = () => {
                   onChange={(e) => setState(prev => ({ ...prev, amount: e.target.value }))}
                   className="text-lg"
                 />
+                {amountCents > 0 && (
+                  <div className="mt-2 text-sm text-muted-foreground space-y-1">
+                    {discountCents > 0 && (
+                      <div className="flex justify-between">
+                        <span>Discount ({discountPct}%):</span>
+                        <span className="text-green-600">-{formatCurrencyDisplay(discountCents)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between font-medium">
+                      <span>Final Amount:</span>
+                      <span>{formatCurrencyDisplay(effectiveBillCents)}</span>
+                    </div>
+                    <div className="flex justify-between text-green-600">
+                      <span>Credits Earned ({activeCashbackPct}%):</span>
+                      <span>+{formatCurrencyDisplay(Math.floor(effectiveBillCents * activeCashbackPct / 100))}</span>
+                    </div>
+                  </div>
+                )}
               </div>
               <Button onClick={handleRequestPayment} className="w-full" size="lg">
                 Request Payment
@@ -339,7 +343,7 @@ const DemoQRScanPay = () => {
                 <QRCodeSVG value={state.qrPayload} size={200} />
               </div>
               <div>
-                <p className="text-2xl font-bold">{formatCurrencyDisplay(amountCents)}</p>
+                <p className="text-2xl font-bold">{formatCurrencyDisplay(effectiveBillCents)}</p>
                 <p className="text-sm text-muted-foreground">Transaction: {state.txId}</p>
                 <div className="flex items-center justify-center gap-1 mt-2">
                   <Hash className="w-4 h-4" />
@@ -372,7 +376,7 @@ const DemoQRScanPay = () => {
                 </div>
               )}
               <div className="text-center">
-                <p className="text-2xl font-bold">{formatCurrencyDisplay(amountCents)}</p>
+                <p className="text-2xl font-bold">{formatCurrencyDisplay(effectiveBillCents)}</p>
                 <p className="text-sm text-muted-foreground">Transaction: {state.txId}</p>
               </div>
               <Badge variant="secondary" className="w-full justify-center">
@@ -413,8 +417,18 @@ const DemoQRScanPay = () => {
               )}
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span>Total Bill:</span>
+                  <span>Original Bill:</span>
                   <span className="font-medium">{formatCurrencyDisplay(amountCents)}</span>
+                </div>
+                {discountCents > 0 && (
+                  <div className="flex justify-between">
+                    <span>Discount ({discountPct}%):</span>
+                    <span className="font-medium text-green-600">-{formatCurrencyDisplay(discountCents)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span>Effective Bill:</span>
+                  <span className="font-medium">{formatCurrencyDisplay(effectiveBillCents)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Local Credits Used:</span>
@@ -504,6 +518,66 @@ const DemoQRScanPay = () => {
 
   const renderCustomerScreen = () => {
     switch (state.step) {
+      case 'merchant-enter':
+        return (
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Tag className="w-5 h-5" />
+                Available Deals
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Browse and grab deals to use during payment
+              </p>
+              <div className="space-y-3">
+                {mockDeals.map((deal) => (
+                  <Card key={deal.id} className="border hover:shadow-md transition-shadow">
+                    <CardContent className="p-3">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <Store className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-sm truncate">{deal.title}</h4>
+                          <p className="text-xs text-muted-foreground truncate">{deal.merchantName}</p>
+                          <div className="flex items-center gap-1 mt-1">
+                            <MapPin className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground truncate">{deal.address}</span>
+                          </div>
+                          <div className="mt-2">
+                            <DealBadge 
+                              discountPct={deal.discountPct} 
+                              cashbackPct={deal.cashbackPct} 
+                            />
+                          </div>
+                        </div>
+                        <Button 
+                          onClick={() => handleGrabDeal(deal)}
+                          size="sm"
+                          variant="outline"
+                        >
+                          Grab
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              <div className="pt-4 border-t">
+                <Button 
+                  onClick={handleSkipDeals}
+                  variant="ghost" 
+                  className="w-full"
+                >
+                  Skip deals (use default {merchantDefaultCashbackPct}% cashback)
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        );
+
       case 'grab-deal':
         return (
           <Card className="h-full">
@@ -551,7 +625,6 @@ const DemoQRScanPay = () => {
           </Card>
         );
 
-      case 'merchant-enter':
       case 'qr-generated':
         return (
           <Card className="h-full">
@@ -785,7 +858,7 @@ const DemoQRScanPay = () => {
                 </div>
               </div>
               <Badge variant="secondary" className="w-full justify-center">
-                5% cashback earned
+                {activeCashbackPct}% cashback earned
               </Badge>
               <Button onClick={handleReset} className="w-full" size="lg">
                 Done
