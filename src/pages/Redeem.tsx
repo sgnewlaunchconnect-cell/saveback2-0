@@ -322,11 +322,7 @@ export default function Redeem() {
               type="button"
               style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10, cursor: 'pointer' }}
             >
-              {/* Discount only deals show "Show to Cashier", everything else shows "Use Now & Pay" */}
-              {(grab.deals.discount_pct > 0 && (!grab.deals.cashback_pct || grab.deals.cashback_pct <= 0))
-                ? "Show to Cashier" 
-                : "Use Now & Pay"
-              }
+              Now To Pay
             </Button>
           )}
         </CardContent>
