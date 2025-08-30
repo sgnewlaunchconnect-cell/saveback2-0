@@ -24,6 +24,7 @@ import MerchantStaffTerminal from "./pages/MerchantStaffTerminal";
 import Redeem from "./pages/Redeem";
 import DemoBanner from "./components/DemoBanner";
 import DemoDualScreens from "./pages/DemoDualScreens";
+import DemoQRScanPay from "./pages/DemoQRScanPay";
 
 const queryClient = new QueryClient();
 
@@ -55,6 +56,7 @@ const App = () => (
           <Route path="/hawker/validate" element={<HawkerValidation />} />
           <Route path="/customer/validate" element={<CustomerValidation />} />
           <Route path="/demo/split" element={<DemoDualScreens />} />
+          <Route path="/demo/qr" element={<DemoQRScanPay />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
