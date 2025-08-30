@@ -8,10 +8,19 @@ import { Switch } from "@/components/ui/switch";
 import { QRCodeSVG } from "qrcode.react";
 import { formatCurrencyDisplay } from "@/utils/currency";
 import { useToast } from "@/hooks/use-toast";
-import { QrCode, Smartphone, CheckCircle, CreditCard, Clock, Hash, Tag, Store, MapPin } from "lucide-react";
+import { QrCode, Smartphone, CheckCircle, CreditCard, Clock, Hash, Tag, Store, MapPin, Users, ArrowRight, X, User } from "lucide-react";
 import DealBadge from "@/components/DealBadge";
 
 type DemoStep = 'grab-deal' | 'merchant-enter' | 'qr-generated' | 'customer-select' | 'awaiting-merchant' | 'processing' | 'complete';
+
+interface QueueCustomer {
+  id: string;
+  displayName: string;
+  deal?: MockDeal;
+  amount: string;
+  code6: string;
+  isReadyToPay: boolean;
+}
 
 interface MockDeal {
   id: string;
@@ -37,6 +46,10 @@ interface DemoState {
   creditsEarnedCents: number;
   manualCodeInput: string;
   selectedDeal?: MockDeal;
+  displayName: string;
+  isReadyToPay: boolean;
+  queue: QueueCustomer[];
+  currentlyServing?: string;
 }
 
 const DemoQRScanPay = () => {
@@ -84,7 +97,11 @@ const DemoQRScanPay = () => {
     selectedNetworkCents: 0,
     balanceCents: 0,
     creditsEarnedCents: 0,
-    manualCodeInput: ''
+    manualCodeInput: '',
+    displayName: 'Alex Chen',
+    isReadyToPay: false,
+    queue: [],
+    currentlyServing: undefined
   });
 
   const amountCents = Math.round(parseFloat(state.amount) * 100) || 0;
@@ -226,7 +243,11 @@ const DemoQRScanPay = () => {
       balanceCents: 0,
       creditsEarnedCents: 0,
       manualCodeInput: '',
-      selectedDeal: undefined
+      selectedDeal: undefined,
+      displayName: 'Alex Chen',
+      isReadyToPay: false,
+      queue: [],
+      currentlyServing: undefined
     });
   };
 
@@ -239,6 +260,59 @@ const DemoQRScanPay = () => {
       selectedNetworkCents: network,
       balanceCents: balance
     }));
+  };
+
+  const handleToggleReadyToPay = (checked: boolean) => {
+    setState(prev => {
+      if (checked) {
+        // Add customer to queue
+        const customer: QueueCustomer = {
+          id: prev.txId || Date.now().toString(),
+          displayName: prev.displayName,
+          deal: prev.selectedDeal,
+          amount: prev.amount,
+          code6: prev.code6,
+          isReadyToPay: true
+        };
+        return {
+          ...prev,
+          isReadyToPay: true,
+          queue: [...prev.queue, customer]
+        };
+      } else {
+        // Remove customer from queue
+        return {
+          ...prev,
+          isReadyToPay: false,
+          queue: prev.queue.filter(c => c.id !== (prev.txId || Date.now().toString()))
+        };
+      }
+    });
+  };
+
+  const handleCallNext = (customerId: string) => {
+    setState(prev => ({ ...prev, currentlyServing: customerId }));
+    toast({ title: "Customer Called", description: "Now serving customer" });
+  };
+
+  const handleSkipCustomer = (customerId: string) => {
+    setState(prev => ({
+      ...prev,
+      queue: prev.queue.filter(c => c.id !== customerId),
+      currentlyServing: prev.currentlyServing === customerId ? undefined : prev.currentlyServing
+    }));
+    toast({ title: "Customer Skipped", description: "Customer removed from queue" });
+  };
+
+  const handleQuickPay = () => {
+    setState(prev => ({
+      ...prev,
+      step: 'merchant-enter',
+      amount: '',
+      selectedDeal: undefined,
+      currentlyServing: undefined
+    }));
+    toast({ title: "Quick Pay Mode", description: "Ready for walk-in customer" });
   };
 
   const renderMerchantScreen = () => {
@@ -310,9 +384,84 @@ const DemoQRScanPay = () => {
                   </div>
                 )}
               </div>
-              <Button onClick={handleRequestPayment} className="w-full" size="lg">
-                Request Payment
-              </Button>
+              <div className="space-y-2">
+                <Button onClick={handleRequestPayment} className="w-full" size="lg">
+                  Request Payment
+                </Button>
+                <Button onClick={handleQuickPay} variant="outline" className="w-full">
+                  Quick Pay (No Deal)
+                </Button>
+              </div>
+
+              {/* Ready to Pay Queue */}
+              {state.queue.length > 0 && (
+                <div className="mt-6 p-4 bg-muted/30 rounded-lg border">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Users className="w-4 h-4" />
+                    <span className="font-medium">Ready to Pay ({state.queue.length})</span>
+                  </div>
+                  <div className="space-y-2">
+                    {state.queue.map((customer, index) => (
+                      <div
+                        key={customer.id}
+                        className={`p-3 rounded-lg border ${
+                          state.currentlyServing === customer.id
+                            ? 'bg-primary/10 border-primary'
+                            : 'bg-background'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <User className="w-4 h-4" />
+                              <span className="font-medium">{customer.displayName}</span>
+                              {state.currentlyServing === customer.id && (
+                                <Badge variant="default" className="text-xs">Currently Serving</Badge>
+                              )}
+                            </div>
+                            <div className="text-sm text-muted-foreground mt-1">
+                              {customer.deal ? customer.deal.title : 'Default Cashback'}
+                              <span className="ml-2 font-medium">{formatCurrencyDisplay(Math.round(parseFloat(customer.amount) * 100))}</span>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Code: {customer.code6}
+                            </div>
+                          </div>
+                          <div className="flex gap-1">
+                            {state.currentlyServing !== customer.id ? (
+                              <Button
+                                size="sm"
+                                onClick={() => handleCallNext(customer.id)}
+                                className="h-8"
+                              >
+                                <ArrowRight className="w-3 h-3" />
+                                Call
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setState(prev => ({ ...prev, currentlyServing: undefined }))}
+                                className="h-8"
+                              >
+                                Done
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleSkipCustomer(customer.id)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         );
@@ -635,6 +784,29 @@ const DemoQRScanPay = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Display Name Input */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Your Name</label>
+                <Input
+                  placeholder="Enter your name"
+                  value={state.displayName}
+                  onChange={(e) => setState(prev => ({ ...prev, displayName: e.target.value }))}
+                />
+              </div>
+
+              {/* Ready to Pay Toggle */}
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div>
+                  <span className="font-medium">I'm at the counter</span>
+                  <p className="text-xs text-muted-foreground">Let merchant know you're ready to pay</p>
+                </div>
+                <Switch
+                  checked={state.isReadyToPay}
+                  onCheckedChange={handleToggleReadyToPay}
+                  disabled={!state.code6 || !state.displayName.trim()}
+                />
+              </div>
+
               {state.selectedDeal && (
                 <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
                   <div className="flex items-center gap-2 mb-2">
@@ -699,6 +871,12 @@ const DemoQRScanPay = () => {
               <CardTitle>Confirm Payment</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Display Name */}
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">Paying as</p>
+                <p className="font-medium">{state.displayName}</p>
+              </div>
+
               {state.selectedDeal && (
                 <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
                   <div className="flex items-center gap-2 mb-2">
