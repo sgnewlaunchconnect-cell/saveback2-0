@@ -27,6 +27,7 @@ interface HoldData {
   dealId: string;
   grabbedAt: Date;
   expiresAt: Date;
+  pin: string;
 }
 
 interface GrabAttempt {
@@ -421,23 +422,27 @@ const DemoQRScanPay = () => {
     // Add grab attempt for rate limiting
     addGrabAttempt(deal.id);
 
-    // Create hold with 10-minute expiry
+    // Generate 6-digit PIN for the grab pass
+    const pin = Math.random().toString().slice(2, 8).padStart(6, '0');
+
+    // Create hold with 10-minute expiry and PIN
     const holdExpiry = new Date(Date.now() + HOLD_DURATION_MS);
     const holdData: HoldData = {
       dealId: deal.id,
       grabbedAt: new Date(),
-      expiresAt: holdExpiry
+      expiresAt: holdExpiry,
+      pin: pin
     };
 
     setState(prev => ({
       ...prev,
       selectedDeal: deal,
       currentHold: holdData,
-      step: 'merchant-enter'
+      step: 'grab-deal'
     }));
     
     toast({ 
-      title: "Deal Hold Created!", 
+      title: "Deal Grabbed!", 
       description: `${deal.title} - Hold expires in 10 minutes` 
     });
   };
@@ -458,11 +463,23 @@ const DemoQRScanPay = () => {
   const handleSkipDeals = () => {
     setState(prev => ({
       ...prev,
-      selectedDeal: undefined
+      selectedDeal: undefined,
+      currentHold: undefined
     }));
     toast({ 
       title: "Using Default Reward", 
       description: `${merchantDefaultCashbackPct}% cashback on all payments` 
+    });
+  };
+
+  const handleUseNow = () => {
+    setState(prev => ({
+      ...prev,
+      step: 'merchant-enter'
+    }));
+    toast({ 
+      title: "Ready to Pay", 
+      description: "Switch to merchant panel to proceed" 
     });
   };
 
@@ -1000,150 +1017,194 @@ const DemoQRScanPay = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Browse and grab deals to use during payment
-              </p>
-
-              {/* Show rate limiting status */}
-              {(() => {
-                const cooldownExpiry = getCooldownExpiry();
-                if (cooldownExpiry && new Date() < cooldownExpiry) {
-                  const remainingMs = cooldownExpiry.getTime() - currentTime.getTime();
-                  const remainingMins = Math.floor(remainingMs / 60000);
-                  const remainingSecs = Math.floor((remainingMs % 60000) / 1000);
-                  
-                  return (
-                    <div className="p-3 bg-destructive/10 rounded-lg border border-destructive">
-                      <div className="text-center">
-                        <p className="text-sm font-medium text-destructive">Too Many Grab Attempts</p>
-                        <p className="text-xs text-destructive">
-                          Cooldown: {remainingMins}:{remainingSecs.toString().padStart(2, '0')} remaining
-                        </p>
-                      </div>
-                    </div>
-                  );
-                }
-                
-                const recentAttempts = getRecentAttempts();
-                const attemptsLeft = Math.max(0, MAX_GRAB_ATTEMPTS - recentAttempts.length);
-                
-                if (attemptsLeft <= 1 && attemptsLeft > 0) {
-                  return (
-                    <div className="p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                      <div className="text-center">
-                        <p className="text-sm font-medium text-orange-600">
-                          {attemptsLeft} grab attempt remaining
-                        </p>
-                      </div>
-                    </div>
-                  );
-                }
-                
-                return null;
-              })()}
-
-              {/* Show current hold status */}
-              {state.currentHold && (
-                <div className="p-3 bg-primary/10 rounded-lg border border-primary">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-primary">Deal Hold Active</p>
-                      <p className="text-xs text-primary">
-                        Expires in {(() => {
-                          const timeLeft = state.currentHold.expiresAt.getTime() - currentTime.getTime();
-                          const minutesLeft = Math.floor(timeLeft / 60000);
-                          const secondsLeft = Math.floor((timeLeft % 60000) / 1000);
-                          return `${minutesLeft}:${secondsLeft.toString().padStart(2, '0')}`;
-                        })()}
-                      </p>
-                    </div>
-                    <Button size="sm" variant="outline" onClick={handleCancelHold}>
-                      Cancel Hold
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* No-show warning */}
-              {state.noShowCount > 0 && (
-                <div className="p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                  <div className="text-center">
-                    <p className="text-sm font-medium text-orange-600">
-                      ⚠️ {state.noShowCount} no-show{state.noShowCount > 1 ? 's' : ''}
-                    </p>
-                    <p className="text-xs text-orange-600">
-                      Please complete payments within the time window
-                    </p>
-                  </div>
-                </div>
-              )}
-              
-              {/* Default Cashback - Made Prominent */}
-              <Card className="border-2 border-green-500 bg-green-50 dark:bg-green-950/20 hover:shadow-lg transition-shadow">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-lg bg-green-500 flex items-center justify-center flex-shrink-0">
-                      <Store className="h-6 w-6 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold text-green-700 dark:text-green-300">Default Cashback</h4>
-                      <p className="text-sm text-green-600 dark:text-green-400">No deal required - instant reward</p>
-                      <div className="mt-2">
-                        <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                          {merchantDefaultCashbackPct}% cashback
-                        </Badge>
-                      </div>
-                    </div>
-                    <Button 
-                      onClick={handleSkipDeals}
-                      size="lg"
-                      className="bg-green-600 hover:bg-green-700 text-white px-6"
-                    >
-                      Select
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="text-center text-sm text-muted-foreground">
-                — OR choose a special deal below —
-              </div>
-
-              <div className="space-y-3">
-                {mockDeals.map((deal) => (
-                  <Card key={deal.id} className="border hover:shadow-md transition-shadow">
-                    <CardContent className="p-3">
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <Store className="h-5 w-5 text-primary" />
+              {/* Show My Grab Pass if active hold */}
+              {state.currentHold && state.selectedDeal ? (
+                <div className="space-y-4">
+                  {/* My Grab Pass Card */}
+                  <Card className="border-2 border-primary bg-primary/5">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5 text-primary" />
+                        My Grab Pass
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <h4 className="font-bold text-lg">{state.selectedDeal.title}</h4>
+                        <p className="text-muted-foreground">{state.selectedDeal.merchantName}</p>
+                        <div className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">{state.selectedDeal.address}</span>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-sm truncate">{deal.title}</h4>
-                          <p className="text-xs text-muted-foreground truncate">{deal.merchantName}</p>
-                          <div className="flex items-center gap-1 mt-1">
-                            <MapPin className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-xs text-muted-foreground truncate">{deal.address}</span>
-                          </div>
-                          <div className="mt-2">
-                            <DealBadge 
-                              discountPct={deal.discountPct} 
-                              cashbackPct={deal.cashbackPct} 
-                            />
-                          </div>
+                        <div className="mt-2">
+                          <DealBadge 
+                            discountPct={state.selectedDeal.discountPct} 
+                            cashbackPct={state.selectedDeal.cashbackPct}
+                          />
                         </div>
-                        <Button 
-                          onClick={() => handleGrabDeal(deal)}
-                          size="sm"
-                          variant="outline"
-                          disabled={isRateLimited() || !!state.currentHold}
-                        >
-                          {state.currentHold ? 'Hold Active' : 'Grab'}
+                      </div>
+
+                      <Separator />
+                      
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">PIN:</span>
+                          <div className="font-mono text-xl font-bold tracking-wider">{state.currentHold.pin}</div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Expires:</span>
+                          <span className="text-sm text-orange-600 font-medium">
+                            {(() => {
+                              const timeLeft = state.currentHold.expiresAt.getTime() - currentTime.getTime();
+                              const minutesLeft = Math.floor(timeLeft / 60000);
+                              const secondsLeft = Math.floor((timeLeft % 60000) / 1000);
+                              return `${minutesLeft}:${secondsLeft.toString().padStart(2, '0')}`;
+                            })()}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button onClick={handleUseNow} className="flex-1">
+                          Use Now
+                        </Button>
+                        <Button variant="outline" onClick={handleCancelHold}>
+                          Cancel Hold
                         </Button>
                       </div>
                     </CardContent>
                   </Card>
-                ))}
-              </div>
+
+                  <div className="text-center text-sm text-muted-foreground">
+                    Ready to pay at merchant with this deal
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    Browse and grab deals to use during payment
+                  </p>
+
+                  {/* Show rate limiting status */}
+                  {(() => {
+                    const cooldownExpiry = getCooldownExpiry();
+                    if (cooldownExpiry && new Date() < cooldownExpiry) {
+                      const remainingMs = cooldownExpiry.getTime() - currentTime.getTime();
+                      const remainingMins = Math.floor(remainingMs / 60000);
+                      const remainingSecs = Math.floor((remainingMs % 60000) / 1000);
+                      
+                      return (
+                        <div className="p-3 bg-destructive/10 rounded-lg border border-destructive">
+                          <div className="text-center">
+                            <p className="text-sm font-medium text-destructive">Too Many Grab Attempts</p>
+                            <p className="text-xs text-destructive">
+                              Cooldown: {remainingMins}:{remainingSecs.toString().padStart(2, '0')} remaining
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    }
+                    
+                    const recentAttempts = getRecentAttempts();
+                    const attemptsLeft = Math.max(0, MAX_GRAB_ATTEMPTS - recentAttempts.length);
+                    
+                    if (attemptsLeft <= 1 && attemptsLeft > 0) {
+                      return (
+                        <div className="p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                          <div className="text-center">
+                            <p className="text-sm font-medium text-orange-600">
+                              {attemptsLeft} grab attempt remaining
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    }
+                    
+                    return null;
+                  })()}
+
+                  {/* No-show warning */}
+                  {state.noShowCount > 0 && (
+                    <div className="p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                      <div className="text-center">
+                        <p className="text-sm font-medium text-orange-600">
+                          ⚠️ {state.noShowCount} no-show{state.noShowCount > 1 ? 's' : ''}
+                        </p>
+                        <p className="text-xs text-orange-600">
+                          Please complete payments within the time window
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Default Cashback - Made Prominent */}
+                  <Card className="border-2 border-green-500 bg-green-50 dark:bg-green-950/20 hover:shadow-lg transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-lg bg-green-500 flex items-center justify-center flex-shrink-0">
+                          <Store className="h-6 w-6 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-bold text-green-700 dark:text-green-300">Default Cashback</h4>
+                          <p className="text-sm text-green-600 dark:text-green-400">No deal required - instant reward</p>
+                          <div className="mt-2">
+                            <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                              {merchantDefaultCashbackPct}% cashback
+                            </Badge>
+                          </div>
+                        </div>
+                        <Button 
+                          onClick={handleSkipDeals}
+                          size="lg"
+                          className="bg-green-600 hover:bg-green-700 text-white px-6"
+                        >
+                          Select
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <div className="text-center text-sm text-muted-foreground">
+                    — OR choose a special deal below —
+                  </div>
+
+                  <div className="space-y-3">
+                    {mockDeals.map((deal) => (
+                      <Card key={deal.id} className="border hover:shadow-md transition-shadow">
+                        <CardContent className="p-3">
+                          <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                              <Store className="h-5 w-5 text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-sm truncate">{deal.title}</h4>
+                              <p className="text-xs text-muted-foreground truncate">{deal.merchantName}</p>
+                              <div className="flex items-center gap-1 mt-1">
+                                <MapPin className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground truncate">{deal.address}</span>
+                              </div>
+                              <div className="mt-2">
+                                <DealBadge 
+                                  discountPct={deal.discountPct} 
+                                  cashbackPct={deal.cashbackPct} 
+                                />
+                              </div>
+                            </div>
+                            <Button 
+                              onClick={() => handleGrabDeal(deal)}
+                              size="sm"
+                              variant="outline"
+                              disabled={isRateLimited()}
+                            >
+                              Grab
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         );
@@ -1158,39 +1219,197 @@ const DemoQRScanPay = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="text-center space-y-4">
-                <Tag className="w-16 h-16 mx-auto text-muted-foreground" />
-                <div>
-                  <h3 className="font-semibold">Browse Deals</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Find and grab deals to use during payment
-                  </p>
+              <p className="text-sm text-muted-foreground">
+                Browse and grab deals to use during payment
+              </p>
+
+              {/* Show current hold status */}
+              {state.currentHold && state.selectedDeal && (
+                <div className="space-y-4">
+                  {/* My Grab Pass Card */}
+                  <Card className="border-2 border-primary bg-primary/5">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5 text-primary" />
+                        My Grab Pass
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <h4 className="font-bold text-lg">{state.selectedDeal.title}</h4>
+                        <p className="text-muted-foreground">{state.selectedDeal.merchantName}</p>
+                        <div className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">{state.selectedDeal.address}</span>
+                        </div>
+                        <div className="mt-2">
+                          <DealBadge 
+                            discountPct={state.selectedDeal.discountPct} 
+                            cashbackPct={state.selectedDeal.cashbackPct}
+                          />
+                        </div>
+                      </div>
+
+                      <Separator />
+                      
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">PIN:</span>
+                          <div className="font-mono text-xl font-bold tracking-wider">{state.currentHold.pin}</div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Expires:</span>
+                          <span className="text-sm text-orange-600 font-medium">
+                            {(() => {
+                              const timeLeft = state.currentHold.expiresAt.getTime() - currentTime.getTime();
+                              const minutesLeft = Math.floor(timeLeft / 60000);
+                              const secondsLeft = Math.floor((timeLeft % 60000) / 1000);
+                              return `${minutesLeft}:${secondsLeft.toString().padStart(2, '0')}`;
+                            })()}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button onClick={handleUseNow} className="flex-1">
+                          Use Now
+                        </Button>
+                        <Button variant="outline" onClick={handleCancelHold}>
+                          Cancel Hold
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <div className="text-center text-sm text-muted-foreground">
+                    Go to merchant to process payment with this deal
+                  </div>
                 </div>
-                {state.selectedDeal ? (
-                  <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
-                    <div className="flex items-center gap-2 mb-2">
-                      <CheckCircle className="w-4 h-4 text-primary" />
-                      <span className="text-sm font-medium text-primary">Deal Grabbed!</span>
-                    </div>
-                    <div className="text-sm">
-                      <p className="font-medium">{state.selectedDeal.title}</p>
-                      <p className="text-muted-foreground">{state.selectedDeal.merchantName}</p>
-                      <div className="mt-2">
-                        <DealBadge 
-                          discountPct={state.selectedDeal.discountPct} 
-                          cashbackPct={state.selectedDeal.cashbackPct}
-                        />
+              )}
+
+              {/* Available Deals - disabled if hold active */}
+              {!state.currentHold && (
+                <>
+                  {/* Rate limiting status */}
+                  {(() => {
+                    const cooldownExpiry = getCooldownExpiry();
+                    if (cooldownExpiry && new Date() < cooldownExpiry) {
+                      const remainingMs = cooldownExpiry.getTime() - currentTime.getTime();
+                      const remainingMins = Math.floor(remainingMs / 60000);
+                      const remainingSecs = Math.floor((remainingMs % 60000) / 1000);
+                      
+                      return (
+                        <div className="p-3 bg-destructive/10 rounded-lg border border-destructive">
+                          <div className="text-center">
+                            <p className="text-sm font-medium text-destructive">Too Many Grab Attempts</p>
+                            <p className="text-xs text-destructive">
+                              Cooldown: {remainingMins}:{remainingSecs.toString().padStart(2, '0')} remaining
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    }
+                    
+                    const recentAttempts = getRecentAttempts();
+                    const attemptsLeft = Math.max(0, MAX_GRAB_ATTEMPTS - recentAttempts.length);
+                    
+                    if (attemptsLeft <= 1 && attemptsLeft > 0) {
+                      return (
+                        <div className="p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                          <div className="text-center">
+                            <p className="text-sm font-medium text-orange-600">
+                              {attemptsLeft} grab attempt remaining
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    }
+                    
+                    return null;
+                  })()}
+
+                  {/* No-show warning */}
+                  {state.noShowCount > 0 && (
+                    <div className="p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                      <div className="text-center">
+                        <p className="text-sm font-medium text-orange-600">
+                          ⚠️ {state.noShowCount} no-show{state.noShowCount > 1 ? 's' : ''}
+                        </p>
+                        <p className="text-xs text-orange-600">
+                          Please complete payments within the time window
+                        </p>
                       </div>
                     </div>
+                  )}
+                  
+                  {/* Default Cashback */}
+                  <Card className="border-2 border-green-500 bg-green-50 dark:bg-green-950/20 hover:shadow-lg transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-lg bg-green-500 flex items-center justify-center flex-shrink-0">
+                          <Store className="h-6 w-6 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-bold text-green-700 dark:text-green-300">Default Cashback</h4>
+                          <p className="text-sm text-green-600 dark:text-green-400">No deal required - instant reward</p>
+                          <div className="mt-2">
+                            <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                              {merchantDefaultCashbackPct}% cashback
+                            </Badge>
+                          </div>
+                        </div>
+                        <Button 
+                          onClick={handleSkipDeals}
+                          size="lg"
+                          className="bg-green-600 hover:bg-green-700 text-white px-6"
+                        >
+                          Select
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <div className="text-center text-sm text-muted-foreground">
+                    — OR choose a special deal below —
                   </div>
-                ) : (
-                  <div className="text-center">
-                    <p className="text-muted-foreground text-sm">
-                      Browse available deals on the merchant screen to grab one
-                    </p>
+
+                  <div className="space-y-3">
+                    {mockDeals.map((deal) => (
+                      <Card key={deal.id} className="border hover:shadow-md transition-shadow">
+                        <CardContent className="p-3">
+                          <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                              <Store className="h-5 w-5 text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-sm truncate">{deal.title}</h4>
+                              <p className="text-xs text-muted-foreground truncate">{deal.merchantName}</p>
+                              <div className="flex items-center gap-1 mt-1">
+                                <MapPin className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground truncate">{deal.address}</span>
+                              </div>
+                              <div className="mt-2">
+                                <DealBadge 
+                                  discountPct={deal.discountPct} 
+                                  cashbackPct={deal.cashbackPct} 
+                                />
+                              </div>
+                            </div>
+                            <Button 
+                              onClick={() => handleGrabDeal(deal)}
+                              size="sm"
+                              variant="outline"
+                              disabled={isRateLimited()}
+                            >
+                              Grab
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
-                )}
-              </div>
+                </>
+              )}
             </CardContent>
           </Card>
         );
