@@ -8,9 +8,19 @@ import { Switch } from "@/components/ui/switch";
 import { QRCodeSVG } from "qrcode.react";
 import { formatCurrencyDisplay } from "@/utils/currency";
 import { useToast } from "@/hooks/use-toast";
-import { QrCode, Smartphone, CheckCircle, CreditCard, Clock, Hash } from "lucide-react";
+import { QrCode, Smartphone, CheckCircle, CreditCard, Clock, Hash, Tag, Store, MapPin } from "lucide-react";
+import DealBadge from "@/components/DealBadge";
 
-type DemoStep = 'merchant-enter' | 'qr-generated' | 'customer-select' | 'awaiting-merchant' | 'processing' | 'complete';
+type DemoStep = 'grab-deal' | 'merchant-enter' | 'qr-generated' | 'customer-select' | 'awaiting-merchant' | 'processing' | 'complete';
+
+interface MockDeal {
+  id: string;
+  title: string;
+  merchantName: string;
+  discountPct?: number;
+  cashbackPct?: number;
+  address: string;
+}
 
 interface DemoState {
   step: DemoStep;
@@ -26,13 +36,40 @@ interface DemoState {
   balanceCents: number;
   creditsEarnedCents: number;
   manualCodeInput: string;
+  selectedDeal?: MockDeal;
 }
 
 const DemoQRScanPay = () => {
   const { toast } = useToast();
   
+  // Mock deals for demonstration
+  const mockDeals: MockDeal[] = [
+    {
+      id: '1',
+      title: '20% off Coffee & Pastries',
+      merchantName: 'The Coffee Bean',
+      discountPct: 20,
+      address: '123 Main St, Downtown'
+    },
+    {
+      id: '2', 
+      title: 'Buy 2 Get 1 Free Bubble Tea',
+      merchantName: 'Bubble Bliss',
+      discountPct: 15,
+      cashbackPct: 5,
+      address: '456 Queen St, Midtown'
+    },
+    {
+      id: '3',
+      title: '10% Cashback on All Items',
+      merchantName: 'Fresh Market',
+      cashbackPct: 10,
+      address: '789 King Ave, Uptown'
+    }
+  ];
+  
   const [state, setState] = useState<DemoState>({
-    step: 'merchant-enter',
+    step: 'grab-deal',
     amount: '',
     txId: '',
     qrPayload: '',
@@ -136,9 +173,21 @@ const DemoQRScanPay = () => {
     }, 1500);
   };
 
+  const handleGrabDeal = (deal: MockDeal) => {
+    setState(prev => ({
+      ...prev,
+      selectedDeal: deal,
+      step: 'merchant-enter'
+    }));
+    toast({ 
+      title: "Deal Grabbed!", 
+      description: `${deal.title} - Ready to use at ${deal.merchantName}` 
+    });
+  };
+
   const handleReset = () => {
     setState({
-      step: 'merchant-enter',
+      step: 'grab-deal',
       amount: '',
       txId: '',
       qrPayload: '',
@@ -150,7 +199,8 @@ const DemoQRScanPay = () => {
       selectedNetworkCents: 0,
       balanceCents: 0,
       creditsEarnedCents: 0,
-      manualCodeInput: ''
+      manualCodeInput: '',
+      selectedDeal: undefined
     });
   };
 
@@ -167,6 +217,57 @@ const DemoQRScanPay = () => {
 
   const renderMerchantScreen = () => {
     switch (state.step) {
+      case 'grab-deal':
+        return (
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Tag className="w-5 h-5" />
+                Available Deals
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Browse and grab deals to use during payment
+              </p>
+              <div className="space-y-3">
+                {mockDeals.map((deal) => (
+                  <Card key={deal.id} className="border hover:shadow-md transition-shadow">
+                    <CardContent className="p-3">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <Store className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-sm truncate">{deal.title}</h4>
+                          <p className="text-xs text-muted-foreground truncate">{deal.merchantName}</p>
+                          <div className="flex items-center gap-1 mt-1">
+                            <MapPin className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground truncate">{deal.address}</span>
+                          </div>
+                          <div className="mt-2">
+                            <DealBadge 
+                              discountPct={deal.discountPct} 
+                              cashbackPct={deal.cashbackPct} 
+                            />
+                          </div>
+                        </div>
+                        <Button 
+                          onClick={() => handleGrabDeal(deal)}
+                          size="sm"
+                          variant="outline"
+                        >
+                          Grab
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        );
+
       case 'merchant-enter':
         return (
           <Card className="h-full">
@@ -177,6 +278,24 @@ const DemoQRScanPay = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {state.selectedDeal && (
+                <div className="p-3 bg-muted/50 rounded-lg border">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Tag className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium text-primary">Deal Active</span>
+                  </div>
+                  <div className="text-sm">
+                    <p className="font-medium">{state.selectedDeal.title}</p>
+                    <p className="text-muted-foreground">{state.selectedDeal.merchantName}</p>
+                    <div className="mt-1">
+                      <DealBadge 
+                        discountPct={state.selectedDeal.discountPct} 
+                        cashbackPct={state.selectedDeal.cashbackPct}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
               <div>
                 <label className="text-sm font-medium">Bill Amount</label>
                 <Input
@@ -204,6 +323,18 @@ const DemoQRScanPay = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-center">
+              {state.selectedDeal && (
+                <div className="p-3 bg-muted/50 rounded-lg border mb-4">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <Tag className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium text-primary">Deal Used: {state.selectedDeal.title}</span>
+                  </div>
+                  <DealBadge 
+                    discountPct={state.selectedDeal.discountPct} 
+                    cashbackPct={state.selectedDeal.cashbackPct}
+                  />
+                </div>
+              )}
               <div className="flex justify-center">
                 <QRCodeSVG value={state.qrPayload} size={200} />
               </div>
@@ -228,6 +359,18 @@ const DemoQRScanPay = () => {
               <CardTitle>Waiting for Payment</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {state.selectedDeal && (
+                <div className="p-3 bg-muted/50 rounded-lg border">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Tag className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium text-primary">Deal Used: {state.selectedDeal.title}</span>
+                  </div>
+                  <DealBadge 
+                    discountPct={state.selectedDeal.discountPct} 
+                    cashbackPct={state.selectedDeal.cashbackPct}
+                  />
+                </div>
+              )}
               <div className="text-center">
                 <p className="text-2xl font-bold">{formatCurrencyDisplay(amountCents)}</p>
                 <p className="text-sm text-muted-foreground">Transaction: {state.txId}</p>
@@ -256,6 +399,18 @@ const DemoQRScanPay = () => {
               <div className="text-center text-sm text-muted-foreground">
                 Customer Paid – Waiting for Confirmation
               </div>
+              {state.selectedDeal && (
+                <div className="p-3 bg-muted/50 rounded-lg border">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Tag className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium text-primary">Deal Used: {state.selectedDeal.title}</span>
+                  </div>
+                  <DealBadge 
+                    discountPct={state.selectedDeal.discountPct} 
+                    cashbackPct={state.selectedDeal.cashbackPct}
+                  />
+                </div>
+              )}
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span>Total Bill:</span>
@@ -305,6 +460,18 @@ const DemoQRScanPay = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {state.selectedDeal && (
+                <div className="p-3 bg-muted/50 rounded-lg border">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Tag className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium text-primary">Deal Used: {state.selectedDeal.title}</span>
+                  </div>
+                  <DealBadge 
+                    discountPct={state.selectedDeal.discountPct} 
+                    cashbackPct={state.selectedDeal.cashbackPct}
+                  />
+                </div>
+              )}
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span>Total Amount:</span>
@@ -337,6 +504,53 @@ const DemoQRScanPay = () => {
 
   const renderCustomerScreen = () => {
     switch (state.step) {
+      case 'grab-deal':
+        return (
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Smartphone className="w-5 h-5" />
+                Customer App
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-center space-y-4">
+                <Tag className="w-16 h-16 mx-auto text-muted-foreground" />
+                <div>
+                  <h3 className="font-semibold">Browse Deals</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Find and grab deals to use during payment
+                  </p>
+                </div>
+                {state.selectedDeal ? (
+                  <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-medium text-primary">Deal Grabbed!</span>
+                    </div>
+                    <div className="text-sm">
+                      <p className="font-medium">{state.selectedDeal.title}</p>
+                      <p className="text-muted-foreground">{state.selectedDeal.merchantName}</p>
+                      <div className="mt-2">
+                        <DealBadge 
+                          discountPct={state.selectedDeal.discountPct} 
+                          cashbackPct={state.selectedDeal.cashbackPct}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    <p className="text-muted-foreground text-sm">
+                      Browse available deals on the merchant screen to grab one
+                    </p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        );
+
       case 'merchant-enter':
       case 'qr-generated':
         return (
@@ -348,12 +562,33 @@ const DemoQRScanPay = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {state.selectedDeal && (
+                <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Tag className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium text-primary">Deal Ready</span>
+                  </div>
+                  <div className="text-sm">
+                    <p className="font-medium">{state.selectedDeal.title}</p>
+                    <p className="text-muted-foreground">{state.selectedDeal.merchantName}</p>
+                    <div className="mt-2">
+                      <DealBadge 
+                        discountPct={state.selectedDeal.discountPct} 
+                        cashbackPct={state.selectedDeal.cashbackPct}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="text-center space-y-4">
                 <QrCode className="w-16 h-16 mx-auto text-muted-foreground" />
                 <div>
                   <h3 className="font-semibold">Scan & Pay</h3>
                   <p className="text-sm text-muted-foreground">
-                    Scan merchant QR code to proceed
+                    {state.selectedDeal ? 
+                      `Ready to use your deal at ${state.selectedDeal.merchantName}` :
+                      "Scan merchant QR code to proceed"
+                    }
                   </p>
                 </div>
                 {state.step === 'qr-generated' && (
@@ -391,6 +626,18 @@ const DemoQRScanPay = () => {
               <CardTitle>Confirm Payment</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {state.selectedDeal && (
+                <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Tag className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium text-primary">Using Deal: {state.selectedDeal.title}</span>
+                  </div>
+                  <DealBadge 
+                    discountPct={state.selectedDeal.discountPct} 
+                    cashbackPct={state.selectedDeal.cashbackPct}
+                  />
+                </div>
+              )}
               <div className="space-y-2">
                 <div className="flex justify-between text-lg">
                   <span>Total Bill:</span>
@@ -451,6 +698,18 @@ const DemoQRScanPay = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {state.selectedDeal && (
+                <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Tag className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium text-primary">Deal Applied: {state.selectedDeal.title}</span>
+                  </div>
+                  <DealBadge 
+                    discountPct={state.selectedDeal.discountPct} 
+                    cashbackPct={state.selectedDeal.cashbackPct}
+                  />
+                </div>
+              )}
               <Badge variant="secondary" className="w-full justify-center">
                 Waiting for Merchant Confirmation
               </Badge>
@@ -497,6 +756,18 @@ const DemoQRScanPay = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {state.selectedDeal && (
+                <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <span className="text-sm font-medium text-green-600">Deal Used: {state.selectedDeal.title}</span>
+                  </div>
+                  <DealBadge 
+                    discountPct={state.selectedDeal.discountPct} 
+                    cashbackPct={state.selectedDeal.cashbackPct}
+                  />
+                </div>
+              )}
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span>Amount Paid:</span>
@@ -532,8 +803,8 @@ const DemoQRScanPay = () => {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto p-4">
         <div className="mb-6 text-center">
-          <h1 className="text-3xl font-bold mb-2">QR Scan & Pay Demo</h1>
-          <Badge variant="outline">Demo Mode - Simulated Flow</Badge>
+          <h1 className="text-3xl font-bold mb-2">Grab Deal & Pay Demo</h1>
+          <Badge variant="outline">Demo Mode - Grab → Payment → Validation Flow</Badge>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6 max-w-6xl mx-auto">
