@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { QRCodeSVG } from "qrcode.react";
 import { formatCurrencyDisplay } from "@/utils/currency";
@@ -50,14 +49,21 @@ const DemoQRScanPay = () => {
 
   const amountCents = Math.round(parseFloat(state.amount) * 100) || 0;
 
-  // Remove auto-calculate when amount changes - let user control sliders
-  useEffect(() => {
-    const totalCredits = state.selectedLocalCents + state.selectedNetworkCents;
-    setState(prev => ({
-      ...prev,
-      balanceCents: Math.max(0, amountCents - totalCredits)
-    }));
-  }, [state.selectedLocalCents, state.selectedNetworkCents, amountCents]);
+  // Auto-allocate credits with local-first, then network
+  const allocateCredits = (apply: boolean) => {
+    if (!apply) {
+      return { local: 0, network: 0, balance: amountCents };
+    }
+    
+    const maxLocal = Math.min(state.availableLocalCents, amountCents);
+    const maxNetwork = Math.min(state.availableNetworkCents, amountCents - maxLocal);
+    
+    return {
+      local: maxLocal,
+      network: maxNetwork,
+      balance: amountCents - maxLocal - maxNetwork
+    };
+  };
 
   const handleRequestPayment = () => {
     if (!state.amount || parseFloat(state.amount) <= 0) {
@@ -81,9 +87,13 @@ const DemoQRScanPay = () => {
   };
 
   const handleSimulateScan = () => {
+    const { local, network, balance } = allocateCredits(state.applyCredits);
     setState(prev => ({
       ...prev,
-      step: 'customer-select'
+      step: 'customer-select',
+      selectedLocalCents: local,
+      selectedNetworkCents: network,
+      balanceCents: balance
     }));
     
     toast({ title: "QR Code Scanned", description: "Select your credit usage" });
@@ -91,10 +101,14 @@ const DemoQRScanPay = () => {
 
   const handleManualCodeEntry = () => {
     if (state.manualCodeInput === state.code6) {
+      const { local, network, balance } = allocateCredits(state.applyCredits);
       setState(prev => ({
         ...prev,
         step: 'customer-select',
-        manualCodeInput: ''
+        manualCodeInput: '',
+        selectedLocalCents: local,
+        selectedNetworkCents: network,
+        balanceCents: balance
       }));
       toast({ title: "Code Verified", description: "Select your credit usage" });
     } else {
@@ -141,47 +155,13 @@ const DemoQRScanPay = () => {
   };
 
   const handleToggleCredits = (checked: boolean) => {
+    const { local, network, balance } = allocateCredits(checked);
     setState(prev => ({
       ...prev,
       applyCredits: checked,
-      selectedLocalCents: checked ? 0 : 0,
-      selectedNetworkCents: checked ? 0 : 0
-    }));
-  };
-
-  const handleLocalCreditChange = ([value]: number[]) => {
-    const newLocal = Math.min(value, state.availableLocalCents);
-    const maxNetwork = Math.max(0, amountCents - newLocal);
-    const newNetwork = Math.min(state.selectedNetworkCents, maxNetwork, state.availableNetworkCents);
-    
-    setState(prev => ({
-      ...prev,
-      selectedLocalCents: newLocal,
-      selectedNetworkCents: newNetwork
-    }));
-  };
-
-  const handleNetworkCreditChange = ([value]: number[]) => {
-    const newNetwork = Math.min(value, state.availableNetworkCents);
-    const maxLocal = Math.max(0, amountCents - newNetwork);
-    const newLocal = Math.min(state.selectedLocalCents, maxLocal, state.availableLocalCents);
-    
-    setState(prev => ({
-      ...prev,
-      selectedLocalCents: newLocal,
-      selectedNetworkCents: newNetwork
-    }));
-  };
-
-  const handleUseMaxCredits = () => {
-    const maxLocal = Math.min(state.availableLocalCents, amountCents);
-    const maxNetwork = Math.min(state.availableNetworkCents, amountCents - maxLocal);
-    
-    setState(prev => ({
-      ...prev,
-      selectedLocalCents: maxLocal,
-      selectedNetworkCents: maxNetwork,
-      applyCredits: true
+      selectedLocalCents: local,
+      selectedNetworkCents: network,
+      balanceCents: balance
     }));
   };
 
@@ -426,40 +406,16 @@ const DemoQRScanPay = () => {
                 </div>
 
                 {state.applyCredits && (
-                  <div className="space-y-3">
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span>Local Credits:</span>
-                        <span>{formatCurrencyDisplay(state.selectedLocalCents)} / {formatCurrencyDisplay(state.availableLocalCents)}</span>
-                      </div>
-                      <Slider
-                        value={[state.selectedLocalCents]}
-                        onValueChange={handleLocalCreditChange}
-                        max={Math.min(state.availableLocalCents, amountCents)}
-                        step={25}
-                        className="w-full"
-                        disabled={!state.applyCredits}
-                      />
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Local Credits Applied:</span>
+                      <span>{formatCurrencyDisplay(state.selectedLocalCents)}</span>
                     </div>
-
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span>Network Credits:</span>
-                        <span>{formatCurrencyDisplay(state.selectedNetworkCents)} / {formatCurrencyDisplay(state.availableNetworkCents)}</span>
-                      </div>
-                      <Slider
-                        value={[state.selectedNetworkCents]}
-                        onValueChange={handleNetworkCreditChange}
-                        max={Math.min(state.availableNetworkCents, Math.max(0, amountCents - state.selectedLocalCents))}
-                        step={25}
-                        className="w-full"
-                        disabled={!state.applyCredits}
-                      />
+                    <div className="flex justify-between text-sm">
+                      <span>Network Credits Applied:</span>
+                      <span>{formatCurrencyDisplay(state.selectedNetworkCents)}</span>
                     </div>
-
-                    <Button onClick={handleUseMaxCredits} variant="outline" size="sm" className="w-full">
-                      Use Maximum Credits
-                    </Button>
+                    <p className="text-xs text-muted-foreground">Auto-applied: local first, then network</p>
                   </div>
                 )}
 
