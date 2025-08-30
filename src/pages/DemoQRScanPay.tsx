@@ -81,9 +81,21 @@ const DemoQRScanPay = () => {
       merchantName: 'Fresh Market',
       cashbackPct: 10,
       address: '789 King Ave, Uptown'
+    },
+    {
+      id: '4',
+      title: 'Free Delivery on Orders $25+',
+      merchantName: 'Local Eats',
+      cashbackPct: 8,
+      address: '321 Broadway, Central'
     }
   ];
   
+  // Initialize display name from localStorage
+  const [displayName, setDisplayName] = useState(() => {
+    return localStorage.getItem('demoDisplayName') || 'Alex Chen';
+  });
+
   const [state, setState] = useState<DemoState>({
     step: 'merchant-enter',
     amount: '',
@@ -98,11 +110,24 @@ const DemoQRScanPay = () => {
     balanceCents: 0,
     creditsEarnedCents: 0,
     manualCodeInput: '',
-    displayName: 'Alex Chen',
+    displayName: displayName,
     isReadyToPay: false,
     queue: [],
     currentlyServing: undefined
   });
+
+  // Save display name to localStorage and update queue when it changes
+  const updateDisplayName = (newName: string) => {
+    setDisplayName(newName);
+    localStorage.setItem('demoDisplayName', newName);
+    setState(prev => ({
+      ...prev,
+      displayName: newName,
+      queue: prev.queue.map(customer => 
+        customer.id === prev.txId ? { ...customer, displayName: newName } : customer
+      )
+    }));
+  };
 
   const amountCents = Math.round(parseFloat(state.amount) * 100) || 0;
   
@@ -144,12 +169,24 @@ const DemoQRScanPay = () => {
       discountPct: discountPct
     });
     
+    // Auto-add to queue when QR is generated
+    const customer: QueueCustomer = {
+      id: txId,
+      displayName: displayName,
+      deal: state.selectedDeal,
+      amount: state.amount,
+      code6: code6,
+      isReadyToPay: true
+    };
+    
     setState(prev => ({
       ...prev,
       step: 'qr-generated',
       txId,
       code6,
-      qrPayload
+      qrPayload,
+      isReadyToPay: true,
+      queue: [...prev.queue, customer]
     }));
     
     toast({ title: "Payment QR Generated", description: `Amount: ${formatCurrencyDisplay(effectiveBillCents)}` });
@@ -199,7 +236,11 @@ const DemoQRScanPay = () => {
       setState(prev => ({ 
         ...prev, 
         step: 'complete',
-        creditsEarnedCents
+        creditsEarnedCents,
+        // Remove from queue on completion
+        queue: prev.queue.filter(c => c.id !== prev.txId),
+        currentlyServing: undefined,
+        isReadyToPay: false
       }));
       toast({ title: "Payment Verified!", description: "Transaction completed" });
     }, 1500);
@@ -229,7 +270,8 @@ const DemoQRScanPay = () => {
   };
 
   const handleReset = () => {
-    setState({
+    // Remove current user from queue on reset
+    setState(prev => ({
       step: 'merchant-enter',
       amount: '',
       txId: '',
@@ -244,11 +286,11 @@ const DemoQRScanPay = () => {
       creditsEarnedCents: 0,
       manualCodeInput: '',
       selectedDeal: undefined,
-      displayName: 'Alex Chen',
+      displayName: displayName,
       isReadyToPay: false,
-      queue: [],
+      queue: prev.queue.filter(c => c.id !== prev.txId),
       currentlyServing: undefined
-    });
+    }));
   };
 
   const handleToggleCredits = (checked: boolean) => {
@@ -262,33 +304,6 @@ const DemoQRScanPay = () => {
     }));
   };
 
-  const handleToggleReadyToPay = (checked: boolean) => {
-    setState(prev => {
-      if (checked) {
-        // Add customer to queue
-        const customer: QueueCustomer = {
-          id: prev.txId || Date.now().toString(),
-          displayName: prev.displayName,
-          deal: prev.selectedDeal,
-          amount: prev.amount,
-          code6: prev.code6,
-          isReadyToPay: true
-        };
-        return {
-          ...prev,
-          isReadyToPay: true,
-          queue: [...prev.queue, customer]
-        };
-      } else {
-        // Remove customer from queue
-        return {
-          ...prev,
-          isReadyToPay: false,
-          queue: prev.queue.filter(c => c.id !== (prev.txId || Date.now().toString()))
-        };
-      }
-    });
-  };
 
   const handleCallNext = (customerId: string) => {
     setState(prev => ({ ...prev, currentlyServing: customerId }));
@@ -537,6 +552,7 @@ const DemoQRScanPay = () => {
 
       case 'awaiting-merchant':
         const totalCreditsUsed = state.selectedLocalCents + state.selectedNetworkCents;
+        const currentCustomer = state.queue.find(c => c.id === state.currentlyServing);
         return (
           <Card className="h-full">
             <CardHeader>
@@ -552,6 +568,14 @@ const DemoQRScanPay = () => {
               <div className="text-center text-sm text-muted-foreground">
                 Customer Paid – Waiting for Confirmation
               </div>
+              {currentCustomer && (
+                <div className="p-3 bg-primary/10 rounded-lg border border-primary">
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground">Verbal verify:</p>
+                    <p className="font-medium text-primary">{currentCustomer.displayName}</p>
+                  </div>
+                </div>
+              )}
               {state.selectedDeal && (
                 <div className="p-3 bg-muted/50 rounded-lg border">
                   <div className="flex items-center gap-2 mb-2">
@@ -737,6 +761,23 @@ const DemoQRScanPay = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Persistent Display Name */}
+              <div className="p-3 bg-muted/50 rounded-lg border">
+                <div className="flex items-center gap-2 mb-2">
+                  <User className="w-4 h-4" />
+                  <span className="text-sm font-medium">Your Identity</span>
+                </div>
+                <Input
+                  placeholder="Enter your display name"
+                  value={displayName}
+                  onChange={(e) => updateDisplayName(e.target.value)}
+                  className="text-center font-medium"
+                />
+                <p className="text-xs text-muted-foreground mt-1 text-center">
+                  This name is saved and shown to merchants
+                </p>
+              </div>
+
               <div className="text-center space-y-4">
                 <Tag className="w-16 h-16 mx-auto text-muted-foreground" />
                 <div>
@@ -784,28 +825,60 @@ const DemoQRScanPay = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Display Name Input */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Your Name</label>
+              {/* Persistent Display Name */}
+              <div className="p-3 bg-muted/50 rounded-lg border">
+                <div className="flex items-center gap-2 mb-2">
+                  <User className="w-4 h-4" />
+                  <span className="text-sm font-medium">Your Identity</span>
+                </div>
                 <Input
-                  placeholder="Enter your name"
-                  value={state.displayName}
-                  onChange={(e) => setState(prev => ({ ...prev, displayName: e.target.value }))}
+                  placeholder="Enter your display name"
+                  value={displayName}
+                  onChange={(e) => updateDisplayName(e.target.value)}
+                  className="text-center font-medium"
                 />
+                <p className="text-xs text-muted-foreground mt-1 text-center">
+                  This name is saved and shown to merchants
+                </p>
               </div>
 
-              {/* Ready to Pay Toggle */}
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <div>
-                  <span className="font-medium">I'm at the counter</span>
-                  <p className="text-xs text-muted-foreground">Let merchant know you're ready to pay</p>
+              {/* Queue (demo) */}
+              {state.queue.length > 0 && (
+                <div className="p-3 bg-muted/50 rounded-lg border">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Users className="w-4 h-4" />
+                    <span className="font-medium text-sm">Queue (demo) - {state.queue.length} waiting</span>
+                  </div>
+                  <div className="space-y-1">
+                    {state.queue.slice(0, 5).map((customer, index) => (
+                      <div key={customer.id} className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium">{customer.displayName}</span>
+                          {customer.deal ? (
+                            <DealBadge 
+                              discountPct={customer.deal.discountPct} 
+                              cashbackPct={customer.deal.cashbackPct}
+                            />
+                          ) : (
+                            <Badge variant="secondary" className="text-xs">Default Cashback</Badge>
+                          )}
+                        </div>
+                        {customer.id === state.txId && (
+                          <Badge variant="default" className="text-xs">You</Badge>
+                        )}
+                      </div>
+                    ))}
+                    {state.queue.length > 5 && (
+                      <p className="text-xs text-muted-foreground">...and {state.queue.length - 5} more</p>
+                    )}
+                  </div>
+                  {state.txId && (
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      Your position: #{state.queue.findIndex(c => c.id === state.txId) + 1}
+                    </div>
+                  )}
                 </div>
-                <Switch
-                  checked={state.isReadyToPay}
-                  onCheckedChange={handleToggleReadyToPay}
-                  disabled={!state.code6 || !state.displayName.trim()}
-                />
-              </div>
+              )}
 
               {state.selectedDeal && (
                 <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
@@ -871,10 +944,21 @@ const DemoQRScanPay = () => {
               <CardTitle>Confirm Payment</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Display Name */}
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">Paying as</p>
-                <p className="font-medium">{state.displayName}</p>
+              {/* Persistent Display Name */}
+              <div className="p-3 bg-muted/50 rounded-lg border">
+                <div className="flex items-center gap-2 mb-2">
+                  <User className="w-4 h-4" />
+                  <span className="text-sm font-medium">Your Identity</span>
+                </div>
+                <Input
+                  placeholder="Enter your display name"
+                  value={displayName}
+                  onChange={(e) => updateDisplayName(e.target.value)}
+                  className="text-center font-medium"
+                />
+                <p className="text-xs text-muted-foreground mt-1 text-center">
+                  This name is saved and shown to merchants
+                </p>
               </div>
 
               {state.selectedDeal && (
@@ -949,6 +1033,23 @@ const DemoQRScanPay = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Persistent Display Name */}
+              <div className="p-3 bg-muted/50 rounded-lg border">
+                <div className="flex items-center gap-2 mb-2">
+                  <User className="w-4 h-4" />
+                  <span className="text-sm font-medium">Your Identity</span>
+                </div>
+                <Input
+                  placeholder="Enter your display name"
+                  value={displayName}
+                  onChange={(e) => updateDisplayName(e.target.value)}
+                  className="text-center font-medium"
+                />
+                <p className="text-xs text-muted-foreground mt-1 text-center">
+                  This name is saved and shown to merchants
+                </p>
+              </div>
+
               {state.selectedDeal && (
                 <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
                   <div className="flex items-center gap-2 mb-2">
@@ -989,9 +1090,28 @@ const DemoQRScanPay = () => {
             <CardHeader>
               <CardTitle>Processing Payment</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 text-center">
-              <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>
-              <p>Please wait while we process your payment...</p>
+            <CardContent className="space-y-4">
+              {/* Persistent Display Name */}
+              <div className="p-3 bg-muted/50 rounded-lg border">
+                <div className="flex items-center gap-2 mb-2">
+                  <User className="w-4 h-4" />
+                  <span className="text-sm font-medium">Your Identity</span>
+                </div>
+                <Input
+                  placeholder="Enter your display name"
+                  value={displayName}
+                  onChange={(e) => updateDisplayName(e.target.value)}
+                  className="text-center font-medium"
+                />
+                <p className="text-xs text-muted-foreground mt-1 text-center">
+                  This name is saved and shown to merchants
+                </p>
+              </div>
+
+              <div className="text-center space-y-4">
+                <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>
+                <p>Please wait while we process your payment...</p>
+              </div>
             </CardContent>
           </Card>
         );
@@ -1007,6 +1127,23 @@ const DemoQRScanPay = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Persistent Display Name */}
+              <div className="p-3 bg-muted/50 rounded-lg border">
+                <div className="flex items-center gap-2 mb-2">
+                  <User className="w-4 h-4" />
+                  <span className="text-sm font-medium">Your Identity</span>
+                </div>
+                <Input
+                  placeholder="Enter your display name"
+                  value={displayName}
+                  onChange={(e) => updateDisplayName(e.target.value)}
+                  className="text-center font-medium"
+                />
+                <p className="text-xs text-muted-foreground mt-1 text-center">
+                  This name is saved and shown to merchants
+                </p>
+              </div>
+
               {state.selectedDeal && (
                 <div className="p-3 bg-green-50 rounded-lg border border-green-200">
                   <div className="flex items-center gap-2 mb-2">
