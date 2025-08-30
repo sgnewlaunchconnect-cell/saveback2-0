@@ -71,8 +71,10 @@ export default function QuickPaymentFlow({
     finalAmountWithFees = finalAmount + feeAmount;
   }
   
-  // Calculate cashback earnings
-  const cashbackPct = grabData?.deals?.cashback_pct || 0;
+  // Calculate cashback earnings - use deal cashback first, then merchant default
+  const dealCashbackPct = grabData?.deals?.cashback_pct || 0;
+  const defaultCashbackPct = (!dealCashbackPct && merchantData?.default_reward_mode === 'CASHBACK') ? (merchantData?.default_cashback_pct || 0) : 0;
+  const cashbackPct = dealCashbackPct || defaultCashbackPct;
   const cashbackEarned = (finalAmount * cashbackPct) / 100;
 
   const handlePayment = async () => {
@@ -381,23 +383,34 @@ export default function QuickPaymentFlow({
           </Tabs>
         )}
         {/* Deal Info */}
-        <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
-          <h3 className="font-medium text-blue-800 dark:text-blue-200 text-sm">
-            {grabData?.deals?.title}
-          </h3>
-          <div className="flex gap-2 mt-1">
-            {grabData?.deals?.discount_pct > 0 && (
-              <Badge variant="secondary" className="text-xs">
-                {grabData.deals.discount_pct}% OFF
-              </Badge>
-            )}
-            {grabData?.deals?.cashback_pct > 0 && (
-              <Badge variant="outline" className="text-xs">
-                {grabData.deals.cashback_pct}% Cashback
-              </Badge>
-            )}
+        {grabData?.deals ? (
+          <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
+            <h3 className="font-medium text-blue-800 dark:text-blue-200 text-sm">
+              {grabData.deals.title}
+            </h3>
+            <div className="flex gap-2 mt-1">
+              {grabData.deals.discount_pct > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  {grabData.deals.discount_pct}% OFF
+                </Badge>
+              )}
+              {grabData.deals.cashback_pct > 0 && (
+                <Badge variant="outline" className="text-xs">
+                  {grabData.deals.cashback_pct}% Cashback
+                </Badge>
+              )}
+            </div>
           </div>
-        </div>
+        ) : cashbackPct > 0 ? (
+          <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
+            <div className="flex items-center gap-2">
+              <Gift className="h-4 w-4 text-green-600 dark:text-green-400" />
+              <h3 className="font-medium text-green-800 dark:text-green-200 text-sm">
+                Earn {cashbackPct}% credits on this payment at {merchantData?.name}
+              </h3>
+            </div>
+          </div>
+        ) : null}
 
         {/* Bill Amount Input */}
         <div className="space-y-2">

@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   MapPin, Phone, Star, Heart, Users, ShoppingCart, 
-  Clock, TrendingUp, Eye, MessageCircle, Plus, QrCode
+  Clock, TrendingUp, Eye, MessageCircle, Plus, QrCode, Coins
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,6 +26,8 @@ interface Merchant {
   longitude: number;
   is_active: boolean;
   payout_method?: string;
+  default_cashback_pct?: number;
+  default_reward_mode?: string;
 }
 
 interface Deal {
@@ -251,13 +253,19 @@ export default function MerchantPage() {
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Badge variant="secondary">{merchant.category}</Badge>
                 <div className="flex items-center gap-1">
                   <Star className="w-4 h-4 text-yellow-500 fill-current" />
                   <span className="font-medium">{averageRating}</span>
                   <span className="text-muted-foreground">({reviews.length} reviews)</span>
                 </div>
+                {merchant.default_reward_mode === 'CASHBACK' && merchant.default_cashback_pct && merchant.default_cashback_pct > 0 && (
+                  <Badge variant="outline" className="text-xs text-green-600 border-green-200 bg-green-50 dark:bg-green-950/20 dark:text-green-400 dark:border-green-800">
+                    <Coins className="w-3 h-3 mr-1" />
+                    Earn {merchant.default_cashback_pct}% credits on every payment
+                  </Badge>
+                )}
               </div>
             </div>
             

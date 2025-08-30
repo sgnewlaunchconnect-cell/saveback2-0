@@ -6,7 +6,7 @@ import { getUserId } from "@/utils/userIdManager";
 import QuickPaymentFlow from "@/components/QuickPaymentFlow";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Play } from "lucide-react";
+import { Play, Coins } from "lucide-react";
 import { MerchantVisitSummary } from "@/components/MerchantVisitSummary";
 
 export default function PayAtMerchant() {
@@ -217,7 +217,7 @@ export default function PayAtMerchant() {
               <div className="flex items-center gap-3">
                 {merchantData.logo_url && (
                   <img 
-                    src={merchantData.logo_url} 
+                    src={merchantData.logo_url}
                     alt={`${merchantData.name} logo`}
                     className="w-12 h-12 rounded-lg object-cover bg-muted"
                   />
@@ -229,6 +229,12 @@ export default function PayAtMerchant() {
                   <p className="text-sm text-muted-foreground">
                     {merchantData.address || merchantData.category || 'Merchant'}
                   </p>
+                  {merchantData.default_reward_mode === 'CASHBACK' && merchantData.default_cashback_pct && merchantData.default_cashback_pct > 0 && (
+                    <div className="mt-2 inline-flex items-center gap-1 px-2 py-1 bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800 rounded-md text-xs">
+                      <Coins className="w-3 h-3" />
+                      Earn {merchantData.default_cashback_pct}% credits on this payment
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>
