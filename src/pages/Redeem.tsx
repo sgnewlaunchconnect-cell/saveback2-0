@@ -321,8 +321,8 @@ export default function Redeem() {
               type="button"
               style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10, cursor: 'pointer' }}
             >
-              {grab.deals.discount_pct > 0 && grab.deals.cashback_pct === 0 
-                ? "View Instructions" 
+              {grab.deals.discount_pct > 0 && (grab.deals.cashback_pct === 0 || grab.deals.cashback_pct === null)
+                ? "Show to Cashier" 
                 : "Use Now & Pay"
               }
             </Button>
