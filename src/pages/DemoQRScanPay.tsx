@@ -9,22 +9,24 @@ import { Switch } from "@/components/ui/switch";
 import { QRCodeSVG } from "qrcode.react";
 import { formatCurrencyDisplay } from "@/utils/currency";
 import { useToast } from "@/hooks/use-toast";
-import { QrCode, Smartphone, CheckCircle, CreditCard } from "lucide-react";
+import { QrCode, Smartphone, CheckCircle, CreditCard, Clock, Hash } from "lucide-react";
 
-type DemoStep = 'merchant-enter' | 'qr-generated' | 'customer-select' | 'processing' | 'complete';
+type DemoStep = 'merchant-enter' | 'qr-generated' | 'customer-select' | 'awaiting-merchant' | 'processing' | 'complete';
 
 interface DemoState {
   step: DemoStep;
   amount: string;
   txId: string;
   qrPayload: string;
+  code6: string;
   availableLocalCents: number;
   availableNetworkCents: number;
   applyCredits: boolean;
   selectedLocalCents: number;
   selectedNetworkCents: number;
   balanceCents: number;
-  creditsEarnedDisplay: number;
+  creditsEarnedCents: number;
+  manualCodeInput: string;
 }
 
 const DemoQRScanPay = () => {
@@ -35,33 +37,20 @@ const DemoQRScanPay = () => {
     amount: '',
     txId: '',
     qrPayload: '',
+    code6: '',
     availableLocalCents: 800, // $8.00
     availableNetworkCents: 1200, // $12.00
     applyCredits: true,
     selectedLocalCents: 0,
     selectedNetworkCents: 0,
     balanceCents: 0,
-    creditsEarnedDisplay: 0
+    creditsEarnedCents: 0,
+    manualCodeInput: ''
   });
 
   const amountCents = Math.round(parseFloat(state.amount) * 100) || 0;
 
-  // Auto-calculate max credits when amount changes
-  useEffect(() => {
-    if (state.step === 'customer-select' && state.applyCredits) {
-      const maxLocal = Math.min(state.availableLocalCents, amountCents);
-      const maxNetwork = Math.min(state.availableNetworkCents, amountCents - maxLocal);
-      
-      setState(prev => ({
-        ...prev,
-        selectedLocalCents: maxLocal,
-        selectedNetworkCents: maxNetwork,
-        balanceCents: amountCents - maxLocal - maxNetwork
-      }));
-    }
-  }, [state.step, state.applyCredits, amountCents]);
-
-  // Update balance when credits change
+  // Remove auto-calculate when amount changes - let user control sliders
   useEffect(() => {
     const totalCredits = state.selectedLocalCents + state.selectedNetworkCents;
     setState(prev => ({
@@ -76,43 +65,61 @@ const DemoQRScanPay = () => {
       return;
     }
     
-    const txId = Math.random().toString(36).substring(2, 15);
+    const txId = Date.now().toString() + Math.random().toString(36).substring(2, 7);
+    const code6 = txId.slice(-6).padStart(6, '0');
     const qrPayload = JSON.stringify({ amount: state.amount, txId });
     
     setState(prev => ({
       ...prev,
       step: 'qr-generated',
       txId,
-      qrPayload,
-      creditsEarnedDisplay: Math.floor(parseFloat(state.amount) * 0.05)
+      code6,
+      qrPayload
     }));
     
     toast({ title: "Payment QR Generated", description: `Amount: ${formatCurrencyDisplay(amountCents)}` });
   };
 
   const handleSimulateScan = () => {
-    const maxLocal = Math.min(state.availableLocalCents, amountCents);
-    const maxNetwork = Math.min(state.availableNetworkCents, amountCents - maxLocal);
-    
     setState(prev => ({
       ...prev,
-      step: 'customer-select',
-      selectedLocalCents: maxLocal,
-      selectedNetworkCents: maxNetwork,
-      balanceCents: amountCents - maxLocal - maxNetwork
+      step: 'customer-select'
     }));
     
     toast({ title: "QR Code Scanned", description: "Select your credit usage" });
   };
 
+  const handleManualCodeEntry = () => {
+    if (state.manualCodeInput === state.code6) {
+      setState(prev => ({
+        ...prev,
+        step: 'customer-select',
+        manualCodeInput: ''
+      }));
+      toast({ title: "Code Verified", description: "Select your credit usage" });
+    } else {
+      toast({ title: "Invalid Code", description: "Please enter the correct 6-digit code", variant: "destructive" });
+    }
+  };
+
   const handleConfirmPayment = () => {
+    setState(prev => ({ ...prev, step: 'awaiting-merchant' }));
+    toast({ title: "Payment Submitted", description: "Waiting for merchant confirmation" });
+  };
+
+  const handleMerchantConfirm = () => {
     setState(prev => ({ ...prev, step: 'processing' }));
     toast({ title: "Processing Payment...", description: "Please wait" });
     
     setTimeout(() => {
-      setState(prev => ({ ...prev, step: 'complete' }));
-      toast({ title: "Payment Successful!", description: "Transaction completed" });
-    }, 2000);
+      const creditsEarnedCents = Math.floor(state.balanceCents * 0.05);
+      setState(prev => ({ 
+        ...prev, 
+        step: 'complete',
+        creditsEarnedCents
+      }));
+      toast({ title: "Payment Verified!", description: "Transaction completed" });
+    }, 1500);
   };
 
   const handleReset = () => {
@@ -121,13 +128,15 @@ const DemoQRScanPay = () => {
       amount: '',
       txId: '',
       qrPayload: '',
+      code6: '',
       availableLocalCents: 800,
       availableNetworkCents: 1200,
       applyCredits: true,
       selectedLocalCents: 0,
       selectedNetworkCents: 0,
       balanceCents: 0,
-      creditsEarnedDisplay: 0
+      creditsEarnedCents: 0,
+      manualCodeInput: ''
     });
   };
 
@@ -135,8 +144,32 @@ const DemoQRScanPay = () => {
     setState(prev => ({
       ...prev,
       applyCredits: checked,
-      selectedLocalCents: checked ? Math.min(prev.availableLocalCents, amountCents) : 0,
-      selectedNetworkCents: checked ? Math.min(prev.availableNetworkCents, Math.max(0, amountCents - Math.min(prev.availableLocalCents, amountCents))) : 0
+      selectedLocalCents: checked ? 0 : 0,
+      selectedNetworkCents: checked ? 0 : 0
+    }));
+  };
+
+  const handleLocalCreditChange = ([value]: number[]) => {
+    const newLocal = Math.min(value, state.availableLocalCents);
+    const maxNetwork = Math.max(0, amountCents - newLocal);
+    const newNetwork = Math.min(state.selectedNetworkCents, maxNetwork, state.availableNetworkCents);
+    
+    setState(prev => ({
+      ...prev,
+      selectedLocalCents: newLocal,
+      selectedNetworkCents: newNetwork
+    }));
+  };
+
+  const handleNetworkCreditChange = ([value]: number[]) => {
+    const newNetwork = Math.min(value, state.availableNetworkCents);
+    const maxLocal = Math.max(0, amountCents - newNetwork);
+    const newLocal = Math.min(state.selectedLocalCents, maxLocal, state.availableLocalCents);
+    
+    setState(prev => ({
+      ...prev,
+      selectedLocalCents: newLocal,
+      selectedNetworkCents: newNetwork
     }));
   };
 
@@ -197,6 +230,11 @@ const DemoQRScanPay = () => {
               <div>
                 <p className="text-2xl font-bold">{formatCurrencyDisplay(amountCents)}</p>
                 <p className="text-sm text-muted-foreground">Transaction: {state.txId}</p>
+                <div className="flex items-center justify-center gap-1 mt-2">
+                  <Hash className="w-4 h-4" />
+                  <span className="font-mono text-lg font-bold">{state.code6}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Manual Code (fallback)</p>
               </div>
               <Badge variant="secondary">Waiting for customer scan...</Badge>
             </CardContent>
@@ -221,6 +259,49 @@ const DemoQRScanPay = () => {
           </Card>
         );
 
+      case 'awaiting-merchant':
+        const totalCreditsUsed = state.selectedLocalCents + state.selectedNetworkCents;
+        return (
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="w-5 h-5" />
+                Payment Verification
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Badge variant="default" className="w-full justify-center">
+                Pending Verification
+              </Badge>
+              <div className="text-center text-sm text-muted-foreground">
+                Customer Paid – Waiting for Confirmation
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span>Total Bill:</span>
+                  <span className="font-medium">{formatCurrencyDisplay(amountCents)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Local Credits Used:</span>
+                  <span className="font-medium">{formatCurrencyDisplay(state.selectedLocalCents)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Network Credits Used:</span>
+                  <span className="font-medium">{formatCurrencyDisplay(state.selectedNetworkCents)}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between text-lg font-bold">
+                  <span>Amount to Collect:</span>
+                  <span>{formatCurrencyDisplay(state.balanceCents)}</span>
+                </div>
+              </div>
+              <Button onClick={handleMerchantConfirm} className="w-full" size="lg">
+                Confirm Payment
+              </Button>
+            </CardContent>
+          </Card>
+        );
+
       case 'processing':
         return (
           <Card className="h-full">
@@ -235,7 +316,6 @@ const DemoQRScanPay = () => {
         );
 
       case 'complete':
-        const totalCreditsUsed = state.selectedLocalCents + state.selectedNetworkCents;
         return (
           <Card className="h-full">
             <CardHeader>
@@ -252,7 +332,7 @@ const DemoQRScanPay = () => {
                 </div>
                 <div className="flex justify-between">
                   <span>Credits Applied:</span>
-                  <span className="font-medium">{formatCurrencyDisplay(totalCreditsUsed)}</span>
+                  <span className="font-medium">{formatCurrencyDisplay(state.selectedLocalCents + state.selectedNetworkCents)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between text-lg font-bold">
@@ -297,9 +377,26 @@ const DemoQRScanPay = () => {
                   </p>
                 </div>
                 {state.step === 'qr-generated' && (
-                  <Button onClick={handleSimulateScan} variant="outline" className="w-full">
-                    Simulate Scan
-                  </Button>
+                  <>
+                    <Button onClick={handleSimulateScan} variant="outline" className="w-full">
+                      Simulate QR Scan
+                    </Button>
+                    <div className="space-y-2 pt-2 border-t">
+                      <p className="text-xs text-muted-foreground">Or enter 6-digit code manually:</p>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="000000"
+                          value={state.manualCodeInput}
+                          onChange={(e) => setState(prev => ({ ...prev, manualCodeInput: e.target.value }))}
+                          maxLength={6}
+                          className="text-center font-mono"
+                        />
+                        <Button onClick={handleManualCodeEntry} variant="outline" size="sm">
+                          Enter Code
+                        </Button>
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             </CardContent>
@@ -321,7 +418,7 @@ const DemoQRScanPay = () => {
                 </div>
                 
                 <div className="flex items-center justify-between">
-                  <span>Apply Credits</span>
+                  <span>{state.applyCredits ? 'Apply Credits' : 'Pay Full Amount'}</span>
                   <Switch 
                     checked={state.applyCredits} 
                     onCheckedChange={handleToggleCredits}
@@ -337,10 +434,11 @@ const DemoQRScanPay = () => {
                       </div>
                       <Slider
                         value={[state.selectedLocalCents]}
-                        onValueChange={([value]) => setState(prev => ({ ...prev, selectedLocalCents: value }))}
+                        onValueChange={handleLocalCreditChange}
                         max={Math.min(state.availableLocalCents, amountCents)}
                         step={25}
                         className="w-full"
+                        disabled={!state.applyCredits}
                       />
                     </div>
 
@@ -351,10 +449,11 @@ const DemoQRScanPay = () => {
                       </div>
                       <Slider
                         value={[state.selectedNetworkCents]}
-                        onValueChange={([value]) => setState(prev => ({ ...prev, selectedNetworkCents: value }))}
+                        onValueChange={handleNetworkCreditChange}
                         max={Math.min(state.availableNetworkCents, Math.max(0, amountCents - state.selectedLocalCents))}
                         step={25}
                         className="w-full"
+                        disabled={!state.applyCredits}
                       />
                     </div>
 
@@ -369,11 +468,11 @@ const DemoQRScanPay = () => {
                 <div className="space-y-1">
                   <div className="flex justify-between">
                     <span>Credits Used:</span>
-                    <span>{formatCurrencyDisplay(totalCreditsSelected)}</span>
+                    <span>{state.applyCredits ? formatCurrencyDisplay(totalCreditsSelected) : "$0.00"}</span>
                   </div>
                   <div className="flex justify-between text-lg font-bold">
                     <span>Balance to Pay:</span>
-                    <span>{formatCurrencyDisplay(state.balanceCents)}</span>
+                    <span>{formatCurrencyDisplay(state.applyCredits ? state.balanceCents : amountCents)}</span>
                   </div>
                 </div>
               </div>
@@ -381,6 +480,39 @@ const DemoQRScanPay = () => {
               <Button onClick={handleConfirmPayment} className="w-full" size="lg">
                 Confirm & Pay
               </Button>
+            </CardContent>
+          </Card>
+        );
+
+      case 'awaiting-merchant':
+        const creditsUsed = state.selectedLocalCents + state.selectedNetworkCents;
+        return (
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="w-5 h-5" />
+                Payment Submitted
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Badge variant="secondary" className="w-full justify-center">
+                Waiting for Merchant Confirmation
+              </Badge>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span>Total Bill:</span>
+                  <span className="font-medium">{formatCurrencyDisplay(amountCents)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Credits Used:</span>
+                  <span className="font-medium">{formatCurrencyDisplay(creditsUsed)}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between text-lg font-bold">
+                  <span>Balance to Pay:</span>
+                  <span>{formatCurrencyDisplay(state.balanceCents)}</span>
+                </div>
+              </div>
             </CardContent>
           </Card>
         );
@@ -422,7 +554,7 @@ const DemoQRScanPay = () => {
                 </div>
                 <div className="flex justify-between">
                   <span>Credits Earned:</span>
-                  <span className="font-medium">${state.creditsEarnedDisplay}</span>
+                  <span className="font-medium">{formatCurrencyDisplay(state.creditsEarnedCents)}</span>
                 </div>
               </div>
               <Badge variant="secondary" className="w-full justify-center">
