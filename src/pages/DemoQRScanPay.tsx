@@ -797,6 +797,38 @@ const DemoQRScanPay = () => {
               <p className="text-sm text-muted-foreground">
                 Browse and grab deals to use during payment
               </p>
+              
+              {/* Default Cashback - Made Prominent */}
+              <Card className="border-2 border-green-500 bg-green-50 dark:bg-green-950/20 hover:shadow-lg transition-shadow">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-lg bg-green-500 flex items-center justify-center flex-shrink-0">
+                      <Store className="h-6 w-6 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-green-700 dark:text-green-300">Default Cashback</h4>
+                      <p className="text-sm text-green-600 dark:text-green-400">No deal required - instant reward</p>
+                      <div className="mt-2">
+                        <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                          {merchantDefaultCashbackPct}% cashback
+                        </Badge>
+                      </div>
+                    </div>
+                    <Button 
+                      onClick={handleSkipDeals}
+                      size="lg"
+                      className="bg-green-600 hover:bg-green-700 text-white px-6"
+                    >
+                      Select
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="text-center text-sm text-muted-foreground">
+                — OR choose a special deal below —
+              </div>
+
               <div className="space-y-3">
                 {mockDeals.map((deal) => (
                   <Card key={deal.id} className="border hover:shadow-md transition-shadow">
@@ -830,15 +862,6 @@ const DemoQRScanPay = () => {
                     </CardContent>
                   </Card>
                 ))}
-              </div>
-              <div className="pt-4 border-t">
-                <Button 
-                  onClick={handleSkipDeals}
-                  variant="ghost" 
-                  className="w-full"
-                >
-                  Skip deals (use default {merchantDefaultCashbackPct}% cashback)
-                </Button>
               </div>
             </CardContent>
           </Card>
