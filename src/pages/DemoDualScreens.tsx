@@ -96,6 +96,76 @@ export default function DemoDualScreens() {
           <p className="text-muted-foreground mt-2">
             Watch how the payment flows between customer and merchant screens
           </p>
+          
+          {/* Step Indicator */}
+          <div className="flex items-center justify-center mt-6 mb-4">
+            <div className="flex items-center space-x-2">
+              <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
+                demoState.step === 'enter-amount' ? 'bg-primary text-primary-foreground' : 
+                ['code-generated', 'merchant-scanned', 'payment-received', 'completed'].includes(demoState.step) ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground'
+              }`}>
+                1
+              </div>
+              <span className={`text-sm ${demoState.step === 'enter-amount' ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                Enter Amount
+              </span>
+              
+              <div className={`w-12 h-0.5 ${
+                ['code-generated', 'merchant-scanned', 'payment-received', 'completed'].includes(demoState.step) ? 'bg-green-500' : 'bg-muted'
+              }`} />
+              
+              <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
+                demoState.step === 'code-generated' ? 'bg-primary text-primary-foreground' : 
+                ['merchant-scanned', 'payment-received', 'completed'].includes(demoState.step) ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground'
+              }`}>
+                2
+              </div>
+              <span className={`text-sm ${demoState.step === 'code-generated' ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                Show Code
+              </span>
+              
+              <div className={`w-12 h-0.5 ${
+                ['merchant-scanned', 'payment-received', 'completed'].includes(demoState.step) ? 'bg-green-500' : 'bg-muted'
+              }`} />
+              
+              <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
+                demoState.step === 'merchant-scanned' ? 'bg-primary text-primary-foreground' : 
+                ['payment-received', 'completed'].includes(demoState.step) ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground'
+              }`}>
+                3
+              </div>
+              <span className={`text-sm ${demoState.step === 'merchant-scanned' ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                Scan Done
+              </span>
+              
+              <div className={`w-12 h-0.5 ${
+                ['payment-received', 'completed'].includes(demoState.step) ? 'bg-green-500' : 'bg-muted'
+              }`} />
+              
+              <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
+                demoState.step === 'payment-received' ? 'bg-primary text-primary-foreground' : 
+                demoState.step === 'completed' ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground'
+              }`}>
+                4
+              </div>
+              <span className={`text-sm ${demoState.step === 'payment-received' ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                Payment Received
+              </span>
+              
+              <div className={`w-12 h-0.5 ${
+                demoState.step === 'completed' ? 'bg-green-500' : 'bg-muted'
+              }`} />
+              
+              <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
+                demoState.step === 'completed' ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground'
+              }`}>
+                5
+              </div>
+              <span className={`text-sm ${demoState.step === 'completed' ? 'text-green-700 font-medium' : 'text-muted-foreground'}`}>
+                Completed
+              </span>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[80vh]">
@@ -158,9 +228,20 @@ export default function DemoDualScreens() {
                     </p>
                   </div>
 
-                  <div className="text-sm text-muted-foreground">
-                    <Clock className="w-4 h-4 inline mr-1" />
-                    Waiting for merchant to scan...
+                  <div className="space-y-3">
+                    <div className="text-sm text-muted-foreground">
+                      <Clock className="w-4 h-4 inline mr-1" />
+                      Waiting for merchant to scan...
+                    </div>
+                    
+                    <Button 
+                      onClick={handleMerchantScan}
+                      variant="outline"
+                      className="w-full"
+                      size="sm"
+                    >
+                      Scan Done (Demo)
+                    </Button>
                   </div>
                 </div>
               )}
@@ -173,13 +254,24 @@ export default function DemoDualScreens() {
                     <p className="text-muted-foreground">Merchant is processing your payment...</p>
                   </div>
 
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <p className="text-yellow-800 font-medium">
-                      Amount: ${demoState.merchantAmount.toFixed(2)}
-                    </p>
-                    <p className="text-yellow-600 text-sm">
-                      Waiting for confirmation...
-                    </p>
+                  <div className="space-y-4">
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                      <p className="text-yellow-800 font-medium">
+                        Amount: ${demoState.merchantAmount.toFixed(2)}
+                      </p>
+                      <p className="text-yellow-600 text-sm">
+                        Waiting for confirmation...
+                      </p>
+                    </div>
+                    
+                    <Button 
+                      onClick={handlePaymentReceived}
+                      variant="outline"
+                      className="w-full"
+                      size="sm"
+                    >
+                      Simulate Payment Received (Demo)
+                    </Button>
                   </div>
                 </div>
               )}
@@ -265,7 +357,7 @@ export default function DemoDualScreens() {
                         size="lg"
                       >
                         <QrCode className="w-4 h-4 mr-2" />
-                        Merchant Scan
+                        Scan Done (Demo)
                       </Button>
                     </div>
                   )}
