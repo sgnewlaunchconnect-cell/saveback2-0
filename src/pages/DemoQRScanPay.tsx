@@ -45,7 +45,8 @@ interface MockDeal {
 }
 
 interface DemoState {
-  step: DemoStep;
+  merchantStep: DemoStep;
+  customerStep: DemoStep;
   amount: string;
   txId: string;
   qrPayload: string;
@@ -119,7 +120,8 @@ const DemoQRScanPay = () => {
   });
 
   const [state, setState] = useState<DemoState>({
-    step: 'merchant-enter',
+    merchantStep: 'merchant-enter',
+    customerStep: 'merchant-enter',
     amount: '',
     txId: '',
     qrPayload: '',
@@ -185,7 +187,8 @@ const DemoQRScanPay = () => {
             if (customer.id === prev.txId) {
               // This is the current user's payment that expired
               updated.noShowCount = prev.noShowCount + 1;
-              updated.step = 'merchant-enter';
+              updated.merchantStep = 'merchant-enter';
+              updated.customerStep = 'merchant-enter';
               updated.currentlyServing = undefined;
               updated.isReadyToPay = false;
               toast({ 
@@ -301,82 +304,45 @@ const DemoQRScanPay = () => {
       return;
     }
     
-    // Check if customer is already in queue
-    const existingCustomer = state.queue.find(c => c.id === state.txId);
-    if (existingCustomer && state.txId) {
-      // Update existing queue entry instead of creating new one
-      const updatedQueue = state.queue.map(customer => 
-        customer.id === state.txId 
-          ? { 
-              ...customer, 
-              amount: state.amount, 
-              deal: state.selectedDeal,
-              paymentWindowExpiry: new Date(Date.now() + PAYMENT_WINDOW_MS) 
-            }
-          : customer
-      );
-      
-      const qrPayload = JSON.stringify({ 
-        amount: state.amount, 
-        txId: state.txId,
-        dealId: state.selectedDeal?.id,
-        cashbackPct: activeCashbackPct,
-        discountPct: discountPct
-      });
-      
-      setState(prev => ({
-        ...prev,
-        step: 'qr-generated',
-        qrPayload,
-        queue: updatedQueue
-      }));
-      
-      toast({ title: "Payment Updated", description: `Amount: ${formatCurrencyDisplay(effectiveBillCents)} - 5min window` });
+    if (!state.currentlyServing) {
+      toast({ title: "No customer selected", description: "Please call a customer first", variant: "destructive" });
       return;
     }
     
-    const txId = Date.now().toString() + Math.random().toString(36).substring(2, 7);
-    const code6 = txId.slice(-6).padStart(6, '0');
+    // Update existing queue entry for currently serving customer
+    const updatedQueue = state.queue.map(customer => 
+      customer.id === state.currentlyServing 
+        ? { 
+            ...customer, 
+            amount: state.amount,
+            paymentWindowExpiry: customer.paymentWindowExpiry || new Date(Date.now() + PAYMENT_WINDOW_MS)
+          }
+        : customer
+    );
+    
     const qrPayload = JSON.stringify({ 
       amount: state.amount, 
-      txId,
+      txId: state.txId,
       dealId: state.selectedDeal?.id,
       cashbackPct: activeCashbackPct,
       discountPct: discountPct
     });
     
-    // Create payment window expiry (5 minutes from now)
-    const paymentWindowExpiry = new Date(Date.now() + PAYMENT_WINDOW_MS);
-    
-    // Auto-add to queue when QR is generated
-    const customer: QueueCustomer = {
-      id: txId,
-      displayName: displayName,
-      deal: state.selectedDeal,
-      amount: state.amount,
-      code6: code6,
-      isReadyToPay: true,
-      paymentWindowExpiry
-    };
-    
     setState(prev => ({
       ...prev,
-      step: 'qr-generated',
-      txId,
-      code6,
+      merchantStep: 'qr-generated',
       qrPayload,
-      isReadyToPay: true,
-      queue: [...prev.queue, customer]
+      queue: updatedQueue
     }));
     
-    toast({ title: "Payment QR Generated", description: `Amount: ${formatCurrencyDisplay(effectiveBillCents)} - 5min window` });
+    toast({ title: "Payment QR Generated", description: `Amount: ${formatCurrencyDisplay(effectiveBillCents)} - customer can scan now` });
   };
 
   const handleSimulateScan = () => {
     const { local, network, balance } = allocateCredits(state.applyCredits);
     setState(prev => ({
       ...prev,
-      step: 'customer-select',
+      customerStep: 'customer-select',
       selectedLocalCents: local,
       selectedNetworkCents: network,
       balanceCents: balance
@@ -390,7 +356,7 @@ const DemoQRScanPay = () => {
       const { local, network, balance } = allocateCredits(state.applyCredits);
       setState(prev => ({
         ...prev,
-        step: 'customer-select',
+        customerStep: 'customer-select',
         manualCodeInput: '',
         selectedLocalCents: local,
         selectedNetworkCents: network,
@@ -403,7 +369,11 @@ const DemoQRScanPay = () => {
   };
 
   const handleConfirmPayment = () => {
-    setState(prev => ({ ...prev, step: 'awaiting-merchant' }));
+    setState(prev => ({ 
+      ...prev, 
+      merchantStep: 'awaiting-merchant',
+      customerStep: 'awaiting-merchant' 
+    }));
     toast({ title: "Payment Submitted", description: "Waiting for merchant confirmation" });
   };
 
@@ -419,18 +389,24 @@ const DemoQRScanPay = () => {
       return;
     }
 
-    setState(prev => ({ ...prev, step: 'processing' }));
+    setState(prev => ({ 
+      ...prev, 
+      merchantStep: 'processing',
+      customerStep: 'processing'
+    }));
     toast({ title: "Processing Payment...", description: "Please wait" });
     
     setTimeout(() => {
       const creditsEarnedCents = Math.floor(state.balanceCents * activeCashbackPct / 100);
       setState(prev => ({ 
         ...prev, 
-        step: 'complete',
+        merchantStep: 'complete',
+        customerStep: 'complete',
         creditsEarnedCents,
         // Remove from queue on completion
         queue: prev.queue.filter(c => c.id !== prev.txId),
         currentlyServing: undefined,
+        selectedDeal: undefined,
         isReadyToPay: false,
         currentHold: undefined // Clear hold on completion
       }));
@@ -472,7 +448,7 @@ const DemoQRScanPay = () => {
       ...prev,
       selectedDeal: deal,
       currentHold: holdData,
-      step: 'grab-deal'
+      customerStep: 'grab-deal'
     }));
     
     toast({ 
@@ -519,7 +495,6 @@ const DemoQRScanPay = () => {
     
     const txId = Date.now().toString() + Math.random().toString(36).substring(2, 7);
     const code6 = txId.slice(-6).padStart(6, '0');
-    const paymentWindowExpiry = new Date(Date.now() + PAYMENT_WINDOW_MS);
     
     // Add customer to merchant queue with placeholder amount
     const customer: QueueCustomer = {
@@ -529,12 +504,12 @@ const DemoQRScanPay = () => {
       amount: '—', // Placeholder until merchant enters amount
       code6: code6,
       isReadyToPay: true,
-      paymentWindowExpiry
+      paymentWindowExpiry: undefined // Set when merchant calls
     };
     
     setState(prev => ({
       ...prev,
-      step: 'qr-generated',
+      customerStep: 'qr-generated',
       txId,
       code6,
       qrPayload: '', // Will be set when merchant generates QR
@@ -544,7 +519,7 @@ const DemoQRScanPay = () => {
     
     toast({ 
       title: "Added to Payment Queue", 
-      description: "5 min window — scan merchant QR when ready" 
+      description: "Merchant will call when ready — then scan QR or enter code" 
     });
   };
 
@@ -561,7 +536,6 @@ const DemoQRScanPay = () => {
     
     const txId = Date.now().toString() + Math.random().toString(36).substring(2, 7);
     const code6 = txId.slice(-6).padStart(6, '0');
-    const paymentWindowExpiry = new Date(Date.now() + PAYMENT_WINDOW_MS);
     
     // Add customer to merchant queue with selected deal
     const customer: QueueCustomer = {
@@ -571,12 +545,12 @@ const DemoQRScanPay = () => {
       amount: '—', // Placeholder until merchant enters amount
       code6: code6,
       isReadyToPay: true,
-      paymentWindowExpiry
+      paymentWindowExpiry: undefined // Set when merchant calls
     };
     
     setState(prev => ({
       ...prev,
-      step: 'qr-generated',
+      customerStep: 'qr-generated',
       txId,
       code6,
       qrPayload: '', // Will be set when merchant generates QR
@@ -587,14 +561,15 @@ const DemoQRScanPay = () => {
     
     toast({ 
       title: "Added to Payment Queue", 
-      description: "5 min window — scan merchant QR when ready" 
+      description: "Merchant will call when ready — then scan QR or enter code" 
     });
   };
 
   const handleReset = () => {
     // Remove current user from queue on reset
     setState(prev => ({
-      step: 'merchant-enter',
+      merchantStep: 'merchant-enter',
+      customerStep: 'merchant-enter',
       amount: '',
       txId: '',
       qrPayload: '',
@@ -630,8 +605,24 @@ const DemoQRScanPay = () => {
 
 
   const handleCallNext = (customerId: string) => {
-    setState(prev => ({ ...prev, currentlyServing: customerId }));
-    toast({ title: "Customer Called", description: "Now serving customer" });
+    const customer = state.queue.find(c => c.id === customerId);
+    if (!customer) return;
+    
+    setState(prev => ({ 
+      ...prev, 
+      currentlyServing: customerId,
+      txId: customer.id,
+      code6: customer.code6,
+      selectedDeal: customer.deal,
+      amount: '', // Clear amount so merchant can key it in
+      queue: prev.queue.map(c => 
+        c.id === customerId 
+          ? { ...c, paymentWindowExpiry: new Date(Date.now() + PAYMENT_WINDOW_MS) }
+          : c
+      )
+    }));
+    
+    toast({ title: `Now serving ${customer.displayName}`, description: "Key in amount, then Request Payment" });
   };
 
   const handleSkipCustomer = (customerId: string) => {
@@ -646,7 +637,7 @@ const DemoQRScanPay = () => {
   const handleQuickPay = () => {
     setState(prev => ({
       ...prev,
-      step: 'merchant-enter',
+      merchantStep: 'merchant-enter',
       amount: '',
       selectedDeal: undefined,
       currentlyServing: undefined
@@ -687,7 +678,7 @@ const DemoQRScanPay = () => {
   };
 
   const renderMerchantScreen = () => {
-    switch (state.step) {
+    switch (state.merchantStep) {
       case 'merchant-enter':
         return (
           <Card className="h-full">
@@ -827,12 +818,12 @@ const DemoQRScanPay = () => {
                                 <span className="text-sm font-medium">
                                   {customer.amount === '—' ? '—' : formatCurrencyDisplay(Math.round(parseFloat(customer.amount || '0') * 100))}
                                 </span>
-                                <span className="text-xs text-muted-foreground">Code: ••••••</span>
-                                {customer.paymentWindowExpiry && timeLeft > 0 && (
-                                  <span className="text-xs text-orange-600 font-medium">
-                                    ⏰ {minutesLeft}:{secondsLeft.toString().padStart(2, '0')}
-                                  </span>
-                                )}
+                 <span className="text-xs text-muted-foreground">Code: ••••••</span>
+                 {customer.paymentWindowExpiry && timeLeft > 0 && (
+                   <span className="text-xs text-orange-600 font-medium">
+                     ⏰ {minutesLeft}:{secondsLeft.toString().padStart(2, '0')}
+                   </span>
+                 )}
                               </div>
                               {state.currentlyServing === customer.id && (
                                 <div className="mt-2 text-sm text-primary font-medium">
@@ -902,9 +893,15 @@ const DemoQRScanPay = () => {
                   />
                 </div>
               )}
-              <div className="flex justify-center">
-                <QRCodeSVG value={state.qrPayload} size={200} />
-              </div>
+              {state.qrPayload ? (
+                <div className="flex justify-center">
+                  <QRCodeSVG value={state.qrPayload} size={200} />
+                </div>
+              ) : (
+                <div className="p-4 text-center text-muted-foreground">
+                  <p>Call customer, key in amount, then Request Payment</p>
+                </div>
+              )}
               <div>
                 <p className="text-2xl font-bold">{formatCurrencyDisplay(effectiveBillCents)}</p>
                 <p className="text-sm text-muted-foreground">Transaction: {state.txId}</p>
@@ -1116,7 +1113,7 @@ const DemoQRScanPay = () => {
   };
 
   const renderCustomerContent = () => {
-    switch (state.step) {
+    switch (state.customerStep) {
       case 'merchant-enter':
         return (
           <Card className="h-full">
@@ -1565,7 +1562,7 @@ const DemoQRScanPay = () => {
                     }
                   </p>
                 </div>
-                {state.step === 'qr-generated' && (
+                {state.customerStep === 'qr-generated' && (
                   <>
                     <Button onClick={handleSimulateScan} variant="outline" className="w-full">
                       Simulate QR Scan
