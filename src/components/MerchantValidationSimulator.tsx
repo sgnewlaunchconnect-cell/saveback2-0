@@ -95,11 +95,11 @@ export default function MerchantValidationSimulator({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {isFlow2 ? "QR Payment Demo - Customer Scans Merchant" : "Code Payment Demo - Merchant Validates Customer"}
+            {isFlow2 ? "QR Payment Demo - Customer Scans Merchant QR" : "Code Payment Demo - Merchant Validates Customer"}
           </DialogTitle>
           <DialogDescription>
             {isFlow2 
-              ? "Merchant generates QR, customer scans and pays" 
+              ? "Merchant keys amount, generates QR, customer scans and pays" 
               : "Customer generates code, merchant validates payment"
             }
           </DialogDescription>
