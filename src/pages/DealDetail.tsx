@@ -29,6 +29,7 @@ interface DealDetail {
     longitude: number;
     phone: string;
     payout_method?: string;
+    psp_enabled?: boolean;
   };
 }
 
@@ -93,14 +94,15 @@ const DealDetail = () => {
         .from('deals')
         .select(`
           *,
-           merchants (
-             name,
-             address,
-             latitude,
-             longitude,
-             phone,
-             payout_method
-           )
+             merchants (
+              name,
+              address,
+              latitude,
+              longitude,
+              phone,
+              payout_method,
+              psp_enabled
+            )
         `)
         .eq('id', dealId)
         .single();
@@ -254,6 +256,7 @@ const DealDetail = () => {
                 />
                 <PaymentMethodBadge 
                   payoutMethod={deal.merchants.payout_method}
+                  pspEnabled={deal.merchants.psp_enabled}
                   hasCashback={!!deal.cashback_pct && deal.cashback_pct > 0}
                 />
               </div>

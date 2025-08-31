@@ -27,6 +27,7 @@ interface Deal {
     address?: string;
     logo_url?: string;
     payout_method?: string;
+    psp_enabled?: boolean;
   };
 }
 
@@ -163,6 +164,7 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, compact = false }) => 
                 />
                 <PaymentMethodBadge 
                   payoutMethod={deal.merchants.payout_method}
+                  pspEnabled={deal.merchants.psp_enabled}
                   hasCashback={!!deal.cashback_pct && deal.cashback_pct > 0}
                 />
                 {/* Urgency badges */}

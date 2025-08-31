@@ -26,6 +26,7 @@ interface Merchant {
   longitude: number;
   is_active: boolean;
   payout_method?: string;
+  psp_enabled?: boolean;
   default_cashback_pct?: number;
   default_reward_mode?: string;
 }
@@ -90,7 +91,7 @@ export default function MerchantPage() {
       // Fetch merchant info
       const { data: merchantData, error: merchantError } = await supabase
         .from('merchants')
-        .select('*')
+        .select('*, psp_enabled')
         .eq('id', merchantId)
         .single();
 
@@ -238,6 +239,7 @@ export default function MerchantPage() {
                 <h1 className="text-3xl font-bold">{merchant.name}</h1>
                 <PaymentMethodBadge 
                   payoutMethod={merchant.payout_method}
+                  pspEnabled={merchant.psp_enabled}
                   hasCashback={true}
                 />
               </div>
@@ -327,6 +329,7 @@ export default function MerchantPage() {
                           )}
                           <PaymentMethodBadge 
                             payoutMethod={merchant.payout_method}
+                            pspEnabled={merchant.psp_enabled}
                             hasCashback={!!deal.cashback_pct && deal.cashback_pct > 0}
                           />
                         </div>

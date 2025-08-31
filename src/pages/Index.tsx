@@ -32,6 +32,7 @@ interface Deal {
     category: string;
     logo_url: string;
     payout_method: string;
+    psp_enabled: boolean;
   };
 }
 
@@ -101,7 +102,7 @@ const Index = () => {
         .select(`
           id, title, description, discount_pct, cashback_pct, reward_mode, 
           end_at, views, grabs, stock, redemptions, merchant_id,
-          merchants(id, name, address, category, logo_url, payout_method)
+          merchants(id, name, address, category, logo_url, payout_method, psp_enabled)
         `)
         .eq('is_active', true)
         .or(`end_at.is.null,end_at.gt.${now}`) // Include deals with null end_at OR future end_at
@@ -150,8 +151,8 @@ const Index = () => {
       deal.merchants?.category === selectedCategory;
 
     const matchesPaymentType = selectedPaymentType === 'all' ||
-      (selectedPaymentType === 'in-app' && deal.merchants?.payout_method !== 'manual') ||
-      (selectedPaymentType === 'pin-only' && deal.merchants?.payout_method === 'manual');
+      (selectedPaymentType === 'in-app' && deal.merchants?.psp_enabled) ||
+      (selectedPaymentType === 'pin-only' && !deal.merchants?.psp_enabled);
 
     return matchesSearch && matchesRewardType && matchesCategory && matchesPaymentType;
   });
@@ -177,7 +178,7 @@ const Index = () => {
 
   // Get in-app payment deals
   const inAppPaymentDeals = filteredDeals
-    .filter(deal => deal.merchants?.payout_method !== 'manual')
+    .filter(deal => deal.merchants?.psp_enabled)
     .slice(0, 6);
 
   // Get unique categories
