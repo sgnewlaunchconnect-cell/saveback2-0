@@ -90,7 +90,7 @@ export default function MerchantPaymentCode({
         // Update status message
         switch (status) {
           case 'pending':
-            setStatusMessage('Waiting for merchant to scan…');
+            setStatusMessage('Waiting for cashier to validate…');
             break;
           case 'validated':
           case 'authorized':
@@ -354,7 +354,7 @@ export default function MerchantPaymentCode({
             isVoided ? 'Transaction cancelled' :
             isExpired ? 'Code expired' :
             isValidated ? (paymentResult.finalAmount === 0 ? 'Free purchase' : 'Pay in cash') :
-            'Waiting for merchant to scan…'}
+            'Waiting for cashier to validate…'}
          </span>
         </div>
         
@@ -465,7 +465,7 @@ export default function MerchantPaymentCode({
               {/* QR Code with Countdown Ring */}
               <div className="text-center">
                 <p className="text-sm text-muted-foreground mb-4">
-                  Ask the merchant to scan this code. They will validate and {paymentResult.finalAmount > 0 ? 'then confirm cash collection.' : 'complete the transaction.'}
+                  Show this code to the cashier for validation. They will validate and {paymentResult.finalAmount > 0 ? 'then confirm cash collection.' : 'complete the transaction.'}
                 </p>
               
               {!isExpired && (

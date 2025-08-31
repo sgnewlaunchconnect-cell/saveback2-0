@@ -221,7 +221,9 @@ export default function QuickPaymentFlow({
         
         toast({
           title: "Payment Code Generated!",
-          description: "Show this code to the cashier for validation"
+          description: selectedFlow === 'flow1' 
+            ? "Show this code to the cashier for validation"
+            : "Merchant will generate a QR for you to scan"
         });
       }
       
