@@ -537,30 +537,15 @@ export default function QuickPaymentFlow({
         >
           {isProcessing ? (
             "Processing..."
-          ) : paymentMethod === 'psp' ? (
-            finalAmountWithFees === 0 ? (
-              <>
-                <Smartphone className="w-4 h-4 mr-2" />
-                Confirm FREE Purchase
-              </>
-            ) : (
-              <>
-                <Smartphone className="w-4 h-4 mr-2" />
-                Pay ${finalAmountWithFees.toFixed(2)} Now
-              </>
-            )
           ) : (
-            finalAmount === 0 ? (
-              <>
+            <>
+              {paymentMethod === 'psp' ? (
+                <Smartphone className="w-4 h-4 mr-2" />
+              ) : (
                 <QrCode className="w-4 h-4 mr-2" />
-                Get FREE Purchase Code
-              </>
-            ) : (
-              <>
-                <QrCode className="w-4 h-4 mr-2" />
-                Get Payment Code
-              </>
-            )
+              )}
+              Claim Now
+            </>
           )}
         </Button>
 
@@ -578,10 +563,9 @@ export default function QuickPaymentFlow({
               </>
             ) : (
               <>
-                <li>3. Show this code to the merchant to scan</li>
-                <li>4. Merchant validates the purchase</li>
-                <li>5. Merchant confirms cash collection</li>
-                <li>6. You pay the remaining amount (or enjoy your free purchase)</li>
+                <li>3. We'll generate a QR code for your purchase</li>
+                <li>4. Ask the merchant to scan the code</li>
+                <li>5. Pay the final amount shown to complete</li>
               </>
             )}
             {cashbackEarned > 0 && (
