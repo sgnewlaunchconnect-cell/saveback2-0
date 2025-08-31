@@ -1138,26 +1138,26 @@ const DemoQRScanPay = () => {
                   )}
                   
                   {/* Default Cashback - Made Prominent */}
-                  <Card className="border-4 border-primary bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 hover:shadow-2xl hover:shadow-primary/20 transition-all duration-300 animate-pulse">
-                    <CardContent className="p-6">
-                      <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center flex-shrink-0 shadow-lg">
-                          <Store className="h-8 w-8 text-primary-foreground" />
+                  <Card className="border-4 border-primary bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 hover:shadow-2xl hover:shadow-primary/20 transition-all duration-300">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center flex-shrink-0 shadow-lg">
+                          <Store className="h-6 w-6 text-primary-foreground" />
                         </div>
                         <div className="flex-1">
-                          <h4 className="font-bold text-xl text-primary mb-1">💳 SCAN NOW FOR PAYMENT</h4>
-                          <p className="text-base font-medium text-primary/80 mb-2">Instant cashback - no deal required</p>
+                          <h4 className="font-bold text-lg text-primary mb-1">💳 SCAN NOW FOR PAYMENT</h4>
+                          <p className="text-sm font-medium text-primary/80 mb-2">Instant cashback - no deal required</p>
                           <div className="flex items-center gap-2">
-                            <Badge variant="default" className="bg-primary text-primary-foreground text-sm px-3 py-1">
+                            <Badge variant="default" className="bg-primary text-primary-foreground text-xs px-2 py-1">
                               {merchantDefaultCashbackPct}% CASHBACK
                             </Badge>
-                            <span className="text-sm text-primary/70 font-semibold">⚡ INSTANT REWARD</span>
+                            <span className="text-xs text-primary/70 font-semibold">⚡ INSTANT REWARD</span>
                           </div>
                         </div>
                         <Button 
                           onClick={handleSkipDeals}
-                          size="lg"
-                          className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3 text-lg font-bold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+                          size="default"
+                          className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2 font-bold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
                         >
                           🚀 PAY NOW
                         </Button>
