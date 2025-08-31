@@ -274,6 +274,16 @@ const DemoQRScanPay = () => {
     return new Date(thirdMostRecent.timestamp.getTime() + COOLDOWN_MS);
   };
 
+  const resetGrabAttempts = () => {
+    localStorage.removeItem('demoGrabAttempts');
+    // Force a re-render to update the UI
+    setCurrentTime(new Date());
+    toast({ 
+      title: "Reset Successful", 
+      description: "Grab attempts cleared - you can now grab deals again" 
+    });
+  };
+
   const amountCents = Math.round(parseFloat(state.amount) * 100) || 0;
   
   // Calculate effective bill with discounts and active cashback
@@ -1118,9 +1128,21 @@ const DemoQRScanPay = () => {
         return (
           <Card className="h-full">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Tag className="w-5 h-5" />
-                Available Deals
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Tag className="w-5 h-5" />
+                  Available Deals
+                </div>
+                {isRateLimited() && (
+                  <Button 
+                    onClick={resetGrabAttempts}
+                    size="sm"
+                    variant="outline"
+                    className="text-xs h-7 px-2"
+                  >
+                    Reset Attempts
+                  </Button>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -1202,11 +1224,19 @@ const DemoQRScanPay = () => {
                       
                       return (
                         <div className="p-3 bg-destructive/10 rounded-lg border border-destructive">
-                          <div className="text-center">
+                          <div className="text-center space-y-2">
                             <p className="text-sm font-medium text-destructive">Too Many Grab Attempts</p>
                             <p className="text-xs text-destructive">
                               Cooldown: {remainingMins}:{remainingSecs.toString().padStart(2, '0')} remaining
                             </p>
+                            <Button 
+                              onClick={resetGrabAttempts}
+                              size="sm"
+                              variant="outline"
+                              className="text-xs h-6 px-2 border-destructive text-destructive hover:bg-destructive/10"
+                            >
+                              Reset for Testing
+                            </Button>
                           </div>
                         </div>
                       );
@@ -1408,11 +1438,19 @@ const DemoQRScanPay = () => {
                       
                       return (
                         <div className="p-3 bg-destructive/10 rounded-lg border border-destructive">
-                          <div className="text-center">
+                          <div className="text-center space-y-2">
                             <p className="text-sm font-medium text-destructive">Too Many Grab Attempts</p>
                             <p className="text-xs text-destructive">
                               Cooldown: {remainingMins}:{remainingSecs.toString().padStart(2, '0')} remaining
                             </p>
+                            <Button 
+                              onClick={resetGrabAttempts}
+                              size="sm"
+                              variant="outline"
+                              className="text-xs h-6 px-2 border-destructive text-destructive hover:bg-destructive/10"
+                            >
+                              Reset for Testing
+                            </Button>
                           </div>
                         </div>
                       );
