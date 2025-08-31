@@ -644,16 +644,6 @@ const DemoQRScanPay = () => {
     toast({ title: "Customer Skipped", description: "Customer removed from queue" });
   };
 
-  const handleQuickPay = () => {
-    setState(prev => ({
-      ...prev,
-      merchantStep: 'merchant-enter',
-      amount: '',
-      selectedDeal: undefined,
-      currentlyServing: undefined
-    }));
-    toast({ title: "Quick Pay Mode", description: "Ready for walk-in customer" });
-  };
 
   const handleServeNext = () => {
     const nextCustomer = state.queue[0];
@@ -757,12 +747,19 @@ const DemoQRScanPay = () => {
                 )}
               </div>
               <div className="space-y-2">
-                <Button onClick={handleRequestPayment} className="w-full" size="lg">
+                <Button 
+                  onClick={handleRequestPayment} 
+                  className="w-full" 
+                  size="lg"
+                  disabled={!state.currentlyServing}
+                >
                   Request Payment
                 </Button>
-                <Button onClick={handleQuickPay} variant="outline" className="w-full">
-                  Quick Pay (No Deal)
-                </Button>
+                {!state.currentlyServing && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Select a customer from queue to request payment
+                  </p>
+                )}
               </div>
 
               {/* FIFO Payment Queue */}
