@@ -396,10 +396,20 @@ export default function MerchantPaymentCode({
               isValidated ? 'text-blue-600 dark:text-blue-400' :
               'text-foreground'
             }`}>
-              {paymentResult.finalAmount === 0 ? 'FREE!' : `$${paymentResult.finalAmount.toFixed(2)}`}
+              {paymentResult.finalAmount === 0 
+                ? 'FREE!' 
+                : paymentResult.finalAmount !== null && paymentResult.finalAmount !== undefined
+                  ? `$${paymentResult.finalAmount.toFixed(2)}`
+                  : 'TBD'
+              }
             </div>
             <p className="text-xs text-muted-foreground">
-              {paymentResult.finalAmount === 0 ? 'Fully covered by credits' : 'After credits & discounts'}
+              {paymentResult.finalAmount === 0 
+                ? 'Fully covered by credits' 
+                : paymentResult.finalAmount !== null && paymentResult.finalAmount !== undefined
+                  ? 'After credits & discounts'
+                  : 'Merchant will enter the amount'
+              }
             </p>
           </div>
         </CardContent>
@@ -433,11 +443,16 @@ export default function MerchantPaymentCode({
             </p>
             <div className="bg-white/50 rounded-lg p-4 mb-4">
               <p className="text-sm text-green-700">
-                Amount Paid: <span className="font-bold">${paymentResult.finalAmount.toFixed(2)}</span>
+                Amount Paid: <span className="font-bold">
+                  {paymentResult.finalAmount !== null && paymentResult.finalAmount !== undefined
+                    ? `$${paymentResult.finalAmount.toFixed(2)}`
+                    : '$0.00'
+                  }
+                </span>
               </p>
-              {paymentResult.totalSavings > 0 && (
+              {(paymentResult.totalSavings || 0) > 0 && (
                 <p className="text-sm text-green-700">
-                  Total Savings: <span className="font-bold">${paymentResult.totalSavings.toFixed(2)}</span>
+                  Total Savings: <span className="font-bold">${((paymentResult.totalSavings || 0).toFixed(2))}</span>
                 </p>
               )}
             </div>
@@ -589,20 +604,25 @@ export default function MerchantPaymentCode({
             
             <div className="flex justify-between">
               <span className="text-sm">Customer Bill:</span>
-              <span className="font-medium">${paymentResult.billAmount.toFixed(2)}</span>
+              <span className="font-medium">
+                {paymentResult.billAmount !== null && paymentResult.billAmount !== undefined 
+                  ? `$${paymentResult.billAmount.toFixed(2)}`
+                  : 'TBD (merchant will enter)'
+                }
+              </span>
             </div>
             
-            {paymentResult.directDiscount > 0 && (
+            {(paymentResult.directDiscount || 0) > 0 && (
               <div className="flex justify-between text-green-600">
                 <span className="text-sm">Deal Discount:</span>
-                <span className="font-medium">-${paymentResult.directDiscount.toFixed(2)}</span>
+                <span className="font-medium">-${((paymentResult.directDiscount || 0).toFixed(2))}</span>
               </div>
             )}
             
-            {paymentResult.creditsUsed > 0 && (
+            {(paymentResult.creditsUsed || 0) > 0 && (
               <div className="flex justify-between text-blue-600">
                 <span className="text-sm">Credits Applied:</span>
-                <span className="font-medium">-${paymentResult.creditsUsed.toFixed(2)}</span>
+                <span className="font-medium">-${((paymentResult.creditsUsed || 0).toFixed(2))}</span>
               </div>
             )}
             
@@ -610,18 +630,23 @@ export default function MerchantPaymentCode({
               <div className="flex justify-between text-lg font-bold">
                 <span>Final Amount:</span>
                 <span className={paymentResult.isFullyCovered ? "text-green-600" : ""}>
-                  {paymentResult.isFullyCovered ? "FREE!" : `$${paymentResult.finalAmount.toFixed(2)}`}
+                  {paymentResult.isFullyCovered 
+                    ? "FREE!" 
+                    : paymentResult.finalAmount !== null && paymentResult.finalAmount !== undefined
+                      ? `$${paymentResult.finalAmount.toFixed(2)}`
+                      : "TBD (merchant will enter)"
+                  }
                 </span>
               </div>
             </div>
 
             {/* Savings Highlight */}
-            {paymentResult.totalSavings > 0 && (
+            {(paymentResult.totalSavings || 0) > 0 && (
               <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-lg border border-green-200 dark:border-green-800 text-center mt-4">
                 <div className="flex items-center justify-center gap-2 text-green-700 dark:text-green-300">
                   <Gift className="w-4 h-4" />
                   <span className="font-medium">
-                    You Saved ${paymentResult.totalSavings.toFixed(2)}!
+                    You Saved ${((paymentResult.totalSavings || 0).toFixed(2))}!
                   </span>
                 </div>
               </div>
@@ -654,7 +679,9 @@ export default function MerchantPaymentCode({
                 <span>
                   {paymentResult.isFullyCovered 
                     ? "Complete your purchase - it's FREE!" 
-                    : `Pay $${paymentResult.finalAmount.toFixed(2)} at the counter first`
+                    : paymentResult.finalAmount !== null && paymentResult.finalAmount !== undefined
+                      ? `Pay $${paymentResult.finalAmount.toFixed(2)} at the counter first`
+                      : "Merchant will enter the amount and process payment"
                   }
                 </span>
               </div>

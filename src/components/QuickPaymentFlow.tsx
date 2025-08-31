@@ -15,6 +15,7 @@ import MerchantPaymentCode from './MerchantPaymentCode';
 import StripePaymentForm from './StripePaymentForm';
 import ProofOfPaymentQR from './ProofOfPaymentQR';
 import PaymentSuccess from './PaymentSuccess';
+import MerchantValidationSimulator from './MerchantValidationSimulator';
 
 interface QuickPaymentFlowProps {
   grabData: any;
@@ -52,6 +53,7 @@ export default function QuickPaymentFlow({
   // Default to PSP if enabled, otherwise payment code
   const isPspEnabled = merchantData?.psp_enabled || false;
   const [paymentMethod, setPaymentMethod] = useState<'psp' | 'code'>(isPspEnabled ? 'psp' : 'code');
+  const [showDemo, setShowDemo] = useState(false);
 
   const totalCredits = localCredits + networkCredits;
   const amount = parseFloat(billAmount) || 0;
@@ -190,8 +192,11 @@ export default function QuickPaymentFlow({
         
         const result = {
           billAmount: selectedFlow === 'flow1' ? amount : null,
+          originalAmount: selectedFlow === 'flow1' ? amount : null,
           directDiscount: selectedFlow === 'flow1' ? directDiscount : 0,
           creditsUsed: selectedFlow === 'flow1' ? creditsToUse : 0,
+          localCreditsUsed: selectedFlow === 'flow1' ? localCreditsUsed : 0,
+          networkCreditsUsed: selectedFlow === 'flow1' ? networkCreditsUsed : 0,
           finalAmount: selectedFlow === 'flow1' ? finalAmount : null,
           totalSavings: selectedFlow === 'flow1' ? totalSavings : 0,
           paymentCode: data.data.paymentCode,
@@ -365,59 +370,55 @@ export default function QuickPaymentFlow({
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <CreditCard className="h-5 w-5" />
-          Choose Payment Flow
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        
-        {/* Payment Flow Selection */}
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-          <Label className="text-sm font-medium mb-3 block">Payment Flow</Label>
-          <Tabs value={selectedFlow} onValueChange={(value) => setSelectedFlow(value as 'flow1' | 'flow2')}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="flow1" className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                Flow 1
-              </TabsTrigger>
-              <TabsTrigger value="flow2" className="flex items-center gap-2">
-                <Store className="h-4 w-4" />
-                Flow 2
-              </TabsTrigger>
-            </TabsList>
-            <div className="mt-3 text-xs text-muted-foreground">
-              {selectedFlow === 'flow1' ? (
-                <div className="space-y-1">
-                  <p className="font-medium">Customer enters amount</p>
-                  <p>You input the bill amount and apply credits before payment</p>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  <p className="font-medium">Merchant enters amount</p>
-                  <p>Show QR/code to merchant who inputs the amount</p>
-                </div>
-              )}
-            </div>
-          </Tabs>
+    <>
+      <Card className="w-full max-w-md mx-auto">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Choose Payment Flow
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
           
-          <Button
-            onClick={() => {
-              const url = new URL(window.location.href);
-              url.searchParams.set('demo', '1');
-              window.history.pushState({}, '', url.toString());
-              window.location.reload();
-            }}
-            variant="outline"
-            size="sm"
-            className="w-full mt-3 border-dashed"
-          >
-            <Play className="w-4 h-4 mr-2" />
-            Demo this flow
-          </Button>
-        </div>
+          {/* Payment Flow Selection */}
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+            <Label className="text-sm font-medium mb-3 block">Payment Flow</Label>
+            <Tabs value={selectedFlow} onValueChange={(value) => setSelectedFlow(value as 'flow1' | 'flow2')}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="flow1" className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Flow 1
+                </TabsTrigger>
+                <TabsTrigger value="flow2" className="flex items-center gap-2">
+                  <Store className="h-4 w-4" />
+                  Flow 2
+                </TabsTrigger>
+              </TabsList>
+              <div className="mt-3 text-xs text-muted-foreground">
+                {selectedFlow === 'flow1' ? (
+                  <div className="space-y-1">
+                    <p className="font-medium">Customer enters amount</p>
+                    <p>You input the bill amount and apply credits before payment</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <p className="font-medium">Merchant enters amount</p>
+                    <p>Show QR/code to merchant who inputs the amount</p>
+                  </div>
+                )}
+              </div>
+            </Tabs>
+            
+            <Button
+              onClick={() => setShowDemo(true)}
+              variant="outline"
+              size="sm"
+              className="w-full mt-3 border-dashed"
+            >
+              <Play className="w-4 h-4 mr-2" />
+              Demo this flow
+            </Button>
+          </div>
         
         {/* Payment Method Selection */}
         {isPspEnabled && (
@@ -651,7 +652,13 @@ export default function QuickPaymentFlow({
             )}
           </div>
         </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+      
+      <MerchantValidationSimulator 
+        open={showDemo} 
+        onOpenChange={setShowDemo} 
+      />
+    </>
   );
 }

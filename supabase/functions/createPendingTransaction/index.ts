@@ -127,8 +127,11 @@ serve(async (req) => {
     }
 
     // Calculate final amount after credit deductions - only for customer entry mode
-    const totalCreditsUsed = localCreditsUsed + networkCreditsUsed;
-    const finalAmount = originalAmount ? Math.max(0, originalAmount - totalCreditsUsed) : null;
+    let finalAmount = null;
+    if (amountEntryMode === 'customer' && originalAmount !== null && originalAmount !== undefined) {
+      const totalCreditsUsed = localCreditsUsed + networkCreditsUsed;
+      finalAmount = Math.max(0, originalAmount - totalCreditsUsed);
+    }
 
     // Generate dummy 6-digit PIN code
     const dummyPin = Math.floor(100000 + Math.random() * 900000).toString();
