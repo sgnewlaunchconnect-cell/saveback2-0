@@ -17,18 +17,22 @@ interface MerchantValidationSimulatorProps {
     dealTitle?: string;
     billAmount?: number;
   };
+  initialStep?: number;
+  initialMerchantAmount?: string;
 }
 
 export default function MerchantValidationSimulator({ 
   open, 
   onOpenChange, 
   flow = 'flow1',
-  context = {}
+  context = {},
+  initialStep = 1,
+  initialMerchantAmount = ""
 }: MerchantValidationSimulatorProps) {
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(initialStep);
   const [paymentCode, setPaymentCode] = useState("");
   const [showResult, setShowResult] = useState(false);
-  const [merchantAmount, setMerchantAmount] = useState("");
+  const [merchantAmount, setMerchantAmount] = useState(initialMerchantAmount);
   
   const isFlow2 = flow === 'flow2';
   const { merchantName = "Demo Merchant", dealTitle, billAmount } = context;
@@ -70,10 +74,10 @@ export default function MerchantValidationSimulator({
   };
 
   const resetSimulator = () => {
-    setCurrentStep(1);
+    setCurrentStep(initialStep);
     setPaymentCode("");
     setShowResult(false);
-    setMerchantAmount("");
+    setMerchantAmount(initialMerchantAmount);
   };
 
   // Reset simulator when flow changes or modal reopens

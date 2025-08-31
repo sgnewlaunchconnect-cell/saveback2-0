@@ -54,6 +54,7 @@ export default function QuickPaymentFlow({
   const isPspEnabled = merchantData?.psp_enabled || false;
   const [paymentMethod, setPaymentMethod] = useState<'psp' | 'code'>(isPspEnabled ? 'psp' : 'code');
   const [showDemo, setShowDemo] = useState(false);
+  const [showValidationSimulator, setShowValidationSimulator] = useState(false);
 
   const totalCredits = localCredits + networkCredits;
   const amount = parseFloat(billAmount) || 0;
@@ -361,11 +362,15 @@ export default function QuickPaymentFlow({
               The merchant will generate a QR code with your bill amount. Use your phone's camera or QR scanner app to scan it.
             </p>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Your payment code: <span className="font-mono font-semibold">{paymentResult.paymentCode}</span>
-            <br />
-            (Backup option if QR scanner doesn't work)
-          </p>
+          
+          <Button 
+            onClick={() => setShowValidationSimulator(true)} 
+            variant="secondary" 
+            className="w-full"
+          >
+            Demo: What happens next →
+          </Button>
+          
           <Button onClick={handleBackToEdit} variant="outline" className="w-full">
             ← Back to Payment Options
           </Button>
@@ -697,6 +702,19 @@ export default function QuickPaymentFlow({
           dealTitle: grabData?.deals?.title,
           billAmount: selectedFlow === 'flow1' ? amount : undefined
         }}
+      />
+      
+      <MerchantValidationSimulator
+        open={showValidationSimulator}
+        onOpenChange={setShowValidationSimulator}
+        flow={selectedFlow}
+        context={{
+          merchantName: merchantData?.name,
+          dealTitle: grabData?.deal?.title,
+          billAmount: parseFloat(billAmount) || 25
+        }}
+        initialStep={selectedFlow === 'flow2' && paymentResult ? 2 : 1}
+        initialMerchantAmount={selectedFlow === 'flow2' && paymentResult ? (parseFloat(billAmount) || 25).toString() : ""}
       />
     </>
   );
