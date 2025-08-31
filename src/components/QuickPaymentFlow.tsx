@@ -489,10 +489,10 @@ export default function QuickPaymentFlow({
         {selectedFlow === 'flow2' && (
           <div className="bg-amber-50 dark:bg-amber-950/20 p-3 rounded-lg border border-amber-200 dark:border-amber-800">
             <h4 className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-2">
-              Merchant Will Enter Amount
+              You'll Scan Merchant's QR Code
             </h4>
             <p className="text-xs text-amber-700 dark:text-amber-300">
-              The merchant will scan your payment code and enter the bill amount on their terminal. Credits will be applied automatically based on your settings.
+              The merchant will generate a QR code with the bill amount. You scan their QR code to pay. Credits will be applied automatically based on your settings.
             </p>
           </div>
         )}
