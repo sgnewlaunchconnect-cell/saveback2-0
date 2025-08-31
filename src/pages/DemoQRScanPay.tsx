@@ -301,6 +301,40 @@ const DemoQRScanPay = () => {
       return;
     }
     
+    // Check if customer is already in queue
+    const existingCustomer = state.queue.find(c => c.id === state.txId);
+    if (existingCustomer && state.txId) {
+      // Update existing queue entry instead of creating new one
+      const updatedQueue = state.queue.map(customer => 
+        customer.id === state.txId 
+          ? { 
+              ...customer, 
+              amount: state.amount, 
+              deal: state.selectedDeal,
+              paymentWindowExpiry: new Date(Date.now() + PAYMENT_WINDOW_MS) 
+            }
+          : customer
+      );
+      
+      const qrPayload = JSON.stringify({ 
+        amount: state.amount, 
+        txId: state.txId,
+        dealId: state.selectedDeal?.id,
+        cashbackPct: activeCashbackPct,
+        discountPct: discountPct
+      });
+      
+      setState(prev => ({
+        ...prev,
+        step: 'qr-generated',
+        qrPayload,
+        queue: updatedQueue
+      }));
+      
+      toast({ title: "Payment Updated", description: `Amount: ${formatCurrencyDisplay(effectiveBillCents)} - 5min window` });
+      return;
+    }
+    
     const txId = Date.now().toString() + Math.random().toString(36).substring(2, 7);
     const code6 = txId.slice(-6).padStart(6, '0');
     const qrPayload = JSON.stringify({ 
@@ -472,14 +506,88 @@ const DemoQRScanPay = () => {
     });
   };
 
-  const handleUseNow = () => {
+  const handleCustomerPayNow = () => {
+    // Check if already in queue
+    if (state.txId && state.queue.find(c => c.id === state.txId)) {
+      toast({ 
+        title: "Already in Queue", 
+        description: "You're already in the payment queue",
+        variant: "default"
+      });
+      return;
+    }
+    
+    const txId = Date.now().toString() + Math.random().toString(36).substring(2, 7);
+    const code6 = txId.slice(-6).padStart(6, '0');
+    const paymentWindowExpiry = new Date(Date.now() + PAYMENT_WINDOW_MS);
+    
+    // Add customer to merchant queue with placeholder amount
+    const customer: QueueCustomer = {
+      id: txId,
+      displayName: displayName,
+      deal: state.selectedDeal,
+      amount: '—', // Placeholder until merchant enters amount
+      code6: code6,
+      isReadyToPay: true,
+      paymentWindowExpiry
+    };
+    
     setState(prev => ({
       ...prev,
-      step: 'merchant-enter'
+      step: 'qr-generated',
+      txId,
+      code6,
+      qrPayload: '', // Will be set when merchant generates QR
+      isReadyToPay: true,
+      queue: [...prev.queue, customer]
     }));
+    
     toast({ 
-      title: "Ready to Pay", 
-      description: "Switch to merchant panel to proceed" 
+      title: "Added to Payment Queue", 
+      description: "5 min window — scan merchant QR when ready" 
+    });
+  };
+
+  const handleUseNow = () => {
+    // Same as handleCustomerPayNow but preserving selected deal
+    if (state.txId && state.queue.find(c => c.id === state.txId)) {
+      toast({ 
+        title: "Already in Queue", 
+        description: "You're already in the payment queue",
+        variant: "default"
+      });
+      return;
+    }
+    
+    const txId = Date.now().toString() + Math.random().toString(36).substring(2, 7);
+    const code6 = txId.slice(-6).padStart(6, '0');
+    const paymentWindowExpiry = new Date(Date.now() + PAYMENT_WINDOW_MS);
+    
+    // Add customer to merchant queue with selected deal
+    const customer: QueueCustomer = {
+      id: txId,
+      displayName: displayName,
+      deal: state.selectedDeal,
+      amount: '—', // Placeholder until merchant enters amount
+      code6: code6,
+      isReadyToPay: true,
+      paymentWindowExpiry
+    };
+    
+    setState(prev => ({
+      ...prev,
+      step: 'qr-generated',
+      txId,
+      code6,
+      qrPayload: '', // Will be set when merchant generates QR
+      isReadyToPay: true,
+      queue: [...prev.queue, customer],
+      currentHold: undefined // Clear hold since we're using it now
+    }));
+    
+    toast({ 
+      title: "Added to Payment Queue", 
+      description: "5 min window — scan merchant QR when ready" 
     });
   };
 
@@ -716,7 +824,9 @@ const DemoQRScanPay = () => {
                                 ) : (
                                   <Badge variant="secondary" className="text-xs">Default Cashback</Badge>
                                 )}
-                                <span className="text-sm font-medium">{formatCurrencyDisplay(Math.round(parseFloat(customer.amount) * 100))}</span>
+                                <span className="text-sm font-medium">
+                                  {customer.amount === '—' ? '—' : formatCurrencyDisplay(Math.round(parseFloat(customer.amount || '0') * 100))}
+                                </span>
                                 <span className="text-xs text-muted-foreground">Code: ••••••</span>
                                 {customer.paymentWindowExpiry && timeLeft > 0 && (
                                   <span className="text-xs text-orange-600 font-medium">
@@ -1155,7 +1265,7 @@ const DemoQRScanPay = () => {
                           </div>
                         </div>
                         <Button 
-                          onClick={handleSkipDeals}
+                          onClick={handleCustomerPayNow}
                           size="default"
                           className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2 font-bold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
                         >
