@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,12 +39,24 @@ export default function MerchantValidationSimulator({
   };
 
   const handleValidatePayment = () => {
-    if (paymentCode.length === 6) {
-      setShowResult(true);
-      setTimeout(() => {
-        setCurrentStep(2);
-        setShowResult(false);
-      }, 1500);
+    if (isFlow2) {
+      // Flow 2: Merchant enters amount, validates if > 0
+      if (parseFloat(merchantAmount) > 0) {
+        setShowResult(true);
+        setTimeout(() => {
+          setCurrentStep(2);
+          setShowResult(false);
+        }, 1500);
+      }
+    } else {
+      // Flow 1: Customer enters 6-digit code
+      if (paymentCode.length === 6) {
+        setShowResult(true);
+        setTimeout(() => {
+          setCurrentStep(2);
+          setShowResult(false);
+        }, 1500);
+      }
     }
   };
 
@@ -62,6 +74,11 @@ export default function MerchantValidationSimulator({
     setShowResult(false);
     setMerchantAmount("");
   };
+
+  // Reset simulator when flow changes or modal reopens
+  useEffect(() => {
+    resetSimulator();
+  }, [flow, open]);
 
   const handleClose = () => {
     resetSimulator();
@@ -81,8 +98,8 @@ export default function MerchantValidationSimulator({
           </DialogTitle>
           <DialogDescription>
             {isFlow2 
-              ? "Preview how the merchant enters the amount and validates payment" 
-              : "Preview how the merchant validates a customer-generated payment code"
+              ? "Merchant enters bill amount and scans your code" 
+              : "Merchant validates your customer-generated payment code"
             }
           </DialogDescription>
         </DialogHeader>
@@ -213,7 +230,7 @@ export default function MerchantValidationSimulator({
                     AWAITING CASH COLLECTION
                   </Badge>
                   <div className="text-2xl font-bold">
-                    ₹{isFlow2 && merchantAmount ? parseFloat(merchantAmount).toFixed(2) : "25.00"}
+                    ₹{isFlow2 && merchantAmount ? parseFloat(merchantAmount).toFixed(2) : (billAmount?.toFixed(2) ?? "25.00")}
                   </div>
                   <p className="text-muted-foreground">
                     Payment Code: {isFlow2 ? "654321" : (paymentCode || "123456")}
@@ -259,7 +276,7 @@ export default function MerchantValidationSimulator({
                     COMPLETED
                   </Badge>
                   <div className="text-2xl font-bold text-green-600">
-                    ₹{isFlow2 && merchantAmount ? parseFloat(merchantAmount).toFixed(2) : "25.00"}
+                    ₹{isFlow2 && merchantAmount ? parseFloat(merchantAmount).toFixed(2) : (billAmount?.toFixed(2) ?? "25.00")}
                   </div>
                   <p className="text-muted-foreground">
                     Transaction completed successfully!
