@@ -322,7 +322,7 @@ export default function Redeem() {
               type="button"
               style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10, cursor: 'pointer' }}
             >
-              Now To Pay
+              Claim Now
             </Button>
           )}
         </CardContent>

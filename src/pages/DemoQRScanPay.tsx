@@ -1192,7 +1192,7 @@ const DemoQRScanPay = () => {
 
                       <div className="flex gap-2">
                         <Button onClick={handleUseNow} className="flex-1">
-                          Use Now
+                          Claim Now
                         </Button>
                         <Button variant="outline" onClick={handleCancelHold}>
                           Cancel Hold
@@ -1293,7 +1293,7 @@ const DemoQRScanPay = () => {
                           size="default"
                           className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2 font-bold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
                         >
-                          🚀 PAY NOW
+                          🚀 Claim Now
                         </Button>
                       </div>
                     </CardContent>
@@ -1407,7 +1407,7 @@ const DemoQRScanPay = () => {
 
                       <div className="flex gap-2">
                         <Button onClick={handleUseNow} className="flex-1">
-                          Use Now
+                          Claim Now
                         </Button>
                         <Button variant="outline" onClick={handleCancelHold}>
                           Cancel Hold

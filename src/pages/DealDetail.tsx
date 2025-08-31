@@ -303,9 +303,9 @@ const DealDetail = () => {
           onClick={handleGrab}
           disabled={grabbing || isExpired(deal.end_at) || isSoldOut()}
         >
-          {grabbing ? 'Grabbing...' : 
+           {grabbing ? 'Claiming...' : 
            isSoldOut() ? 'Sold Out' :
-           isExpired(deal.end_at) ? 'Deal Expired' : 'Grab This Deal'}
+           isExpired(deal.end_at) ? 'Deal Expired' : 'Claim Now'}
         </Button>
 
         <div className="mt-4 text-center">
