@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { QrCode, CreditCard, Gift, Zap, Smartphone, DollarSign } from 'lucide-react';
+import { QrCode, CreditCard, Gift, Zap, Smartphone, DollarSign, User, Store, Play, Palette } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { getUserId } from '@/utils/userIdManager';
@@ -23,6 +23,7 @@ interface QuickPaymentFlowProps {
   merchantData?: any;
   onComplete: (result: any) => void;
   isStaticQr?: boolean;
+  paymentFlow?: 'flow1' | 'flow2';
 }
 
 export default function QuickPaymentFlow({ 
@@ -31,10 +32,12 @@ export default function QuickPaymentFlow({
   networkCredits, 
   merchantData,
   onComplete,
-  isStaticQr = false
+  isStaticQr = false,
+  paymentFlow = 'flow1'
 }: QuickPaymentFlowProps) {
   const { toast } = useToast();
-  const { isDemoMode, mockSupabaseCall } = useDemoMode();
+  const { isDemoMode, mockSupabaseCall, startDemo } = useDemoMode();
+  const [selectedFlow, setSelectedFlow] = useState<'flow1' | 'flow2'>(paymentFlow);
   const [billAmount, setBillAmount] = useState('');
   const [useCredits, setUseCredits] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -78,7 +81,8 @@ export default function QuickPaymentFlow({
   const cashbackEarned = (finalAmount * cashbackPct) / 100;
 
   const handlePayment = async () => {
-    if (!billAmount || amount <= 0) {
+    // For Flow 2, amount is entered by merchant, not required here
+    if (selectedFlow === 'flow1' && (!billAmount || amount <= 0)) {
       toast({
         title: "Enter Bill Amount",
         description: "Please enter your purchase amount",
@@ -158,23 +162,25 @@ export default function QuickPaymentFlow({
         if (isDemoMode) {
           response = await mockSupabaseCall('createPendingTransaction', {
             merchantId: grabData?.merchant_id || merchantData?.id,
-            originalAmount: amount,
+            originalAmount: selectedFlow === 'flow1' ? amount : null,
             grabId: grabData?.id,
             dealId: grabData?.deal_id,
             anonymousUserId,
-            localCreditsUsed,
-            networkCreditsUsed
+            localCreditsUsed: selectedFlow === 'flow1' ? localCreditsUsed : 0,
+            networkCreditsUsed: selectedFlow === 'flow1' ? networkCreditsUsed : 0,
+            amountEntryMode: selectedFlow === 'flow1' ? 'customer' : 'merchant'
           });
         } else {
           response = await supabase.functions.invoke('createPendingTransaction', {
             body: {
               merchantId: grabData?.merchant_id || merchantData?.id,
-              originalAmount: amount,
+              originalAmount: selectedFlow === 'flow1' ? amount : null,
               grabId: grabData?.id,
               dealId: grabData?.deal_id,
               anonymousUserId,
-              localCreditsUsed,
-              networkCreditsUsed
+              localCreditsUsed: selectedFlow === 'flow1' ? localCreditsUsed : 0,
+              networkCreditsUsed: selectedFlow === 'flow1' ? networkCreditsUsed : 0,
+              amountEntryMode: selectedFlow === 'flow1' ? 'customer' : 'merchant'
             }
           });
         }
@@ -183,19 +189,20 @@ export default function QuickPaymentFlow({
         if (error) throw error;
         
         const result = {
-          billAmount: amount,
-          directDiscount,
-          creditsUsed: creditsToUse,
-          finalAmount,
-          totalSavings,
+          billAmount: selectedFlow === 'flow1' ? amount : null,
+          directDiscount: selectedFlow === 'flow1' ? directDiscount : 0,
+          creditsUsed: selectedFlow === 'flow1' ? creditsToUse : 0,
+          finalAmount: selectedFlow === 'flow1' ? finalAmount : null,
+          totalSavings: selectedFlow === 'flow1' ? totalSavings : 0,
           paymentCode: data.data.paymentCode,
           expiresAt: data.data.expiresAt,
           merchantName: data.data.merchantName,
           dealTitle: grabData?.deals?.title,
-          hasCreditsApplied: creditsToUse > 0,
-          isFullyCovered: finalAmount === 0,
+          hasCreditsApplied: selectedFlow === 'flow1' ? creditsToUse > 0 : false,
+          isFullyCovered: selectedFlow === 'flow1' ? finalAmount === 0 : false,
           paymentMethod: 'code',
-          pendingTransactionId: data.data.transactionId
+          pendingTransactionId: data.data.transactionId,
+          paymentFlow: selectedFlow
         };
         
         console.debug('Payment code generated for validation:', {
@@ -362,10 +369,50 @@ export default function QuickPaymentFlow({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CreditCard className="h-5 w-5" />
-          Choose Payment Method
+          Choose Payment Flow
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        
+        {/* Payment Flow Selection */}
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+          <Label className="text-sm font-medium mb-3 block">Payment Flow</Label>
+          <Tabs value={selectedFlow} onValueChange={(value) => setSelectedFlow(value as 'flow1' | 'flow2')}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="flow1" className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Flow 1
+              </TabsTrigger>
+              <TabsTrigger value="flow2" className="flex items-center gap-2">
+                <Store className="h-4 w-4" />
+                Flow 2
+              </TabsTrigger>
+            </TabsList>
+            <div className="mt-3 text-xs text-muted-foreground">
+              {selectedFlow === 'flow1' ? (
+                <div className="space-y-1">
+                  <p className="font-medium">Customer enters amount</p>
+                  <p>You input the bill amount and apply credits before payment</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <p className="font-medium">Merchant enters amount</p>
+                  <p>Show QR/code to merchant who inputs the amount</p>
+                </div>
+              )}
+            </div>
+          </Tabs>
+          
+          <Button
+            onClick={() => startDemo('customer')}
+            variant="outline"
+            size="sm"
+            className="w-full mt-3 border-dashed"
+          >
+            <Play className="w-4 h-4 mr-2" />
+            Demo this flow
+          </Button>
+        </div>
         
         {/* Payment Method Selection */}
         {isPspEnabled && (
@@ -412,64 +459,80 @@ export default function QuickPaymentFlow({
           </div>
         ) : null}
 
-        {/* Bill Amount Input */}
-        <div className="space-y-2">
-          <Label htmlFor="billAmount">Your Purchase Amount</Label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
-            <Input
-              id="billAmount"
-              type="number"
-              placeholder="0.00"
-              value={billAmount}
-              onChange={(e) => setBillAmount(e.target.value)}
-              className="pl-8 text-lg font-semibold"
-              step="0.01"
-              min="0"
-            />
-          </div>
-        </div>
-
-        {/* Credits Toggle */}
-        <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
-          <div className="flex items-center justify-between space-x-2 mb-3">
-            <div className="space-y-1">
-              <Label htmlFor="use-credits" className="text-sm font-medium">
-                Apply Credits Now?
-              </Label>
-              <Badge variant="secondary" className="text-xs">
-                ${totalCredits.toFixed(2)} available
-              </Badge>
+        {/* Bill Amount Input - Only for Flow 1 */}
+        {selectedFlow === 'flow1' && (
+          <div className="space-y-2">
+            <Label htmlFor="billAmount">Your Purchase Amount</Label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
+              <Input
+                id="billAmount"
+                type="number"
+                placeholder="0.00"
+                value={billAmount}
+                onChange={(e) => setBillAmount(e.target.value)}
+                className="pl-8 text-lg font-semibold"
+                step="0.01"
+                min="0"
+              />
             </div>
-            <Switch
-              id="use-credits"
-              checked={useCredits}
-              onCheckedChange={setUseCredits}
-            />
           </div>
-          
-          {/* Decision Helper Text */}
-          <div className="space-y-2 text-xs">
-            {useCredits ? (
-              <div className="bg-green-100 dark:bg-green-900/20 p-2 rounded border border-green-200 dark:border-green-800">
-                <p className="text-green-700 dark:text-green-300 font-medium">✨ Smart Choice!</p>
-                <p className="text-green-600 dark:text-green-400">
-                  Using ${creditsToUse.toFixed(2)} credits now saves you money immediately
-                </p>
-              </div>
-            ) : (
-              <div className="bg-blue-100 dark:bg-blue-900/20 p-2 rounded border border-blue-200 dark:border-blue-800">
-                <p className="text-blue-700 dark:text-blue-300 font-medium">💎 Accumulate & Save More!</p>
-                <p className="text-blue-600 dark:text-blue-400">
-                  Keep your ${totalCredits.toFixed(2)} + earn ${cashbackEarned.toFixed(2)} more = ${(totalCredits + cashbackEarned).toFixed(2)} for bigger savings!
-                </p>
-              </div>
-            )}
+        )}
+        
+        {/* Flow 2 Instructions */}
+        {selectedFlow === 'flow2' && (
+          <div className="bg-amber-50 dark:bg-amber-950/20 p-3 rounded-lg border border-amber-200 dark:border-amber-800">
+            <h4 className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-2">
+              Merchant Will Enter Amount
+            </h4>
+            <p className="text-xs text-amber-700 dark:text-amber-300">
+              The merchant will scan your payment code and enter the bill amount on their terminal. Credits will be applied automatically based on your settings.
+            </p>
           </div>
-        </div>
+        )}
 
-        {/* Savings Breakdown */}
-        {amount > 0 && (
+        {/* Credits Toggle - Only for Flow 1 */}
+        {selectedFlow === 'flow1' && (
+          <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+            <div className="flex items-center justify-between space-x-2 mb-3">
+              <div className="space-y-1">
+                <Label htmlFor="use-credits" className="text-sm font-medium">
+                  Apply Credits Now?
+                </Label>
+                <Badge variant="secondary" className="text-xs">
+                  ${totalCredits.toFixed(2)} available
+                </Badge>
+              </div>
+              <Switch
+                id="use-credits"
+                checked={useCredits}
+                onCheckedChange={setUseCredits}
+              />
+            </div>
+            
+            {/* Decision Helper Text */}
+            <div className="space-y-2 text-xs">
+              {useCredits ? (
+                <div className="bg-green-100 dark:bg-green-900/20 p-2 rounded border border-green-200 dark:border-green-800">
+                  <p className="text-green-700 dark:text-green-300 font-medium">✨ Smart Choice!</p>
+                  <p className="text-green-600 dark:text-green-400">
+                    Using ${creditsToUse.toFixed(2)} credits now saves you money immediately
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-blue-100 dark:bg-blue-900/20 p-2 rounded border border-blue-200 dark:border-blue-800">
+                  <p className="text-blue-700 dark:text-blue-300 font-medium">💎 Accumulate & Save More!</p>
+                  <p className="text-blue-600 dark:text-blue-400">
+                    Keep your ${totalCredits.toFixed(2)} + earn ${cashbackEarned.toFixed(2)} more = ${(totalCredits + cashbackEarned).toFixed(2)} for bigger savings!
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Savings Breakdown - Only for Flow 1 */}
+        {selectedFlow === 'flow1' && amount > 0 && (
           <div className="bg-muted/50 rounded-lg p-3 space-y-2">
             <h4 className="text-sm font-medium">Payment Summary</h4>
             <div className="flex justify-between text-sm">
@@ -530,56 +593,58 @@ export default function QuickPaymentFlow({
 
         {/* Payment Action Button */}
         <Button 
-          onClick={handlePayment}
-          disabled={isProcessing || !billAmount || amount <= 0}
-          className="w-full"
+          onClick={handlePayment} 
+          disabled={isProcessing || (selectedFlow === 'flow1' && (!billAmount || amount <= 0))}
+          className="w-full" 
           size="lg"
         >
           {isProcessing ? (
-            "Processing..."
+            <>
+              <Zap className="w-4 h-4 mr-2 animate-spin" />
+              Processing...
+            </>
+          ) : selectedFlow === 'flow1' ? (
+            <>
+              <Zap className="w-4 h-4 mr-2" />
+              {finalAmountWithFees > 0 ? `Claim Now - $${finalAmountWithFees.toFixed(2)}` : "Claim FREE!"}
+            </>
           ) : (
             <>
-              {paymentMethod === 'psp' ? (
-                <Smartphone className="w-4 h-4 mr-2" />
-              ) : (
-                <QrCode className="w-4 h-4 mr-2" />
-              )}
-              Claim Now
+              <QrCode className="w-4 h-4 mr-2" />
+              Generate Payment Code
             </>
           )}
         </Button>
 
         {/* Instructions */}
-        <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg text-xs text-blue-700 dark:text-blue-300">
-          <p className="font-medium mb-1">How it works:</p>
-          <ol className="space-y-1">
-            <li>1. Enter your purchase amount above</li>
-            <li>2. Choose to use credits (optional)</li>
-            {paymentMethod === 'psp' ? (
-              <>
-                <li>3. Complete payment securely via Stripe</li>
-                <li>4. Credits and cashback applied automatically</li>
-                <li>5. No merchant validation needed!</li>
-              </>
+        <div className="bg-muted/30 rounded-lg p-3">
+          <h4 className="text-sm font-medium mb-2">How to Use:</h4>
+          <div className="space-y-1 text-xs text-muted-foreground">
+            {selectedFlow === 'flow1' ? (
+              paymentMethod === 'psp' ? (
+                <>
+                  <p>1. Select "Pay In-App" method</p>
+                  <p>2. Enter your purchase amount</p>
+                  <p>3. Choose whether to apply credits</p>
+                  <p>4. Complete payment with your card</p>
+                </>
+              ) : (
+                <>
+                  <p>1. Enter your purchase amount</p>
+                  <p>2. Choose whether to apply credits now</p>
+                  <p>3. Show the payment code to the cashier</p>
+                  <p>4. Pay the final amount in cash</p>
+                </>
+              )
             ) : (
               <>
-                <li>3. We'll generate a QR code for your purchase</li>
-                <li>4. Ask the merchant to scan the code</li>
-                <li>5. Pay the final amount shown to complete</li>
+                <p>1. Generate your payment code</p>
+                <p>2. Show the QR code to the merchant</p>
+                <p>3. Merchant scans and enters bill amount</p>
+                <p>4. Credits apply automatically, pay remaining balance</p>
               </>
             )}
-            {cashbackEarned > 0 && (
-              <li className="font-medium text-purple-700 dark:text-purple-300">
-                {paymentMethod === 'psp' ? '6' : '7'}. Earn ${cashbackEarned.toFixed(2)} credits for next time! 🎁
-              </li>
-            )}
-          </ol>
-          
-          {paymentMethod === 'psp' && feeAmount > 0 && feeMode === 'pass' && (
-            <p className="mt-2 text-orange-600 dark:text-orange-400 font-medium">
-              Note: ${feeAmount.toFixed(2)} payment processing fee included
-            </p>
-          )}
+          </div>
         </div>
       </CardContent>
     </Card>

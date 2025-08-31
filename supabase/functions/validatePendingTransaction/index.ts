@@ -15,7 +15,7 @@ serve(async (req) => {
   }
 
   try {
-    const { paymentCode, merchantId, captureNow } = await req.json();
+    const { paymentCode, merchantId, captureNow, merchantEnteredAmount } = await req.json();
     
     // Create Supabase client with service role key
     const supabase = createClient(
@@ -288,6 +288,31 @@ serve(async (req) => {
       );
     }
 
+    // Handle Flow 2 (merchant-keyed amount) - update transaction with merchant-entered amount
+    if (transaction.amount_entry_mode === 'merchant' && merchantEnteredAmount) {
+      // Update the transaction with the merchant-entered amount
+      const { error: updateAmountError } = await supabase
+        .from('pending_transactions')
+        .update({ 
+          original_amount: merchantEnteredAmount,
+          final_amount: merchantEnteredAmount, // For Flow 2, no pre-applied credits
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', transaction.id);
+
+      if (updateAmountError) {
+        console.error('Error updating transaction amount:', updateAmountError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to update transaction amount' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // Update our local transaction object for further processing
+      transaction.original_amount = merchantEnteredAmount;
+      transaction.final_amount = merchantEnteredAmount;
+    }
+
     // Get deal info if deal_id exists
     let dealInfo = null;
     let cashbackPct = transaction.merchants?.default_cashback_pct || 5; // Default 5%
@@ -305,8 +330,9 @@ serve(async (req) => {
       }
     }
 
-    // Calculate credit amounts
-    const totalCredits = Math.floor((transaction.original_amount * cashbackPct) / 100);
+    // Calculate credit amounts based on the final original_amount
+    const effectiveAmount = transaction.original_amount || 0;
+    const totalCredits = Math.floor((effectiveAmount * cashbackPct) / 100);
     const localCredits = Math.floor(totalCredits * 0.7); // 70% local
     const networkCredits = totalCredits - localCredits; // 30% network
 

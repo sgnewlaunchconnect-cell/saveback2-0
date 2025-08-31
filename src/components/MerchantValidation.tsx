@@ -528,6 +528,17 @@ export default function MerchantValidation({ merchantId, isStaffTerminal = false
                   </Button>
                 </div>
 
+                {/* Payment Flow Support */}
+                <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
+                    Supports Both Payment Flows
+                  </h4>
+                  <div className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
+                    <p><strong>Flow 1:</strong> Customer enters amount → Payment code with final amount</p>
+                    <p><strong>Flow 2:</strong> Merchant enters amount → Validate code and collect payment</p>
+                  </div>
+                </div>
+
                 {/* Simple Mode Info */}
                 {validationMode === 'payment' && (
                   <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
