@@ -33,8 +33,8 @@ serve(async (req) => {
       );
     }
     
-    // For customer entry mode, originalAmount is required
-    if (amountEntryMode === 'customer' && !originalAmount) {
+    // For customer entry mode, originalAmount is required (but 0 is valid)
+    if (amountEntryMode === 'customer' && (originalAmount === undefined || originalAmount === null)) {
       return new Response(
         JSON.stringify({ error: 'originalAmount is required for customer entry mode' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

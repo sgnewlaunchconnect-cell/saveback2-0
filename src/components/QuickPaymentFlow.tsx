@@ -404,7 +404,12 @@ export default function QuickPaymentFlow({
           </Tabs>
           
           <Button
-            onClick={() => startDemo('customer')}
+            onClick={() => {
+              const url = new URL(window.location.href);
+              url.searchParams.set('demo', '1');
+              window.history.pushState({}, '', url.toString());
+              window.location.reload();
+            }}
             variant="outline"
             size="sm"
             className="w-full mt-3 border-dashed"

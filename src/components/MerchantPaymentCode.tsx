@@ -97,7 +97,8 @@ export default function MerchantPaymentCode({
             if (paymentResult.finalAmount === 0) {
               setStatusMessage('Verified — Transaction complete!');
             } else {
-              setStatusMessage(`Verified — Please pay $${paymentResult.finalAmount.toFixed(2)} to the cashier. Then press Payment Received.`);
+              const finalAmount = paymentResult.finalAmount ?? 0;
+              setStatusMessage(`Verified — Please pay $${finalAmount.toFixed(2)} to the cashier. Then press Payment Received.`);
             }
             break;
           case 'completed':
