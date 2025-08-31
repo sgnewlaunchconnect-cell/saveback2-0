@@ -15,7 +15,7 @@ serve(async (req) => {
   }
 
   try {
-    const { paymentCode, merchantId, captureNow } = await req.json();
+    const { paymentCode, merchantId, captureNow, billAmountCents } = await req.json();
     
     // Create Supabase client with service role key
     const supabase = createClient(
@@ -61,7 +61,7 @@ serve(async (req) => {
     // Check if this is demo mode
     const isDemoMode = merchantId === null;
 
-    console.log('validatePendingTransaction called with:', { paymentCode, merchantId, isDemoMode, captureNow });
+    console.log('validatePendingTransaction called with:', { paymentCode, merchantId, isDemoMode, captureNow, billAmountCents });
 
     if (!paymentCode) {
       return new Response(
@@ -144,6 +144,37 @@ serve(async (req) => {
         }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Handle merchant-keyed amount entry (Flow 2)
+    if (transaction.amount_entry_mode === 'merchant' && transaction.original_amount === null) {
+      if (!billAmountCents) {
+        return new Response(
+          JSON.stringify({ error: 'Bill amount is required for merchant entry mode' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // Update the transaction with the merchant-entered amount
+      const { error: amountUpdateError } = await supabase
+        .from('pending_transactions')
+        .update({
+          original_amount: billAmountCents,
+          final_amount: billAmountCents // In Flow 2, no credits are pre-applied
+        })
+        .eq('id', transaction.id);
+        
+      if (amountUpdateError) {
+        console.error('Error updating transaction amount:', amountUpdateError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to update transaction amount' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // Update the transaction object to reflect the new amounts
+      transaction.original_amount = billAmountCents;
+      transaction.final_amount = billAmountCents;
     }
 
     // Handle zero-amount transactions (fully covered by credits) - auto-complete

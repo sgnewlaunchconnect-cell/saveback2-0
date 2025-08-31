@@ -14,7 +14,17 @@ serve(async (req) => {
   }
 
   try {
-    const { merchantId, originalAmount, grabId, dealId, anonymousUserId, isDemoMode, localCreditsUsed = 0, networkCreditsUsed = 0 } = await req.json();
+    const { 
+      merchantId, 
+      originalAmount, 
+      grabId, 
+      dealId, 
+      anonymousUserId, 
+      isDemoMode, 
+      localCreditsUsed = 0, 
+      networkCreditsUsed = 0,
+      amountEntryMode = 'customer'
+    } = await req.json();
 
     console.log('createPendingTransaction called with:', {
       merchantId,
@@ -22,13 +32,22 @@ serve(async (req) => {
       grabId,
       dealId,
       anonymousUserId,
-      isDemoMode
+      isDemoMode,
+      amountEntryMode
     });
 
     // Validate required fields
-    if (!merchantId || !originalAmount) {
+    if (!merchantId) {
       return new Response(
-        JSON.stringify({ error: 'merchantId and originalAmount are required' }),
+        JSON.stringify({ error: 'merchantId is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // For customer entry mode, originalAmount is required
+    if (amountEntryMode === 'customer' && !originalAmount) {
+      return new Response(
+        JSON.stringify({ error: 'originalAmount is required for customer entry mode' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -118,9 +137,11 @@ serve(async (req) => {
       }
     }
 
-    // Calculate final amount after credit deductions
+    // Calculate final amount after credit deductions (only for customer entry mode)
     const totalCreditsUsed = localCreditsUsed + networkCreditsUsed;
-    const finalAmount = Math.max(0, originalAmount - totalCreditsUsed);
+    const finalAmount = amountEntryMode === 'customer' && originalAmount 
+      ? Math.max(0, originalAmount - totalCreditsUsed) 
+      : null;
 
     // Generate dummy 6-digit PIN code
     const dummyPin = Math.floor(100000 + Math.random() * 900000).toString();
@@ -139,6 +160,7 @@ serve(async (req) => {
         grab_id: linkedGrabId,
         status: 'pending',
         payment_code: dummyPin,
+        amount_entry_mode: amountEntryMode,
         expires_at: new Date(Date.now() + 3 * 60 * 1000).toISOString() // 3 minutes from now
       })
       .select('id, payment_code, expires_at')
