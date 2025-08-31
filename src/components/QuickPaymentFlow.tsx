@@ -657,7 +657,13 @@ export default function QuickPaymentFlow({
       
       <MerchantValidationSimulator 
         open={showDemo} 
-        onOpenChange={setShowDemo} 
+        onOpenChange={setShowDemo}
+        flow={selectedFlow}
+        context={{
+          merchantName: merchantData?.name || grabData?.deals?.merchant_name,
+          dealTitle: grabData?.deals?.title,
+          billAmount: selectedFlow === 'flow1' ? amount : undefined
+        }}
       />
     </>
   );
