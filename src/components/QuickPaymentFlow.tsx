@@ -11,7 +11,6 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { getUserId } from '@/utils/userIdManager';
 import { useDemoMode } from '@/hooks/useDemoMode';
-import { getPaymentFlowVersion, getPaymentFlowDisplayName } from '@/utils/paymentFlowVersion';
 import MerchantPaymentCode from './MerchantPaymentCode';
 import StripePaymentForm from './StripePaymentForm';
 import ProofOfPaymentQR from './ProofOfPaymentQR';
@@ -50,8 +49,6 @@ export default function QuickPaymentFlow({
   // Default to PSP if enabled, otherwise payment code
   const isPspEnabled = merchantData?.psp_enabled || false;
   const [paymentMethod, setPaymentMethod] = useState<'psp' | 'code'>(isPspEnabled ? 'psp' : 'code');
-  
-  const paymentFlowVersion = getPaymentFlowVersion();
 
   const totalCredits = localCredits + networkCredits;
   const amount = parseFloat(billAmount) || 0;
@@ -81,10 +78,7 @@ export default function QuickPaymentFlow({
   const cashbackEarned = (finalAmount * cashbackPct) / 100;
 
   const handlePayment = async () => {
-    // For Flow 2 payment code, skip amount validation since merchant will enter it
-    const isFlow2CodePayment = paymentFlowVersion === '2' && paymentMethod === 'code';
-    
-    if (!isFlow2CodePayment && (!billAmount || amount <= 0)) {
+    if (!billAmount || amount <= 0) {
       toast({
         title: "Enter Bill Amount",
         description: "Please enter your purchase amount",
@@ -172,19 +166,15 @@ export default function QuickPaymentFlow({
             networkCreditsUsed
           });
         } else {
-          // For Flow 2 code payments, don't send amounts
-          const isFlow2CodePayment = paymentFlowVersion === '2' && paymentMethod === 'code';
-          
           response = await supabase.functions.invoke('createPendingTransaction', {
             body: {
               merchantId: grabData?.merchant_id || merchantData?.id,
-              originalAmount: isFlow2CodePayment ? null : amount,
+              originalAmount: amount,
               grabId: grabData?.id,
               dealId: grabData?.deal_id,
               anonymousUserId,
-              localCreditsUsed: isFlow2CodePayment ? 0 : localCreditsUsed,
-              networkCreditsUsed: isFlow2CodePayment ? 0 : networkCreditsUsed,
-              amountEntryMode: isFlow2CodePayment ? 'merchant' : 'customer'
+              localCreditsUsed,
+              networkCreditsUsed
             }
           });
         }
@@ -370,15 +360,10 @@ export default function QuickPaymentFlow({
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <div className="flex justify-between items-start">
-          <div className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
-            <CardTitle>Choose Payment Method</CardTitle>
-          </div>
-          <Badge variant="outline" className="text-xs">
-            {getPaymentFlowDisplayName(paymentFlowVersion)}
-          </Badge>
-        </div>
+        <CardTitle className="flex items-center gap-2">
+          <CreditCard className="h-5 w-5" />
+          Choose Payment Method
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         
@@ -427,29 +412,26 @@ export default function QuickPaymentFlow({
           </div>
         ) : null}
 
-        {/* Bill Amount Input - Show only for Flow 1 or PSP payments */}
-        {(paymentFlowVersion === '1' || paymentMethod === 'psp') && (
-          <div className="space-y-2">
-            <Label htmlFor="billAmount">Your Purchase Amount</Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
-              <Input
-                id="billAmount"
-                type="number"
-                placeholder="0.00"
-                value={billAmount}
-                onChange={(e) => setBillAmount(e.target.value)}
-                className="pl-8 text-lg font-semibold"
-                step="0.01"
-                min="0"
-              />
-            </div>
+        {/* Bill Amount Input */}
+        <div className="space-y-2">
+          <Label htmlFor="billAmount">Your Purchase Amount</Label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
+            <Input
+              id="billAmount"
+              type="number"
+              placeholder="0.00"
+              value={billAmount}
+              onChange={(e) => setBillAmount(e.target.value)}
+              className="pl-8 text-lg font-semibold"
+              step="0.01"
+              min="0"
+            />
           </div>
-        )}
+        </div>
 
-        {/* Credits Toggle - Show only for Flow 1 or PSP payments */}
-        {(paymentFlowVersion === '1' || paymentMethod === 'psp') && (
-          <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+        {/* Credits Toggle */}
+        <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
           <div className="flex items-center justify-between space-x-2 mb-3">
             <div className="space-y-1">
               <Label htmlFor="use-credits" className="text-sm font-medium">
@@ -484,11 +466,10 @@ export default function QuickPaymentFlow({
               </div>
             )}
           </div>
-          </div>
-        )}
+        </div>
 
-        {/* Savings Breakdown - Show only for Flow 1 or PSP payments */}
-        {(paymentFlowVersion === '1' || paymentMethod === 'psp') && amount > 0 && (
+        {/* Savings Breakdown */}
+        {amount > 0 && (
           <div className="bg-muted/50 rounded-lg p-3 space-y-2">
             <h4 className="text-sm font-medium">Payment Summary</h4>
             <div className="flex justify-between text-sm">
@@ -550,7 +531,7 @@ export default function QuickPaymentFlow({
         {/* Payment Action Button */}
         <Button 
           onClick={handlePayment}
-          disabled={isProcessing || (paymentFlowVersion === '1' && paymentMethod === 'code' && (!billAmount || amount <= 0)) || (paymentMethod === 'psp' && (!billAmount || amount <= 0))}
+          disabled={isProcessing || !billAmount || amount <= 0}
           className="w-full"
           size="lg"
         >
@@ -579,12 +560,6 @@ export default function QuickPaymentFlow({
                 <li>3. Complete payment securely via Stripe</li>
                 <li>4. Credits and cashback applied automatically</li>
                 <li>5. No merchant validation needed!</li>
-              </>
-            ) : paymentFlowVersion === '2' ? (
-              <>
-                <li>3. We'll generate a QR code for your purchase</li>
-                <li>4. Ask the merchant to scan the code and key in the amount</li>
-                <li>5. Pay the final amount to complete your purchase</li>
               </>
             ) : (
               <>

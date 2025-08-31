@@ -11,7 +11,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { formatDistanceToNow } from "date-fns";
-import { getPaymentFlowVersion, getPaymentFlowDisplayName } from "@/utils/paymentFlowVersion";
 import MerchantValidationSimulator from "./MerchantValidationSimulator";
 import { MerchantCollectCashSimulator } from "./MerchantCollectCashSimulator";
 import { MerchantCompletedSimulator } from "./MerchantCompletedSimulator";
@@ -48,10 +47,7 @@ interface Transaction {
 
 export default function MerchantValidation({ merchantId, isStaffTerminal = false }: MerchantValidationProps) {
   const [validationCode, setValidationCode] = useState("");
-  const [billAmount, setBillAmount] = useState("");
   const [isValidating, setIsValidating] = useState(false);
-  
-  const paymentFlowVersion = getPaymentFlowVersion();
   const [validationMode, setValidationMode] = useState<'payment' | 'grab'>('payment');
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [pendingTransactions, setPendingTransactions] = useState<Transaction[]>([]);
@@ -213,19 +209,12 @@ export default function MerchantValidation({ merchantId, isStaffTerminal = false
     
     try {
       if (validationMode === 'payment') {
-        // For Flow 2, include bill amount if provided
-        const body: any = { 
-          paymentCode: validationCode,
-          merchantId: merchantId,
-          captureNow: oneTapMode
-        };
-        
-        if (paymentFlowVersion === '2' && billAmount) {
-          body.billAmountCents = Math.round(parseFloat(billAmount) * 100);
-        }
-        
         const { data, error } = await supabase.functions.invoke('validatePendingTransaction', {
-          body
+          body: { 
+            paymentCode: validationCode,
+            merchantId: merchantId,
+            captureNow: oneTapMode
+          }
         });
 
         if (error) throw error;
@@ -340,7 +329,6 @@ export default function MerchantValidation({ merchantId, isStaffTerminal = false
   const resetValidation = () => {
     setValidationResult(null);
     setValidationCode('');
-    setBillAmount('');
   };
 
   const confirmCashCollection = async (paymentCode: string) => {
@@ -504,15 +492,10 @@ export default function MerchantValidation({ merchantId, isStaffTerminal = false
 
           <Card className="w-full max-w-md mx-auto">
             <CardHeader>
-              <div className="flex justify-between items-start">
-                <div className="flex items-center gap-2">
-                  <Scan className="w-5 h-5" />
-                  <CardTitle>Manual Validation</CardTitle>
-                </div>
-                <Badge variant="outline" className="text-xs">
-                  {getPaymentFlowDisplayName(paymentFlowVersion)}
-                </Badge>
-              </div>
+              <CardTitle className="flex items-center gap-2">
+                <Scan className="w-5 h-5" />
+                Manual Validation
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Mode Toggle */}
@@ -587,33 +570,9 @@ export default function MerchantValidation({ merchantId, isStaffTerminal = false
                   />
                 </div>
 
-                {/* Bill Amount Input for Flow 2 Payment Mode */}
-                {paymentFlowVersion === '2' && validationMode === 'payment' && (
-                  <div className="space-y-2">
-                    <Label htmlFor="billAmount">Bill Amount</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
-                      <Input
-                        id="billAmount"
-                        type="number"
-                        placeholder="0.00"
-                        value={billAmount}
-                        onChange={(e) => setBillAmount(e.target.value)}
-                        className="pl-8 text-lg font-semibold"
-                        step="0.01"
-                        min="0"
-                      />
-                    </div>
-                  </div>
-                )}
-
                 <Button
                   onClick={handleValidation}
-                  disabled={
-                    validationCode.length !== 6 || 
-                    isValidating ||
-                    (paymentFlowVersion === '2' && validationMode === 'payment' && !billAmount)
-                  }
+                  disabled={validationCode.length !== 6 || isValidating}
                   className="w-full"
                   size="lg"
                 >
