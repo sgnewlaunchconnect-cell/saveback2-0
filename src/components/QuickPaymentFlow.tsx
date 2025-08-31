@@ -402,8 +402,8 @@ export default function QuickPaymentFlow({
                   </div>
                 ) : (
                   <div className="space-y-1">
-                    <p className="font-medium">Merchant enters amount</p>
-                    <p>Merchant scans your code and enters the bill amount</p>
+                    <p className="font-medium">Merchant generates QR</p>
+                    <p>You scan the merchant's QR code to pay</p>
                   </div>
                 )}
               </div>

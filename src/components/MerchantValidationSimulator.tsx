@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Scan, DollarSign, CreditCard } from "lucide-react";
+import { CheckCircle, Scan, DollarSign, CreditCard, QrCode } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 
 interface MerchantValidationSimulatorProps {
   open: boolean;
@@ -94,12 +95,12 @@ export default function MerchantValidationSimulator({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {isFlow2 ? "Flow 2: Merchant Entry Preview" : "Flow 1: Customer Entry Preview"}
+            {isFlow2 ? "QR Payment Demo - Customer Scans Merchant" : "Code Payment Demo - Merchant Validates Customer"}
           </DialogTitle>
           <DialogDescription>
             {isFlow2 
-              ? "Merchant enters bill amount and scans your code" 
-              : "Merchant validates your customer-generated payment code"
+              ? "Merchant generates QR, customer scans and pays" 
+              : "Customer generates code, merchant validates payment"
             }
           </DialogDescription>
         </DialogHeader>
@@ -140,8 +141,8 @@ export default function MerchantValidationSimulator({
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  {isFlow2 ? <DollarSign className="w-5 h-5" /> : <Scan className="w-5 h-5" />}
-                  {isFlow2 ? "Step 1: Enter Bill Amount" : "Step 1: Enter Payment Code"}
+                  {isFlow2 ? <QrCode className="w-5 h-5" /> : <Scan className="w-5 h-5" />}
+                  {isFlow2 ? "Step 1: Generate Payment QR" : "Step 1: Enter Payment Code"}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -164,7 +165,7 @@ export default function MerchantValidationSimulator({
                       disabled={!merchantAmount || parseFloat(merchantAmount) <= 0}
                       className="w-full"
                     >
-                      Generate Payment Code
+                      Generate QR Code
                     </Button>
                   </>
                 ) : (
@@ -207,7 +208,7 @@ export default function MerchantValidationSimulator({
                   <div className="text-center py-4">
                     <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
                     <p className="text-green-600 font-medium">
-                      {isFlow2 ? "Code Generated!" : "Code Validated!"}
+                      {isFlow2 ? "QR Generated!" : "Code Validated!"}
                     </p>
                   </div>
                 )}
@@ -215,46 +216,71 @@ export default function MerchantValidationSimulator({
             </Card>
           )}
 
-          {/* Step 2: Payment Authorized */}
+          {/* Step 2: QR Display or Payment Processing */}
           {currentStep === 2 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="w-5 h-5" />
-                  Step 2: Payment Authorized
+                  {isFlow2 ? <QrCode className="w-5 h-5" /> : <CreditCard className="w-5 h-5" />}
+                  {isFlow2 ? "Step 2: QR Code Generated" : "Step 2: Payment Authorized"}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="text-center space-y-2">
-                  <Badge variant="secondary" className="text-yellow-600 bg-yellow-100">
-                    AWAITING CASH COLLECTION
-                  </Badge>
-                  <div className="text-2xl font-bold">
-                    ₹{isFlow2 && merchantAmount ? parseFloat(merchantAmount).toFixed(2) : (billAmount?.toFixed(2) ?? "25.00")}
-                  </div>
-                  <p className="text-muted-foreground">
-                    Payment Code: {isFlow2 ? "654321" : (paymentCode || "123456")}
-                  </p>
-                  {isFlow2 && (
-                    <p className="text-xs text-muted-foreground">
-                      Customer shows this code to complete payment
+                {isFlow2 ? (
+                  <div className="text-center space-y-4">
+                    <div className="bg-white p-4 rounded-lg border border-gray-200 inline-block">
+                      <QRCodeSVG 
+                        value={JSON.stringify({ 
+                          amount: merchantAmount, 
+                          merchantId: "demo-merchant",
+                          type: "payment" 
+                        })}
+                        size={128}
+                        level="M"
+                      />
+                    </div>
+                    <div className="text-xl font-bold">
+                      ₹{parseFloat(merchantAmount).toFixed(2)}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Customer scans this QR to pay
                     </p>
-                  )}
-                </div>
-
-                <Button
-                  onClick={handleConfirmCash}
-                  className="w-full"
-                  size="lg"
-                >
-                  <DollarSign className="w-4 h-4 mr-2" />
-                  Confirm Cash Received
-                </Button>
+                    <Button 
+                      onClick={handleConfirmCash}
+                      className="w-full"
+                      size="lg"
+                    >
+                      Simulate Customer Scan & Pay
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="text-center space-y-4">
+                    <Badge variant="secondary" className="text-yellow-600 bg-yellow-100">
+                      AWAITING CASH COLLECTION
+                    </Badge>
+                    <div className="text-2xl font-bold">
+                      ₹{billAmount?.toFixed(2) ?? "25.00"}
+                    </div>
+                    <p className="text-muted-foreground">
+                      Payment Code: {paymentCode || "123456"}
+                    </p>
+                    <Button
+                      onClick={handleConfirmCash}
+                      className="w-full"
+                      size="lg"
+                    >
+                      <DollarSign className="w-4 h-4 mr-2" />
+                      Confirm Cash Received
+                    </Button>
+                  </div>
+                )}
 
                 {showResult && (
                   <div className="text-center py-4">
                     <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
-                    <p className="text-green-600 font-medium">Cash Confirmed!</p>
+                    <p className="text-green-600 font-medium">
+                      {isFlow2 ? "Customer Paid!" : "Cash Confirmed!"}
+                    </p>
                   </div>
                 )}
               </CardContent>
@@ -279,14 +305,14 @@ export default function MerchantValidationSimulator({
                     ₹{isFlow2 && merchantAmount ? parseFloat(merchantAmount).toFixed(2) : (billAmount?.toFixed(2) ?? "25.00")}
                   </div>
                   <p className="text-muted-foreground">
-                    Transaction completed successfully!
+                    {isFlow2 ? "Customer scanned QR and paid successfully!" : "Transaction completed successfully!"}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     Credits have been awarded to both customer and merchant.
                   </p>
                   {isFlow2 && (
                     <p className="text-xs text-blue-600 bg-blue-50 dark:bg-blue-950/20 p-2 rounded">
-                      In Flow 2, the merchant controls the amount and generates the payment code for the customer.
+                      In Flow 2, merchant generates QR and customer scans to pay via app.
                     </p>
                   )}
                 </div>
