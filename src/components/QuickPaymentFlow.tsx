@@ -329,8 +329,8 @@ export default function QuickPaymentFlow({
     );
   }
 
-  // Show payment code inline after generation
-  if (paymentResult && paymentResult.paymentMethod === 'code') {
+  // Show payment code inline after generation (Flow 1 only)
+  if (paymentResult && paymentResult.paymentMethod === 'code' && paymentResult.paymentFlow === 'flow1') {
     return (
       <MerchantPaymentCode
         paymentResult={paymentResult}
@@ -338,6 +338,39 @@ export default function QuickPaymentFlow({
         merchantData={merchantData}
         grabData={grabData}
       />
+    );
+  }
+
+  // For Flow 2, show scanner interface instead of payment code
+  if (paymentResult && paymentResult.paymentMethod === 'code' && paymentResult.paymentFlow === 'flow2') {
+    return (
+      <Card className="w-full max-w-md mx-auto">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <QrCode className="h-5 w-5" />
+            Ready to Scan
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 text-center">
+          <div className="bg-blue-50 dark:bg-blue-950/20 p-6 rounded-lg border border-blue-200 dark:border-blue-800">
+            <QrCode className="w-16 h-16 mx-auto mb-4 text-blue-600" />
+            <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">
+              Scan Merchant's QR Code
+            </h3>
+            <p className="text-sm text-blue-600 dark:text-blue-400">
+              The merchant will generate a QR code with your bill amount. Use your phone's camera or QR scanner app to scan it.
+            </p>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Your payment code: <span className="font-mono font-semibold">{paymentResult.paymentCode}</span>
+            <br />
+            (Backup option if QR scanner doesn't work)
+          </p>
+          <Button onClick={handleBackToEdit} variant="outline" className="w-full">
+            ← Back to Payment Options
+          </Button>
+        </CardContent>
+      </Card>
     );
   }
 
