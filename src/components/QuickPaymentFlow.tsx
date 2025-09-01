@@ -712,7 +712,7 @@ export default function QuickPaymentFlow({
         flow={selectedFlow}
         context={{
           merchantName: merchantData?.name,
-          dealTitle: grabData?.deal?.title,
+          dealTitle: grabData?.deals?.title,
           billAmount: parseFloat(billAmount) || 25
         }}
         initialStep={selectedFlow === 'flow2' && paymentResult ? 2 : 1}
