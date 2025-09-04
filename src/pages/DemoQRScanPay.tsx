@@ -81,6 +81,8 @@ interface DemoState {
   isOnline: boolean;
   forceOffline: boolean;
   offlineCollections: OfflineCollection[];
+  customerManualAmount: string;
+  customerManualAmountMode: boolean;
 }
 
 const DemoQRScanPay = () => {
@@ -174,7 +176,9 @@ const DemoQRScanPay = () => {
     noShowCount: 0,
     isOnline: navigator.onLine,
     forceOffline: false,
-    offlineCollections: []
+    offlineCollections: [],
+    customerManualAmount: '',
+    customerManualAmountMode: false
   });
 
   // Timer for countdown updates
@@ -633,7 +637,9 @@ const DemoQRScanPay = () => {
       noShowCount: prev.noShowCount, // Keep no-show count
       isOnline: navigator.onLine,
       forceOffline: false,
-      offlineCollections: []
+      offlineCollections: [],
+      customerManualAmount: '',
+      customerManualAmountMode: false
     }));
   };
 
@@ -646,6 +652,62 @@ const DemoQRScanPay = () => {
       selectedNetworkCents: network,
       balanceCents: balance
     }));
+  };
+
+  const handleCustomerEnterManualAmount = () => {
+    setState(prev => ({
+      ...prev,
+      customerManualAmountMode: true,
+      customerManualAmount: ''
+    }));
+  };
+
+  const handleCustomerManualAmountSubmit = () => {
+    const amountCents = Math.floor(parseFloat(state.customerManualAmount || '0') * 100);
+    if (amountCents <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid amount",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Generate offline transaction ID
+    const offlineTxId = `offline_${Date.now()}`;
+    
+    // Auto-allocate credits based on manual amount (local first, then network)
+    const maxLocal = Math.min(state.availableLocalCents, amountCents);
+    const maxNetwork = Math.min(state.availableNetworkCents, amountCents - maxLocal);
+    const balance = amountCents - maxLocal - maxNetwork;
+    
+    setState(prev => ({
+      ...prev,
+      customerStep: 'customer-select',
+      amount: state.customerManualAmount,
+      txId: offlineTxId,
+      selectedLocalCents: maxLocal,
+      selectedNetworkCents: maxNetwork,
+      balanceCents: balance,
+      applyCredits: true,
+      customerManualAmountMode: false
+    }));
+
+    // Store in localStorage for persistence
+    const offlineEntry = {
+      txId: offlineTxId,
+      amount: state.customerManualAmount,
+      customerSelectedCredits: { local: maxLocal, network: maxNetwork },
+      timestamp: new Date().toISOString()
+    };
+    
+    const existingOffline = JSON.parse(localStorage.getItem('demoOfflineEntries') || '[]');
+    localStorage.setItem('demoOfflineEntries', JSON.stringify([offlineEntry, ...existingOffline]));
+
+    toast({
+      title: "Amount Entered",
+      description: `Review your payment of ${formatCurrencyDisplay(amountCents)} and confirm your credit selection`
+    });
   };
 
   const handleCollectCashOffline = () => {
@@ -1084,11 +1146,13 @@ const DemoQRScanPay = () => {
                 <>
                   {/* Offline Mode */}
                   <Badge variant="destructive" className="mb-4">Offline Mode</Badge>
-                  <div className="p-4 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg">
-                    <p className="text-sm text-orange-800 dark:text-orange-200 mb-3">
-                      Ask customer to show <strong>Balance to Pay</strong> on their phone.<br />
-                      Collect that amount in cash.
-                    </p>
+                   <div className="p-4 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+                     <p className="text-sm text-orange-800 dark:text-orange-200 mb-3">
+                       <strong>Option 1:</strong> Ask customer to show <strong>Balance to Pay</strong> on their phone.<br />
+                       <strong>Option 2:</strong> If customer can't scan/enter code, tell them to use "Enter Amount From Cashier" and give them this bill amount: <strong>{formatCurrencyDisplay(effectiveBillCents)}</strong><br />
+                       <br />
+                       Collect the final amount shown below in cash.
+                     </p>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span>Amount to Collect:</span>
@@ -1834,29 +1898,104 @@ const DemoQRScanPay = () => {
                     <Button onClick={handleSimulateScan} variant="outline" className="w-full">
                       Simulate QR Scan
                     </Button>
-                    <div className="space-y-2 pt-2 border-t">
-                      <p className="text-xs text-muted-foreground">Or enter 6-digit code manually:</p>
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="000000"
-                          value={state.manualCodeInput}
-                          onChange={(e) => setState(prev => ({ ...prev, manualCodeInput: e.target.value }))}
-                          maxLength={6}
-                          className="text-center font-mono"
-                        />
-                        <Button onClick={handleManualCodeEntry} variant="outline" size="sm">
-                          Enter Code
-                        </Button>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        );
+                     <div className="space-y-2 pt-2 border-t">
+                       <p className="text-xs text-muted-foreground">Or enter 6-digit code manually:</p>
+                       <div className="flex gap-2">
+                         <Input
+                           placeholder="000000"
+                           value={state.manualCodeInput}
+                           onChange={(e) => setState(prev => ({ ...prev, manualCodeInput: e.target.value }))}
+                           maxLength={6}
+                           className="text-center font-mono"
+                         />
+                         <Button onClick={handleManualCodeEntry} variant="outline" size="sm">
+                           Enter Code
+                         </Button>
+                       </div>
+                     </div>
+                     
+                     <div className="space-y-2 pt-2 border-t">
+                       <p className="text-xs text-muted-foreground">Can't scan or enter code? Enter amount manually:</p>
+                       <Button onClick={handleCustomerEnterManualAmount} variant="secondary" className="w-full">
+                         Enter Amount From Cashier
+                       </Button>
+                     </div>
+                   </>
+                 )}
+               </div>
+             </CardContent>
+           </Card>
+         );
 
-      case 'customer-select':
+       case 'customer-select':
+         // Show manual amount entry mode if enabled
+         if (state.customerManualAmountMode) {
+           return (
+             <Card className="h-full">
+               <CardHeader>
+                 <CardTitle className="flex items-center gap-2">
+                   <Hash className="w-5 h-5" />
+                   Enter Amount From Cashier
+                 </CardTitle>
+               </CardHeader>
+               <CardContent className="space-y-4">
+                 <div className="p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                   <div className="flex items-center gap-2 mb-2">
+                     <WifiOff className="w-4 h-4 text-orange-600" />
+                     <span className="text-sm font-medium text-orange-600">Manual Entry Mode</span>
+                   </div>
+                   <p className="text-xs text-orange-600">
+                     Ask the cashier for the bill amount and enter it below
+                   </p>
+                 </div>
+                 
+                 <div className="space-y-2">
+                   <label className="text-sm font-medium">Bill Amount</label>
+                   <Input
+                     type="number"
+                     placeholder="0.00"
+                     value={state.customerManualAmount}
+                     onChange={(e) => setState(prev => ({ ...prev, customerManualAmount: e.target.value }))}
+                     className="text-lg text-center"
+                     autoFocus
+                   />
+                 </div>
+                 
+                 <div className="space-y-2">
+                   <p className="text-xs text-muted-foreground">
+                     Your credits will be automatically applied to reduce the amount
+                   </p>
+                   <div className="grid grid-cols-2 gap-2 text-xs">
+                     <div className="p-2 bg-blue-50 dark:bg-blue-950/20 rounded border">
+                       <span className="text-blue-600">Local Credits: {formatCurrencyDisplay(state.availableLocalCents)}</span>
+                     </div>
+                     <div className="p-2 bg-purple-50 dark:bg-purple-950/20 rounded border">
+                       <span className="text-purple-600">Network Credits: {formatCurrencyDisplay(state.availableNetworkCents)}</span>
+                     </div>
+                   </div>
+                 </div>
+                 
+                 <div className="flex gap-2">
+                   <Button 
+                     onClick={handleCustomerManualAmountSubmit} 
+                     className="flex-1"
+                     disabled={!state.customerManualAmount || parseFloat(state.customerManualAmount) <= 0}
+                   >
+                     Continue
+                   </Button>
+                   <Button 
+                     variant="outline" 
+                     onClick={() => setState(prev => ({ ...prev, customerManualAmountMode: false }))}
+                   >
+                     Cancel
+                   </Button>
+                 </div>
+               </CardContent>
+             </Card>
+           );
+         }
+         
+         // Normal customer-select flow
         const totalCreditsSelected = state.selectedLocalCents + state.selectedNetworkCents;
         return (
           <Card className="h-full">
