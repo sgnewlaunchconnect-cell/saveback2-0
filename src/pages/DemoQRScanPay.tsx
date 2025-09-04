@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { QRCodeSVG } from "qrcode.react";
 import { formatCurrencyDisplay } from "@/utils/currency";
 import { useToast } from "@/hooks/use-toast";
-import { QrCode, Smartphone, CheckCircle, CreditCard, Clock, Hash, Tag, Store, MapPin, Users, ArrowRight, X, User } from "lucide-react";
+import { QrCode, Smartphone, CheckCircle, CreditCard, Clock, Hash, Tag, Store, MapPin, Users, ArrowRight, X, User, Wifi, WifiOff } from "lucide-react";
 import DealBadge from "@/components/DealBadge";
 
 type DemoStep = 'grab-deal' | 'merchant-enter' | 'qr-generated' | 'customer-select' | 'awaiting-merchant' | 'processing' | 'complete';
@@ -44,6 +44,18 @@ interface MockDeal {
   address: string;
 }
 
+interface OfflineCollection {
+  id: string;
+  at: Date;
+  txId: string;
+  originalCents: number;
+  effectiveCents: number;
+  creditsLocalCents: number;
+  creditsNetworkCents: number;
+  collectedCents: number;
+  note: string;
+}
+
 interface DemoState {
   merchantStep: DemoStep;
   customerStep: DemoStep;
@@ -66,6 +78,9 @@ interface DemoState {
   currentlyServing?: string;
   currentHold?: HoldData;
   noShowCount: number;
+  isOnline: boolean;
+  forceOffline: boolean;
+  offlineCollections: OfflineCollection[];
 }
 
 const DemoQRScanPay = () => {
@@ -156,7 +171,10 @@ const DemoQRScanPay = () => {
     ],
     currentlyServing: undefined,
     currentHold: undefined,
-    noShowCount: 0
+    noShowCount: 0,
+    isOnline: navigator.onLine,
+    forceOffline: false,
+    offlineCollections: []
   });
 
   // Timer for countdown updates
@@ -212,6 +230,20 @@ const DemoQRScanPay = () => {
 
     return () => clearInterval(timer);
   }, [toast]);
+
+  // Connectivity listener for offline mode
+  useEffect(() => {
+    const handleOnline = () => setState(prev => ({ ...prev, isOnline: true }));
+    const handleOffline = () => setState(prev => ({ ...prev, isOnline: false }));
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Save display name to localStorage and update queue when it changes
   const updateDisplayName = (newName: string) => {
@@ -598,7 +630,10 @@ const DemoQRScanPay = () => {
       queue: prev.queue.filter(c => c.id !== prev.txId),
       currentlyServing: undefined,
       currentHold: undefined,
-      noShowCount: prev.noShowCount // Keep no-show count
+      noShowCount: prev.noShowCount, // Keep no-show count
+      isOnline: navigator.onLine,
+      forceOffline: false,
+      offlineCollections: []
     }));
   };
 
@@ -611,6 +646,43 @@ const DemoQRScanPay = () => {
       selectedNetworkCents: network,
       balanceCents: balance
     }));
+  };
+
+  const handleCollectCashOffline = () => {
+    const collectAmount = state.customerStep === 'customer-select' ? state.balanceCents : effectiveBillCents;
+    
+    const offlineCollection: OfflineCollection = {
+      id: Date.now().toString(),
+      at: new Date(),
+      txId: state.txId,
+      originalCents: amountCents,
+      effectiveCents: effectiveBillCents,
+      creditsLocalCents: state.selectedLocalCents,
+      creditsNetworkCents: state.selectedNetworkCents,
+      collectedCents: collectAmount,
+      note: "Offline collection (demo)"
+    };
+
+    const creditsEarnedCents = Math.floor(collectAmount * activeCashbackPct / 100);
+
+    setState(prev => ({
+      ...prev,
+      merchantStep: 'complete',
+      customerStep: 'complete',
+      creditsEarnedCents,
+      offlineCollections: [offlineCollection, ...prev.offlineCollections],
+      queue: prev.queue.filter(c => c.id !== prev.txId),
+      currentlyServing: undefined,
+      selectedDeal: undefined,
+      isReadyToPay: false,
+      currentHold: undefined
+    }));
+
+    toast({ 
+      title: "Offline Payment Collected", 
+      description: `${formatCurrencyDisplay(collectAmount)} collected in cash`,
+      variant: "default"
+    });
   };
 
 
@@ -654,18 +726,17 @@ const DemoQRScanPay = () => {
   };
 
   const handleSimulateIncoming = () => {
-    const names = ['David R.', 'Sarah M.', 'Mike T.', 'Lisa W.', 'Chris P.', 'Anna S.'];
-    const amounts = ['15.25', '22.50', '9.99', '18.75', '12.00', '27.80'];
+    const names = ['Sam B.', 'Taylor M.', 'Jordan A.', 'Casey R.', 'River P.', 'Morgan S.'];
     const randomName = names[Math.floor(Math.random() * names.length)];
-    const randomAmount = amounts[Math.floor(Math.random() * amounts.length)];
-    const randomDeal = Math.random() > 0.5 ? mockDeals[Math.floor(Math.random() * mockDeals.length)] : undefined;
+    const randomAmount = (Math.random() * 25 + 5).toFixed(2);
+    const randomDeal = Math.random() > 0.3 ? mockDeals[Math.floor(Math.random() * mockDeals.length)] : undefined;
     
     const newCustomer: QueueCustomer = {
-      id: `incoming-${Date.now()}`,
+      id: `demo-${Date.now()}`,
       displayName: randomName,
       deal: randomDeal,
       amount: randomAmount,
-      code6: Math.random().toString(36).substring(2, 8).toUpperCase(),
+      code6: Math.random().toString().slice(2, 8).padStart(6, '0'),
       isReadyToPay: true
     };
     
@@ -674,8 +745,12 @@ const DemoQRScanPay = () => {
       queue: [...prev.queue, newCustomer]
     }));
     
-    toast({ title: "New Customer", description: `${randomName} joined the queue` });
+    toast({ 
+      title: "New Customer Joined", 
+      description: `${randomName} joined the queue with ${randomDeal ? 'a deal' : 'default cashback'}` 
+    });
   };
+
 
   const renderMerchantScreen = () => {
     switch (state.merchantStep) {
@@ -879,12 +954,28 @@ const DemoQRScanPay = () => {
         );
 
       case 'qr-generated':
+        const effectiveOnline = state.isOnline && !state.forceOffline;
+        const collectAmount = state.customerStep === 'customer-select' ? state.balanceCents : effectiveBillCents;
+        
         return (
           <Card className="h-full">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <QrCode className="w-5 h-5" />
                 Payment QR Code
+                <div className="ml-auto flex items-center gap-2">
+                  <Badge variant={effectiveOnline ? "default" : "secondary"} className="text-xs">
+                    {effectiveOnline ? "Online" : "Offline"}
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setState(prev => ({ ...prev, forceOffline: !prev.forceOffline }))}
+                    className="h-6 text-xs px-2"
+                  >
+                    Force Offline (demo)
+                  </Button>
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-center">
@@ -900,39 +991,148 @@ const DemoQRScanPay = () => {
                   />
                 </div>
               )}
-              {state.qrPayload ? (
-                <div className="flex justify-center">
-                  <QRCodeSVG value={state.qrPayload} size={200} />
-                </div>
+
+              {effectiveOnline ? (
+                <>
+                  {state.qrPayload ? (
+                    <div className="flex justify-center">
+                      <QRCodeSVG value={state.qrPayload} size={200} />
+                    </div>
+                  ) : (
+                    <div className="p-4 text-center text-muted-foreground">
+                      <p>Call customer, key in amount, then Request Payment</p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-2xl font-bold">{formatCurrencyDisplay(effectiveBillCents)}</p>
+                    <p className="text-sm text-muted-foreground">Transaction: {state.txId}</p>
+                    <div className="flex items-center justify-center gap-1 mt-2">
+                      <Hash className="w-4 h-4" />
+                      <span className="font-mono text-lg font-bold">{state.code6}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Manual Code (fallback)</p>
+                  </div>
+                  
+                  {state.customerStep === 'customer-select' ? (
+                    <>
+                      <Badge variant="default">Customer selecting credits...</Badge>
+                      
+                      {/* Live "Net to Collect" Panel */}
+                      <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg text-left">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                          <span className="text-sm font-medium text-primary">Live Net to Collect</span>
+                          <Badge variant="secondary" className="text-xs">Live</Badge>
+                        </div>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span>Original Bill:</span>
+                            <span className="font-medium">{formatCurrencyDisplay(amountCents)}</span>
+                          </div>
+                          {discountCents > 0 && (
+                            <div className="flex justify-between">
+                              <span>Discount ({discountPct}%):</span>
+                              <span className="text-green-600">-{formatCurrencyDisplay(discountCents)}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between">
+                            <span>Effective Bill:</span>
+                            <span className="font-medium">{formatCurrencyDisplay(effectiveBillCents)}</span>
+                          </div>
+                          <div className="flex justify-between text-muted-foreground">
+                            <span>Local Credits:</span>
+                            <span>{formatCurrencyDisplay(state.selectedLocalCents)}</span>
+                          </div>
+                          <div className="flex justify-between text-muted-foreground">
+                            <span>Network Credits:</span>
+                            <span>{formatCurrencyDisplay(state.selectedNetworkCents)}</span>
+                          </div>
+                          <div className="flex justify-between text-muted-foreground">
+                            <span>Total Credits:</span>
+                            <span>{formatCurrencyDisplay(state.selectedLocalCents + state.selectedNetworkCents)}</span>
+                          </div>
+                          <Separator />
+                          <div className="flex justify-between text-lg font-bold text-primary">
+                            <span>Provisional Net to Collect:</span>
+                            <span>{formatCurrencyDisplay(state.balanceCents)}</span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2 text-center">
+                          Updates as customer toggles credits; final after customer confirms.
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <Badge variant="secondary">Waiting for customer scan...</Badge>
+                  )}
+                  
+                  <div className="pt-4 border-t">
+                    <p className="text-xs text-muted-foreground mb-2 text-center">
+                      For demo only — advances the customer screen to confirm payment
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full" 
+                      onClick={handleSimulateScan}
+                    >
+                      Demo: Simulate Customer Scan
+                    </Button>
+                  </div>
+                </>
               ) : (
-                <div className="p-4 text-center text-muted-foreground">
-                  <p>Call customer, key in amount, then Request Payment</p>
-                </div>
+                <>
+                  {/* Offline Mode */}
+                  <Badge variant="destructive" className="mb-4">Offline Mode</Badge>
+                  <div className="p-4 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+                    <p className="text-sm text-orange-800 dark:text-orange-200 mb-3">
+                      Ask customer to show <strong>Balance to Pay</strong> on their phone.<br />
+                      Collect that amount in cash.
+                    </p>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Amount to Collect:</span>
+                        <span className="text-lg font-bold">{formatCurrencyDisplay(collectAmount)}</span>
+                      </div>
+                    </div>
+                    <Button 
+                      onClick={handleCollectCashOffline}
+                      className="w-full mt-3" 
+                      size="lg"
+                      disabled={state.merchantStep !== 'qr-generated'}
+                    >
+                      Collect Cash (offline)
+                    </Button>
+                  </div>
+
+                  {/* Offline Collections List */}
+                  {state.offlineCollections.length > 0 && (
+                    <div className="mt-4 p-3 bg-muted/30 rounded-lg border text-left">
+                      <h4 className="text-sm font-medium mb-2">Offline collections (local)</h4>
+                      <div className="space-y-2 max-h-32 overflow-y-auto">
+                        {state.offlineCollections.slice(0, 3).map((collection) => (
+                          <div key={collection.id} className="text-xs p-2 bg-background rounded border">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <span className="font-medium">{formatCurrencyDisplay(collection.collectedCents)}</span>
+                                <span className="text-muted-foreground ml-2">
+                                  {collection.at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+                              <span className="text-muted-foreground">{collection.txId.slice(0, 8)}...</span>
+                            </div>
+                          </div>
+                        ))}
+                        {state.offlineCollections.length > 3 && (
+                          <p className="text-xs text-muted-foreground text-center">
+                            +{state.offlineCollections.length - 3} more
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
-              <div>
-                <p className="text-2xl font-bold">{formatCurrencyDisplay(effectiveBillCents)}</p>
-                <p className="text-sm text-muted-foreground">Transaction: {state.txId}</p>
-                <div className="flex items-center justify-center gap-1 mt-2">
-                  <Hash className="w-4 h-4" />
-                  <span className="font-mono text-lg font-bold">{state.code6}</span>
-                </div>
-                <p className="text-xs text-muted-foreground">Manual Code (fallback)</p>
-              </div>
-              <Badge variant="secondary">Waiting for customer scan...</Badge>
-              
-              <div className="pt-4 border-t">
-                <p className="text-xs text-muted-foreground mb-2 text-center">
-                  For demo only — advances the customer screen to confirm payment
-                </p>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full" 
-                  onClick={handleSimulateScan}
-                >
-                  Demo: Simulate Customer Scan
-                </Button>
-              </div>
             </CardContent>
           </Card>
         );
