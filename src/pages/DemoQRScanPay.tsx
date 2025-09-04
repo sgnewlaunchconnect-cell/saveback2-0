@@ -657,9 +657,14 @@ const DemoQRScanPay = () => {
   const handleCustomerEnterManualAmount = () => {
     setState(prev => ({
       ...prev,
+      customerStep: 'customer-select',
       customerManualAmountMode: true,
       customerManualAmount: ''
     }));
+    toast({
+      title: "Manual Entry Mode",
+      description: "Enter the bill amount from the cashier"
+    });
   };
 
   const handleCustomerManualAmountSubmit = () => {
@@ -1983,12 +1988,12 @@ const DemoQRScanPay = () => {
                    >
                      Continue
                    </Button>
-                   <Button 
-                     variant="outline" 
-                     onClick={() => setState(prev => ({ ...prev, customerManualAmountMode: false }))}
-                   >
-                     Cancel
-                   </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setState(prev => ({ ...prev, customerManualAmountMode: false, customerStep: 'qr-generated' }))}
+                    >
+                      Cancel
+                    </Button>
                  </div>
                </CardContent>
              </Card>
