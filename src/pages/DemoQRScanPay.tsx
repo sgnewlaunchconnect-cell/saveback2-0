@@ -1007,9 +1007,12 @@ const DemoQRScanPay = () => {
                   <span className="font-medium">{formatCurrencyDisplay(state.selectedNetworkCents)}</span>
                 </div>
                 <Separator />
-                <div className="flex justify-between text-lg font-bold">
-                  <span>Amount to Collect:</span>
-                  <span>{formatCurrencyDisplay(state.balanceCents)}</span>
+                {/* Highlighted Amount to Collect - Large and Prominent */}
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 text-center">
+                  <div className="text-sm text-muted-foreground mb-1">Amount to Collect</div>
+                  <div className="text-3xl md:text-4xl font-extrabold tabular-nums tracking-tight text-primary">
+                    {formatCurrencyDisplay(state.balanceCents)}
+                  </div>
                 </div>
               </div>
               <Button 
@@ -1078,9 +1081,12 @@ const DemoQRScanPay = () => {
                   <span className="font-medium">{formatCurrencyDisplay(state.selectedLocalCents + state.selectedNetworkCents)}</span>
                 </div>
                 <Separator />
-                <div className="flex justify-between text-lg font-bold">
-                  <span>Amount Collected:</span>
-                  <span>{formatCurrencyDisplay(state.balanceCents)}</span>
+                {/* Highlighted Amount Collected - Large and Prominent */}
+                <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4 text-center">
+                  <div className="text-sm text-muted-foreground mb-1">Amount Collected</div>
+                  <div className="text-3xl md:text-4xl font-extrabold tabular-nums tracking-tight text-green-600 dark:text-green-400">
+                    {formatCurrencyDisplay(state.balanceCents)}
+                  </div>
                 </div>
               </div>
               <Badge variant="secondary" className="w-full justify-center">
