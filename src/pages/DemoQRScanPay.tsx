@@ -984,9 +984,12 @@ const DemoQRScanPay = () => {
                 </div>
               )}
               <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>Original Bill:</span>
-                  <span className="font-medium">{formatCurrencyDisplay(amountCents)}</span>
+                {/* Highlighted Original Bill - Large and Prominent */}
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 text-center">
+                  <div className="text-sm text-muted-foreground mb-1">Original Bill</div>
+                  <div className="text-3xl md:text-4xl font-extrabold tabular-nums tracking-tight text-primary">
+                    {formatCurrencyDisplay(amountCents)}
+                  </div>
                 </div>
                 {discountCents > 0 && (
                   <div className="flex justify-between">
@@ -998,21 +1001,22 @@ const DemoQRScanPay = () => {
                   <span>Effective Bill:</span>
                   <span className="font-medium">{formatCurrencyDisplay(effectiveBillCents)}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between text-sm text-muted-foreground">
                   <span>Local Credits Used:</span>
                   <span className="font-medium">{formatCurrencyDisplay(state.selectedLocalCents)}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between text-sm text-muted-foreground">
                   <span>Network Credits Used:</span>
                   <span className="font-medium">{formatCurrencyDisplay(state.selectedNetworkCents)}</span>
                 </div>
+                <div className="flex justify-between font-medium">
+                  <span>Credits Used (Total):</span>
+                  <span>{formatCurrencyDisplay(state.selectedLocalCents + state.selectedNetworkCents)}</span>
+                </div>
                 <Separator />
-                {/* Highlighted Amount to Collect - Large and Prominent */}
-                <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 text-center">
-                  <div className="text-sm text-muted-foreground mb-1">Amount to Collect</div>
-                  <div className="text-3xl md:text-4xl font-extrabold tabular-nums tracking-tight text-primary">
-                    {formatCurrencyDisplay(state.balanceCents)}
-                  </div>
+                <div className="flex justify-between text-lg font-bold">
+                  <span>Amount to Collect:</span>
+                  <span>{formatCurrencyDisplay(state.balanceCents)}</span>
                 </div>
               </div>
               <Button 
@@ -1072,21 +1076,29 @@ const DemoQRScanPay = () => {
                 </div>
               )}
               <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>Total Amount:</span>
-                  <span className="font-medium">{formatCurrencyDisplay(amountCents)}</span>
+                {/* Highlighted Original Bill - Large and Prominent */}
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 text-center">
+                  <div className="text-sm text-muted-foreground mb-1">Original Bill</div>
+                  <div className="text-3xl md:text-4xl font-extrabold tabular-nums tracking-tight text-primary">
+                    {formatCurrencyDisplay(amountCents)}
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span>Credits Applied:</span>
-                  <span className="font-medium">{formatCurrencyDisplay(state.selectedLocalCents + state.selectedNetworkCents)}</span>
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Local Credits Used:</span>
+                  <span className="font-medium">{formatCurrencyDisplay(state.selectedLocalCents)}</span>
+                </div>
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Network Credits Used:</span>
+                  <span className="font-medium">{formatCurrencyDisplay(state.selectedNetworkCents)}</span>
+                </div>
+                <div className="flex justify-between font-medium">
+                  <span>Credits Used (Total):</span>
+                  <span>{formatCurrencyDisplay(state.selectedLocalCents + state.selectedNetworkCents)}</span>
                 </div>
                 <Separator />
-                {/* Highlighted Amount Collected - Large and Prominent */}
-                <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4 text-center">
-                  <div className="text-sm text-muted-foreground mb-1">Amount Collected</div>
-                  <div className="text-3xl md:text-4xl font-extrabold tabular-nums tracking-tight text-green-600 dark:text-green-400">
-                    {formatCurrencyDisplay(state.balanceCents)}
-                  </div>
+                <div className="flex justify-between text-lg font-bold text-green-600 dark:text-green-400">
+                  <span>Amount Collected:</span>
+                  <span>{formatCurrencyDisplay(state.balanceCents)}</span>
                 </div>
               </div>
               <Badge variant="secondary" className="w-full justify-center">
