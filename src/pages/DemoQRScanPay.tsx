@@ -919,6 +919,20 @@ const DemoQRScanPay = () => {
                 <p className="text-xs text-muted-foreground">Manual Code (fallback)</p>
               </div>
               <Badge variant="secondary">Waiting for customer scan...</Badge>
+              
+              <div className="pt-4 border-t">
+                <p className="text-xs text-muted-foreground mb-2 text-center">
+                  For demo only — advances the customer screen to confirm payment
+                </p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full" 
+                  onClick={handleSimulateScan}
+                >
+                  Demo: Simulate Customer Scan
+                </Button>
+              </div>
             </CardContent>
           </Card>
         );
