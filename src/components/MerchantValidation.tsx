@@ -11,9 +11,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { formatDistanceToNow } from "date-fns";
+import { formatCurrency } from "@/utils/currency";
 import MerchantValidationSimulator from "./MerchantValidationSimulator";
 import { MerchantCollectCashSimulator } from "./MerchantCollectCashSimulator";
 import { MerchantCompletedSimulator } from "./MerchantCompletedSimulator";
+import { MerchantLivePanel } from "./MerchantLivePanel";
 
 interface MerchantValidationProps {
   merchantId: string;
@@ -42,6 +44,7 @@ interface Transaction {
   expires_at: string;
   local_credits_used: number;
   network_credits_used: number;
+  discount_applied?: number;
 }
 
 
@@ -461,8 +464,9 @@ export default function MerchantValidation({ merchantId, isStaffTerminal = false
       </Card>
 
       <Tabs defaultValue="validate" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="validate">Validate</TabsTrigger>
+          <TabsTrigger value="pending">Pending ({pendingTransactions.length})</TabsTrigger>
           <TabsTrigger value="recent">Completed ({recentTransactions.length})</TabsTrigger>
         </TabsList>
 
@@ -599,6 +603,50 @@ export default function MerchantValidation({ merchantId, isStaffTerminal = false
           </Card>
         </TabsContent>
 
+        <TabsContent value="pending" className="space-y-4">
+          <div className="text-sm text-muted-foreground">
+            Active customer payments with live credit selection
+          </div>
+          
+          {pendingTransactions.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No pending transactions
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {pendingTransactions.map((transaction) => (
+                <Card key={transaction.id} className="border-orange-200 bg-orange-50/50">
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-lg font-mono">
+                          {transaction.payment_code}
+                        </CardTitle>
+                        <div className="text-sm text-orange-700">
+                          {formatCurrency(transaction.original_amount)} • Awaiting Customer
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(transaction.created_at), { addSuffix: true })}
+                        </div>
+                      </div>
+                      <Badge variant="secondary" className="bg-orange-100 text-orange-700">
+                        Pending
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <MerchantLivePanel
+                      paymentCode={transaction.payment_code}
+                      originalAmount={transaction.original_amount}
+                      finalAmount={transaction.final_amount}
+                      discountApplied={transaction.discount_applied || 0}
+                    />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
 
         <TabsContent value="recent" className="space-y-4">
           {/* Completed Flow Preview */}

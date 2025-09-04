@@ -683,12 +683,16 @@ export type Database = {
           captured_at: string | null
           created_at: string
           credits_applied: number | null
+          customer_credit_selection_at: string | null
+          customer_selected_local_credits: number | null
+          customer_selected_network_credits: number | null
           deal_id: string | null
           discount_applied: number | null
           expires_at: string
           final_amount: number | null
           grab_id: string | null
           id: string
+          live_net_amount: number | null
           local_credits_used: number | null
           merchant_id: string
           network_credits_used: number | null
@@ -705,12 +709,16 @@ export type Database = {
           captured_at?: string | null
           created_at?: string
           credits_applied?: number | null
+          customer_credit_selection_at?: string | null
+          customer_selected_local_credits?: number | null
+          customer_selected_network_credits?: number | null
           deal_id?: string | null
           discount_applied?: number | null
           expires_at?: string
           final_amount?: number | null
           grab_id?: string | null
           id?: string
+          live_net_amount?: number | null
           local_credits_used?: number | null
           merchant_id: string
           network_credits_used?: number | null
@@ -727,12 +735,16 @@ export type Database = {
           captured_at?: string | null
           created_at?: string
           credits_applied?: number | null
+          customer_credit_selection_at?: string | null
+          customer_selected_local_credits?: number | null
+          customer_selected_network_credits?: number | null
           deal_id?: string | null
           discount_applied?: number | null
           expires_at?: string
           final_amount?: number | null
           grab_id?: string | null
           id?: string
+          live_net_amount?: number | null
           local_credits_used?: number | null
           merchant_id?: string
           network_credits_used?: number | null
