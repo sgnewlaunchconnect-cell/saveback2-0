@@ -678,6 +678,7 @@ export type Database = {
       }
       pending_transactions: {
         Row: {
+          amount_entry_mode: string
           authorized_at: string | null
           captured_at: string | null
           created_at: string
@@ -685,13 +686,13 @@ export type Database = {
           deal_id: string | null
           discount_applied: number | null
           expires_at: string
-          final_amount: number
+          final_amount: number | null
           grab_id: string | null
           id: string
           local_credits_used: number | null
           merchant_id: string
           network_credits_used: number | null
-          original_amount: number
+          original_amount: number | null
           payment_code: string
           status: string | null
           updated_at: string
@@ -699,6 +700,7 @@ export type Database = {
           voided_at: string | null
         }
         Insert: {
+          amount_entry_mode?: string
           authorized_at?: string | null
           captured_at?: string | null
           created_at?: string
@@ -706,13 +708,13 @@ export type Database = {
           deal_id?: string | null
           discount_applied?: number | null
           expires_at?: string
-          final_amount: number
+          final_amount?: number | null
           grab_id?: string | null
           id?: string
           local_credits_used?: number | null
           merchant_id: string
           network_credits_used?: number | null
-          original_amount: number
+          original_amount?: number | null
           payment_code: string
           status?: string | null
           updated_at?: string
@@ -720,6 +722,7 @@ export type Database = {
           voided_at?: string | null
         }
         Update: {
+          amount_entry_mode?: string
           authorized_at?: string | null
           captured_at?: string | null
           created_at?: string
@@ -727,13 +730,13 @@ export type Database = {
           deal_id?: string | null
           discount_applied?: number | null
           expires_at?: string
-          final_amount?: number
+          final_amount?: number | null
           grab_id?: string | null
           id?: string
           local_credits_used?: number | null
           merchant_id?: string
           network_credits_used?: number | null
-          original_amount?: number
+          original_amount?: number | null
           payment_code?: string
           status?: string | null
           updated_at?: string
