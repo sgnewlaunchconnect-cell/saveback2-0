@@ -579,6 +579,41 @@ export type Database = {
           },
         ]
       }
+      merchant_terminals: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          label: string
+          merchant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          label: string
+          merchant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          label?: string
+          merchant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_terminals_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       merchants: {
         Row: {
           address: string | null
@@ -683,6 +718,7 @@ export type Database = {
           captured_at: string | null
           created_at: string
           credits_applied: number | null
+          customer_code: string | null
           customer_credit_selection_at: string | null
           customer_selected_local_credits: number | null
           customer_selected_network_credits: number | null
@@ -692,6 +728,7 @@ export type Database = {
           final_amount: number | null
           grab_id: string | null
           id: string
+          lane_token: string | null
           live_net_amount: number | null
           local_credits_used: number | null
           merchant_id: string
@@ -699,6 +736,7 @@ export type Database = {
           original_amount: number | null
           payment_code: string
           status: string | null
+          terminal_id: string | null
           updated_at: string
           user_id: string
           voided_at: string | null
@@ -709,6 +747,7 @@ export type Database = {
           captured_at?: string | null
           created_at?: string
           credits_applied?: number | null
+          customer_code?: string | null
           customer_credit_selection_at?: string | null
           customer_selected_local_credits?: number | null
           customer_selected_network_credits?: number | null
@@ -718,6 +757,7 @@ export type Database = {
           final_amount?: number | null
           grab_id?: string | null
           id?: string
+          lane_token?: string | null
           live_net_amount?: number | null
           local_credits_used?: number | null
           merchant_id: string
@@ -725,6 +765,7 @@ export type Database = {
           original_amount?: number | null
           payment_code: string
           status?: string | null
+          terminal_id?: string | null
           updated_at?: string
           user_id: string
           voided_at?: string | null
@@ -735,6 +776,7 @@ export type Database = {
           captured_at?: string | null
           created_at?: string
           credits_applied?: number | null
+          customer_code?: string | null
           customer_credit_selection_at?: string | null
           customer_selected_local_credits?: number | null
           customer_selected_network_credits?: number | null
@@ -744,6 +786,7 @@ export type Database = {
           final_amount?: number | null
           grab_id?: string | null
           id?: string
+          lane_token?: string | null
           live_net_amount?: number | null
           local_credits_used?: number | null
           merchant_id?: string
@@ -751,6 +794,7 @@ export type Database = {
           original_amount?: number | null
           payment_code?: string
           status?: string | null
+          terminal_id?: string | null
           updated_at?: string
           user_id?: string
           voided_at?: string | null
@@ -775,6 +819,13 @@ export type Database = {
             columns: ["merchant_id"]
             isOneToOne: false
             referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_transactions_terminal_id_fkey"
+            columns: ["terminal_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_terminals"
             referencedColumns: ["id"]
           },
         ]
@@ -1078,6 +1129,7 @@ export type Database = {
           payment_methods: Json | null
           phone: string | null
           photo_url: string | null
+          role: string | null
           settings: Json | null
           tier_level: string | null
           tier_points: number | null
@@ -1099,6 +1151,7 @@ export type Database = {
           payment_methods?: Json | null
           phone?: string | null
           photo_url?: string | null
+          role?: string | null
           settings?: Json | null
           tier_level?: string | null
           tier_points?: number | null
@@ -1120,6 +1173,7 @@ export type Database = {
           payment_methods?: Json | null
           phone?: string | null
           photo_url?: string | null
+          role?: string | null
           settings?: Json | null
           tier_level?: string | null
           tier_points?: number | null

@@ -25,6 +25,7 @@ import Redeem from "./pages/Redeem";
 import DemoBanner from "./components/DemoBanner";
 import DemoDualScreens from "./pages/DemoDualScreens";
 import DemoQRScanPay from "./pages/DemoQRScanPay";
+import DemoFlow3 from "./pages/DemoFlow3";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +58,7 @@ const App = () => (
           <Route path="/customer/validate" element={<CustomerValidation />} />
           <Route path="/demo/split" element={<DemoDualScreens />} />
           <Route path="/demo/qr" element={<DemoQRScanPay />} />
+          <Route path="/demo/flow3" element={<DemoFlow3 />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
