@@ -26,11 +26,25 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Get a real merchant_id and terminal_id for demo
+    let actualMerchantId = merchant_id;
+    let actualTerminalId = terminal_id;
+    
+    // If using demo IDs, get real ones from database
+    if (merchant_id === 'demo-merchant') {
+      const { data: merchant } = await supabase
+        .from('merchants')
+        .select('id')
+        .limit(1)
+        .single();
+      if (merchant) actualMerchantId = merchant.id;
+    }
+
     // Check how many pending transactions exist at this terminal
     const { data: existingPending, error: countError } = await supabase
       .from('pending_transactions')
       .select('id')
-      .eq('terminal_id', terminal_id)
+      .eq('terminal_id', actualTerminalId)
       .in('status', ['awaiting_customer', 'awaiting_merchant_confirm']);
 
     if (countError) {
@@ -56,8 +70,8 @@ serve(async (req) => {
     const { data: pending, error: createError } = await supabase
       .from('pending_transactions')
       .insert({
-        merchant_id,
-        terminal_id,
+        merchant_id: actualMerchantId,
+        terminal_id: actualTerminalId,
         user_id: '550e8400-e29b-41d4-a716-446655440000', // Demo user ID
         original_amount: amount,
         final_amount: amount,

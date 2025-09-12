@@ -26,6 +26,8 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Handle demo scenarios - these functions work with real terminal IDs from the frontend now
+
     let query = supabase
       .from('pending_transactions')
       .select('*')

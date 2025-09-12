@@ -26,6 +26,17 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Handle demo merchant ID
+    let actualMerchantId = merchant_id;
+    if (merchant_id === 'demo-merchant') {
+      const { data: merchant } = await supabase
+        .from('merchants')
+        .select('id')
+        .limit(1)
+        .single();
+      if (merchant) actualMerchantId = merchant.id;
+    }
+
     // Find pending transactions at this terminal
     const { data: pending, error } = await supabase
       .from('pending_transactions')

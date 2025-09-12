@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -56,14 +56,42 @@ export function useFlow3State() {
 
   const [demoState, setDemoState] = useState<DemoState>({
     activeMerchant: { id: 'demo-merchant', name: 'Kaeden Coffee' },
-    terminals: [
-      { id: 'term-1', label: 'Main Counter' },
-      { id: 'term-2', label: 'Stall 1' },
-      { id: 'term-3', label: 'Stall 2' },
-    ],
+    terminals: [], // Will be loaded from database
     demoCredits: { local: 12.00, network: 6.00 },
     simulationMode: 'quiet',
   });
+
+  // Load terminals on mount
+  useEffect(() => {
+    const loadTerminals = async () => {
+      try {
+        const { data: terminals, error } = await supabase
+          .from('merchant_terminals')
+          .select('id, label')
+          .eq('is_active', true)
+          .limit(3);
+
+        if (!error && terminals) {
+          setDemoState(prev => ({
+            ...prev,
+            terminals: terminals.map(t => ({ id: t.id, label: t.label }))
+          }));
+          
+          // Set first terminal as default selection
+          if (terminals.length > 0) {
+            setMerchantState(prev => ({
+              ...prev,
+              selectedTerminal: terminals[0].id
+            }));
+          }
+        }
+      } catch (error) {
+        console.error('Error loading terminals:', error);
+      }
+    };
+
+    loadTerminals();
+  }, []);
 
   // Merchant Actions
   const createPendingTransaction = useCallback(async () => {
