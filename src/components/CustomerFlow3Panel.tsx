@@ -60,14 +60,16 @@ export function CustomerFlow3Panel({ state, actions, demoState }: CustomerFlow3P
         </div>
 
         <Card className="p-4 cursor-pointer hover:bg-accent/50 border-primary" 
-              onClick={() => actions.setSelectedMerchant('kaeden')}>
+              onClick={() => actions.setSelectedMerchant(demoState.activeMerchant.id)}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
               <Store className="h-5 w-5 text-primary" />
             </div>
             <div>
               <div className="font-medium">{demoState.activeMerchant.name}</div>
-              <div className="text-sm text-muted-foreground">Demo merchant</div>
+              <div className="text-sm text-muted-foreground">
+                {demoState.activeMerchant.id ? 'Connected' : 'Loading...'}
+              </div>
             </div>
           </div>
         </Card>

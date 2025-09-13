@@ -55,30 +55,64 @@ export function useFlow3State() {
   });
 
   const [demoState, setDemoState] = useState<DemoState>({
-    activeMerchant: { id: 'demo-merchant', name: 'Kaeden Coffee' },
+    activeMerchant: { id: '', name: 'Kaeden Coffee' },
     terminals: [], // Will be loaded from database
     demoCredits: { local: 12.00, network: 6.00 },
     simulationMode: 'quiet',
   });
 
-  // Load terminals on mount
+  // Load terminals and merchant on mount
   useEffect(() => {
-    const loadTerminals = async () => {
+    const loadData = async () => {
       try {
-        const { data: terminals, error } = await supabase
-          .from('merchant_terminals')
-          .select('id, label')
+        // Load a real merchant first
+        const { data: merchants, error: merchantError } = await supabase
+          .from('merchants')
+          .select('id, name')
           .eq('is_active', true)
+          .limit(1);
+
+        if (merchantError) throw merchantError;
+
+        const merchant = merchants?.[0] || { id: 'demo-merchant', name: 'Kaeden Coffee' };
+
+        // Load terminals for this merchant
+        const { data: terminals, error: terminalError } = await supabase
+          .from('merchant_terminals')
+          .select('id, label, merchant_id')
+          .eq('is_active', true)
+          .eq('merchant_id', merchant.id)
           .limit(3);
 
-        if (!error && terminals) {
+        if (terminalError) {
+          console.warn('No terminals found for merchant, using demo mode');
+          // Fallback: load any terminals
+          const { data: fallbackTerminals } = await supabase
+            .from('merchant_terminals')
+            .select('id, label')
+            .eq('is_active', true)
+            .limit(3);
+
           setDemoState(prev => ({
             ...prev,
-            terminals: terminals.map(t => ({ id: t.id, label: t.label }))
+            activeMerchant: merchant,
+            terminals: fallbackTerminals?.map(t => ({ id: t.id, label: t.label })) || []
           }));
-          
-          // Set first terminal as default selection
-          if (terminals.length > 0) {
+
+          if (fallbackTerminals?.length > 0) {
+            setMerchantState(prev => ({
+              ...prev,
+              selectedTerminal: fallbackTerminals[0].id
+            }));
+          }
+        } else {
+          setDemoState(prev => ({
+            ...prev,
+            activeMerchant: merchant,
+            terminals: terminals?.map(t => ({ id: t.id, label: t.label })) || []
+          }));
+
+          if (terminals?.length > 0) {
             setMerchantState(prev => ({
               ...prev,
               selectedTerminal: terminals[0].id
@@ -86,11 +120,16 @@ export function useFlow3State() {
           }
         }
       } catch (error) {
-        console.error('Error loading terminals:', error);
+        console.error('Error loading data:', error);
+        // Fallback to demo mode
+        setDemoState(prev => ({
+          ...prev,
+          activeMerchant: { id: 'demo-merchant', name: 'Kaeden Coffee' }
+        }));
       }
     };
 
-    loadTerminals();
+    loadData();
   }, []);
 
   // Merchant Actions
@@ -174,13 +213,18 @@ export function useFlow3State() {
 
   // Customer Actions
   const findPendingTransaction = useCallback(async () => {
+    if (!demoState.activeMerchant.id) {
+      toast.error('Merchant not loaded yet');
+      return;
+    }
+
     setCustomerState(prev => ({ ...prev, isLoading: true }));
 
     try {
       const { data, error } = await supabase.functions.invoke('findPendingFlow3', {
         body: {
           merchant_id: demoState.activeMerchant.id,
-          terminal_id: customerState.selectedMerchant || merchantState.selectedTerminal,
+          terminal_id: merchantState.selectedTerminal,
         },
       });
 
@@ -201,11 +245,11 @@ export function useFlow3State() {
       }
     } catch (error) {
       console.error('Error finding pending transaction:', error);
-      toast.error('No pending bills found');
+      toast.error('No pending bills found. Create a bill first.');
     } finally {
       setCustomerState(prev => ({ ...prev, isLoading: false }));
     }
-  }, [demoState.activeMerchant.id, customerState.selectedMerchant, merchantState.selectedTerminal]);
+  }, [demoState.activeMerchant.id, merchantState.selectedTerminal]);
 
   const claimWithToken = useCallback(async () => {
     if (!customerState.laneToken) {
@@ -218,7 +262,7 @@ export function useFlow3State() {
     try {
       const { data, error } = await supabase.functions.invoke('claimPendingFlow3', {
         body: {
-          terminal_id: customerState.selectedMerchant || merchantState.selectedTerminal,
+          terminal_id: merchantState.selectedTerminal,
           lane_token: customerState.laneToken,
         },
       });
@@ -237,7 +281,7 @@ export function useFlow3State() {
     } finally {
       setCustomerState(prev => ({ ...prev, isLoading: false }));
     }
-  }, [customerState.laneToken, customerState.selectedMerchant, merchantState.selectedTerminal]);
+  }, [customerState.laneToken, merchantState.selectedTerminal]);
 
   const applyCredits = useCallback(async () => {
     if (!customerState.claimedTransaction || !customerState.creditAmount) {
