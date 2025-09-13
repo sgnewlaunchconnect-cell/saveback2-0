@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { MerchantFlow3Panel } from '@/components/MerchantFlow3Panel';
 import { CustomerFlow3Panel } from '@/components/CustomerFlow3Panel';
-import { DemoFlow3Controls } from '@/components/DemoFlow3Controls';
+
 import { useFlow3State } from '@/hooks/useFlow3State';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -86,20 +86,6 @@ export default function DemoFlow3() {
           </Card>
         </div>
 
-        {/* Demo Controls */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Demo Simulation Controls</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <DemoFlow3Controls 
-              state={demoState}
-              actions={actions.demo}
-              merchantActions={actions.merchant}
-              customerActions={actions.customer}
-            />
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

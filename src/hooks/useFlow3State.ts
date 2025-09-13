@@ -203,6 +203,12 @@ export function useFlow3State() {
         confirmationStep: false,
         customerCode: '',
       }));
+
+      // Trigger customer success step
+      setCustomerState(prev => ({
+        ...prev,
+        step: 'success',
+      }));
     } catch (error) {
       console.error('Error confirming transaction:', error);
       toast.error('Failed to confirm transaction');

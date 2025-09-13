@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Slider } from '@/components/ui/slider';
+
 import { 
   Store, 
   Search, 
@@ -144,11 +144,13 @@ export function CustomerFlow3Panel({ state, actions, demoState }: CustomerFlow3P
 
   // Step 3: Apply Credits
   if (state.step === 'credits') {
+    const maxCreditsToUse = Math.min(state.maxCredits, totalCredits);
+    
     return (
       <div className="space-y-6">
         <div className="text-center">
           <CreditCard className="h-12 w-12 mx-auto text-primary mb-3" />
-          <h3 className="text-lg font-semibold mb-2">Apply Credits</h3>
+          <h3 className="text-lg font-semibold mb-2">Payment Options</h3>
           <p className="text-sm text-muted-foreground">
             Bill: ${state.claimedTransaction?.amount?.toFixed(2)}
           </p>
@@ -173,72 +175,52 @@ export function CustomerFlow3Panel({ state, actions, demoState }: CustomerFlow3P
           </div>
         </Card>
 
-        {/* Credit Selection */}
-        <div className="space-y-4">
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <Label htmlFor="credit-amount">Credits to Use</Label>
-              <span className="text-sm text-muted-foreground">
-                Max 50%: ${state.maxCredits?.toFixed(2)}
-              </span>
+        {/* Payment Options */}
+        <div className="space-y-3">
+          <Button
+            variant="outline"
+            onClick={() => {
+              actions.setCreditAmount('0');
+              actions.applyCredits();
+            }}
+            disabled={state.isLoading}
+            className="w-full h-auto p-4"
+          >
+            <div className="text-center">
+              <div className="font-medium">Pay Full Amount</div>
+              <div className="text-sm text-muted-foreground">
+                ${state.claimedTransaction?.amount?.toFixed(2)} (No credits used)
+              </div>
             </div>
-            <div className="space-y-3">
-              <Slider
-                value={[creditValue]}
-                onValueChange={(value) => actions.setCreditAmount(value[0].toString())}
-                max={Math.min(state.maxCredits, totalCredits)}
-                step={0.01}
-                className="w-full"
-              />
-              <Input
-                id="credit-amount"
-                type="number"
-                step="0.01"
-                value={state.creditAmount}
-                onChange={(e) => actions.setCreditAmount(e.target.value)}
-                placeholder="0.00"
-              />
-            </div>
-          </div>
+          </Button>
 
-          {/* Payment Preview */}
-          {creditValue > 0 && (
-            <Card className="p-4 bg-primary/5">
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span>Bill Amount:</span>
-                  <span>${state.claimedTransaction?.amount?.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Credits Applied:</span>
-                  <span>-${creditValue.toFixed(2)}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between font-medium">
-                  <span>You'll Pay:</span>
-                  <span>${(state.claimedTransaction?.amount - creditValue).toFixed(2)}</span>
+          {maxCreditsToUse > 0 && (
+            <Button
+              onClick={() => {
+                actions.setCreditAmount(maxCreditsToUse.toString());
+                actions.applyCredits();
+              }}
+              disabled={state.isLoading}
+              className="w-full h-auto p-4"
+            >
+              <div className="text-center">
+                <div className="font-medium">Use Credits</div>
+                <div className="text-sm opacity-90">
+                  Apply ${maxCreditsToUse.toFixed(2)} credits • Pay ${(state.claimedTransaction?.amount - maxCreditsToUse).toFixed(2)}
                 </div>
               </div>
-            </Card>
+            </Button>
           )}
         </div>
 
-        <div className="flex gap-2">
-          <Button
-            onClick={actions.applyCredits}
-            disabled={!creditValue || state.isLoading}
-            className="flex-1"
-          >
-            {state.isLoading ? 'Applying...' : 'Apply Credits'}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => actions.setStep('select')}
-            disabled={state.isLoading}
-          >
-            Cancel
-          </Button>
-        </div>
+        <Button
+          variant="ghost"
+          onClick={() => actions.setStep('select')}
+          disabled={state.isLoading}
+          className="w-full"
+        >
+          Cancel
+        </Button>
       </div>
     );
   }
@@ -286,6 +268,54 @@ export function CustomerFlow3Panel({ state, actions, demoState }: CustomerFlow3P
             Pay the remaining amount via cash or PayNow
           </p>
         </div>
+      </div>
+    );
+  }
+
+  // Step 5: Payment Success
+  if (state.step === 'success') {
+    return (
+      <div className="space-y-6">
+        <div className="text-center">
+          <CheckCircle2 className="h-12 w-12 mx-auto text-green-500 mb-3" />
+          <h3 className="text-lg font-semibold mb-2">Payment Complete!</h3>
+          <p className="text-sm text-muted-foreground">
+            Thank you for your purchase
+          </p>
+        </div>
+
+        {/* Transaction Summary */}
+        <Card className="p-4 bg-green-50 border-green-200">
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span>Bill Amount:</span>
+              <span>${state.claimedTransaction?.amount?.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Credits Used:</span>
+              <span>-${creditValue.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Amount Paid:</span>
+              <span>${(state.claimedTransaction?.amount - creditValue).toFixed(2)}</span>
+            </div>
+            <Separator />
+            <div className="flex justify-between font-medium text-green-700">
+              <span>Transaction Complete</span>
+              <CheckCircle2 className="h-4 w-4" />
+            </div>
+          </div>
+        </Card>
+
+        <Button
+          onClick={() => {
+            actions.setStep('select');
+            actions.setSelectedMerchant('');
+          }}
+          className="w-full"
+        >
+          Start New Transaction
+        </Button>
       </div>
     );
   }
